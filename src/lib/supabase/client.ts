@@ -2,11 +2,11 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
-import { getSupabaseAnonConfig } from "@/lib/env";
+import { getSupabasePublishableConfig } from "@/lib/env";
 import type { Database } from "@/lib/supabase/types";
 
 export function createClient() {
-  const { url, anonKey } = getSupabaseAnonConfig();
+  const { url, publishableKey } = getSupabasePublishableConfig();
 
-  return createBrowserClient<Database>(url, anonKey);
+  return createBrowserClient<Database>(url, publishableKey);
 }

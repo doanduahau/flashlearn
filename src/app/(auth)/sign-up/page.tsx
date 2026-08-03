@@ -16,7 +16,7 @@ export default function SignUpPage() {
         FlashLearn
       </div>
 
-      <div className="w-full max-w-sm rounded-3xl border border-border-soft bg-surface p-8 text-center shadow-[0_8px_24px_rgba(39,93,70,0.08)]">
+      <div className="w-full max-w-sm rounded-3xl border border-border-soft bg-surface p-8 text-center shadow-soft-card">
         <h1 className="font-heading text-xl font-bold">Tạo tài khoản</h1>
         <p className="mt-2 text-sm text-text-secondary">
           Đăng ký sẽ được bật ở Phase 2 khi tích hợp Supabase Auth.

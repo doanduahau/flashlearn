@@ -1,21 +1,21 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getSupabaseAnonConfig } from "@/lib/env";
+import { getSupabasePublishableConfig } from "@/lib/env";
 import type { Database } from "@/lib/supabase/types";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  let config: ReturnType<typeof getSupabaseAnonConfig> | null = null;
+  let config: ReturnType<typeof getSupabasePublishableConfig> | null = null;
   try {
-    config = getSupabaseAnonConfig();
+    config = getSupabasePublishableConfig();
   } catch {
     // Supabase is not configured yet; the request passes through untouched.
     return supabaseResponse;
   }
 
-  const supabase = createServerClient<Database>(config.url, config.anonKey, {
+  const supabase = createServerClient<Database>(config.url, config.publishableKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

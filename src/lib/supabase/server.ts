@@ -1,14 +1,16 @@
+import "server-only";
+
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-import { getSupabaseAnonConfig } from "@/lib/env";
+import { getSupabasePublishableConfig } from "@/lib/env";
 import type { Database } from "@/lib/supabase/types";
 
 export async function createClient() {
   const cookieStore = await cookies();
-  const { url, anonKey } = getSupabaseAnonConfig();
+  const { url, publishableKey } = getSupabasePublishableConfig();
 
-  return createServerClient<Database>(url, anonKey, {
+  return createServerClient<Database>(url, publishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -17,7 +19,7 @@ export async function createClient() {
         try {
           cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
         } catch {
-          // Called from a Server Component; cookie writes are handled by the middleware.
+          // Called from a Server Component; cookie writes are handled by the proxy.
         }
       },
     },

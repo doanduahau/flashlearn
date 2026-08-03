@@ -1,2 +1,20 @@
--- Development seed data will be added in Phase 2 together with authentication
--- and the flashcard schema. Seed data must never contain real user data.
+-- Development seed data for FlashLearn.
+--
+-- Every core table (profiles, flashcard_sets, flashcards, special_collections,
+-- special_collection_items) is owned by an Auth user, and row-level security
+-- only exposes a user's own rows. There is no meaningful seed to insert here
+-- without inventing fake users, so this file intentionally stays empty.
+--
+-- Local development workflow:
+--
+--   1. Start the local stack:            npm run supabase:start
+--   2. Reset the database:               npm run db:reset
+--   3. Open the Studio UI:               http://localhost:54323
+--   4. In Studio -> Authentication, create a user (or sign up from the app).
+--      The handle_new_user trigger automatically creates that user's profile
+--      with the display_name copied from their raw user metadata.
+--   5. All flashcard data you create while signed in belongs to that user.
+--
+-- Database tests (pgTAP) cover profiles, ownership, constraints, cascades and
+-- triggers; run them with:  npm run db:test
+--

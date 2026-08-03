@@ -41,21 +41,44 @@ npm run dev
 
 Mở [http://localhost:3000](http://localhost:3000).
 
+## Database (Supabase local)
+
+Cần Docker Desktop đang chạy. Các lệnh dùng CLI Supabase qua npm scripts:
+
+```bash
+npm run supabase:start    # khởi động stack Supabase local (Postgres, Auth, Studio)
+npm run supabase:stop     # dừng stack
+npm run db:reset          # build lại database từ migrations + seed
+npm run db:test           # chạy pgTAP test (supabase/tests/*.sql)
+npm run db:types          # sinh lại src/lib/supabase/types.ts
+```
+
+- Studio UI: <http://localhost:54323>
+- Postgres local: `localhost:54322` (postgres/postgres)
+- Tạo user trong Studio → Authentication (hoặc đăng ký từ app); trigger
+  `handle_new_user` tự tạo `profiles` tương ứng.
+- Chi tiết schema, constraints, RLS và grants xem `docs/DATABASE.md`.
+
 ## Scripts
 
-| Lệnh                   | Mô tả                                |
-| ---------------------- | ------------------------------------ |
-| `npm run dev`          | Chạy dev server                      |
-| `npm run build`        | Build production                     |
-| `npm run start`        | Chạy production build                |
-| `npm run lint`         | Kiểm tra ESLint                      |
-| `npm run typecheck`    | Kiểm tra TypeScript                  |
-| `npm run format`       | Format toàn bộ code bằng Prettier    |
-| `npm run format:check` | Kiểm tra định dạng Prettier          |
-| `npm run test`         | Chạy unit test (Vitest)              |
-| `npm run test:watch`   | Chạy unit test ở chế độ watch        |
-| `npm run test:e2e`     | Chạy E2E test (Playwright)           |
-| `npm run check`        | Lint + typecheck + unit test + build |
+| Lệnh                     | Mô tả                                |
+| ------------------------ | ------------------------------------ |
+| `npm run dev`            | Chạy dev server                      |
+| `npm run build`          | Build production                     |
+| `npm run start`          | Chạy production build                |
+| `npm run lint`           | Kiểm tra ESLint                      |
+| `npm run typecheck`      | Kiểm tra TypeScript                  |
+| `npm run format`         | Format toàn bộ code bằng Prettier    |
+| `npm run format:check`   | Kiểm tra định dạng Prettier          |
+| `npm run test`           | Chạy unit test (Vitest)              |
+| `npm run test:watch`     | Chạy unit test ở chế độ watch        |
+| `npm run test:e2e`       | Chạy E2E test (Playwright)           |
+| `npm run check`          | Lint + typecheck + unit test + build |
+| `npm run supabase:start` | Khởi động Supabase local             |
+| `npm run supabase:stop`  | Dừng Supabase local                  |
+| `npm run db:reset`       | Reset database local                 |
+| `npm run db:test`        | Chạy pgTAP test database             |
+| `npm run db:types`       | Sinh TypeScript types từ database    |
 
 Playwright cần cài browser lần đầu:
 
@@ -76,8 +99,14 @@ src/
 └── types/
 supabase/
 ├── migrations/        # SQL migrations
+├── tests/             # pgTAP database tests
 ├── seed.sql
 └── config.toml
+docs/
+├── ARCHITECTURE.md    # Kiến trúc tổng quan
+├── DATABASE.md        # Schema, RLS, constraints, commands
+├── DECISIONS/         # ADRs
+└── QA/                # Báo cáo QA
 tests/
 ├── unit/
 ├── integration/

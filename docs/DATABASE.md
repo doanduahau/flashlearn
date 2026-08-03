@@ -1,0 +1,206 @@
+# Database
+
+## Overview
+
+FlashLearn uses Supabase (PostgreSQL 15) as its database. This document describes the
+foundation schema, its constraints, indexes, triggers and row-level security policies.
+
+The core foundation intentionally covers only data ownership: `profiles`,
+`flashcard_sets`, `flashcards`, `special_collections` and `special_collection_items`.
+Quiz attempts, learning statistics and streak tables are added in later phases.
+
+## ERD
+
+```mermaid
+erDiagram
+    AUTH_USERS ||--o| PROFILES : "id = id"
+    AUTH_USERS ||--o{ FLASHCARD_SETS : "owns"
+    AUTH_USERS ||--o{ FLASHCARDS : "owns"
+    AUTH_USERS ||--o{ SPECIAL_COLLECTIONS : "owns"
+    AUTH_USERS ||--o{ SPECIAL_COLLECTION_ITEMS : "owns"
+    FLASHCARD_SETS ||--o{ FLASHCARDS : "(user_id, id) = (user_id, set_id)"
+    FLASHCARDS ||--o{ SPECIAL_COLLECTION_ITEMS : "(user_id, id) = (user_id, flashcard_id)"
+    SPECIAL_COLLECTIONS ||--o{ SPECIAL_COLLECTION_ITEMS : "(user_id, id) = (user_id, collection_id)"
+```
+
+## Schemas
+
+| Table                      | Purpose                                        |
+| -------------------------- | ---------------------------------------------- |
+| `profiles`                 | Per-user profile, one row per Auth user        |
+| `flashcard_sets`           | Regular flashcard sets (one per import)        |
+| `flashcards`               | Flashcard rows owned by a user within a set    |
+| `special_collections`      | User-created collections that group flashcards |
+| `special_collection_items` | Membership link between a collection and card  |
+
+## Tables
+
+### `public.profiles`
+
+| Column         | Type          | Default              | Notes                                       |
+| -------------- | ------------- | -------------------- | ------------------------------------------- |
+| `id`           | `uuid`        | —                    | PK, FK → `auth.users(id)` ON DELETE CASCADE |
+| `display_name` | `text`        | —                    | NULL if blank; max 100 chars                |
+| `avatar_url`   | `text`        | —                    | max 500 chars                               |
+| `timezone`     | `text`        | `'Asia/Ho_Chi_Minh'` | max 64 chars                                |
+| `created_at`   | `timestamptz` | `now()`              |                                             |
+| `updated_at`   | `timestamptz` | `now()`              | refreshed by trigger                        |
+
+Rows are created only by the `handle_new_user` trigger (one per Auth user). There is no
+public INSERT policy, so users cannot create a profile for another Auth user.
+
+### `public.flashcard_sets`
+
+| Column            | Type          | Default             | Notes                                   |
+| ----------------- | ------------- | ------------------- | --------------------------------------- |
+| `id`              | `uuid`        | `gen_random_uuid()` | PK                                      |
+| `user_id`         | `uuid`        | —                   | FK → `auth.users(id)` ON DELETE CASCADE |
+| `name`            | `text`        | —                   | non-blank; max 120 chars                |
+| `description`     | `text`        | —                   | max 500 chars                           |
+| `source_filename` | `text`        | —                   | max 255 chars                           |
+| `created_at`      | `timestamptz` | `now()`             |                                         |
+| `updated_at`      | `timestamptz` | `now()`             | refreshed by trigger                    |
+
+Duplicate set names are allowed in the MVP: the same name may be reused across users,
+and even by one user when a new import is created. See
+`docs/DECISIONS/001-core-data-ownership.md`.
+
+### `public.flashcards`
+
+| Column       | Type          | Default             | Notes                                   |
+| ------------ | ------------- | ------------------- | --------------------------------------- |
+| `id`         | `uuid`        | `gen_random_uuid()` | PK                                      |
+| `user_id`    | `uuid`        | —                   | FK → `auth.users(id)` ON DELETE CASCADE |
+| `set_id`     | `uuid`        | —                   | See ownership FK below                  |
+| `front`      | `text`        | —                   | non-blank; max 50000 chars              |
+| `back`       | `text`        | —                   | non-blank; max 50000 chars              |
+| `position`   | `integer`     | `0`                 | `>= 0`                                  |
+| `created_at` | `timestamptz` | `now()`             |                                         |
+| `updated_at` | `timestamptz` | `now()`             | refreshed by trigger                    |
+
+Ownership FK: `(user_id, set_id)` → `flashcard_sets(user_id, id)` ON DELETE CASCADE.
+This guarantees a flashcard's owner and its set's owner are always the same user,
+at the database level.
+
+### `public.special_collections`
+
+| Column       | Type          | Default             | Notes                                   |
+| ------------ | ------------- | ------------------- | --------------------------------------- |
+| `id`         | `uuid`        | `gen_random_uuid()` | PK                                      |
+| `user_id`    | `uuid`        | —                   | FK → `auth.users(id)` ON DELETE CASCADE |
+| `name`       | `text`        | —                   | non-blank; max 60 chars                 |
+| `icon`       | `text`        | —                   | max 32 chars                            |
+| `color`      | `text`        | —                   | max 32 chars                            |
+| `created_at` | `timestamptz` | `now()`             |                                         |
+| `updated_at` | `timestamptz` | `now()`             | refreshed by trigger                    |
+
+Collection names are unique per user with a case-insensitive comparison
+(`unique index (user_id, lower(name))`).
+
+### `public.special_collection_items`
+
+| Column          | Type          | Notes                                   |
+| --------------- | ------------- | --------------------------------------- |
+| `user_id`       | `uuid`        | FK → `auth.users(id)` ON DELETE CASCADE |
+| `collection_id` | `uuid`        | part of PK, composite FK                |
+| `flashcard_id`  | `uuid`        | part of PK, composite FK                |
+| `created_at`    | `timestamptz` | default `now()`                         |
+
+- PK: `(collection_id, flashcard_id)` — a card belongs to a collection at most once.
+- Composite FKs enforce that both the collection and the flashcard belong to the same
+  user as the membership:
+  - `(user_id, collection_id)` → `special_collections(user_id, id)`
+  - `(user_id, flashcard_id)` → `flashcards(user_id, id)`
+- Both FKs are ON DELETE CASCADE, so deleting a collection or a flashcard removes the
+  membership automatically. No UPDATE policy exists: the table has no meaningful
+  updatable fields.
+
+## Triggers
+
+| Trigger                | Table        | When          | Function                   |
+| ---------------------- | ------------ | ------------- | -------------------------- |
+| `set_updated_at`       | all 4 core   | BEFORE UPDATE | `public.set_updated_at()`  |
+| `on_auth_user_created` | `auth.users` | AFTER INSERT  | `public.handle_new_user()` |
+
+- `set_updated_at()` refreshes `updated_at = now()` on every row update.
+- `handle_new_user()` creates one profile per new Auth user. It is `SECURITY DEFINER`
+  with an empty `search_path`. Only the `display_name` field is copied from the raw user
+  metadata, validated and trimmed; unknown metadata is ignored.
+
+## Row Level Security
+
+All five core tables have RLS enabled. Policies follow a strict ownership model based on
+`auth.uid()` (the `sub` claim of the authenticated JWT). Anonymous users are denied
+entirely (no `anon` grants).
+
+| Table                      | Policies (all `to authenticated`)    |
+| -------------------------- | ------------------------------------ |
+| `profiles`                 | SELECT own, UPDATE own               |
+| `flashcard_sets`           | SELECT/INSERT/UPDATE/DELETE own      |
+| `flashcards`               | SELECT/INSERT/UPDATE/DELETE own      |
+| `special_collections`      | SELECT/INSERT/UPDATE/DELETE own      |
+| `special_collection_items` | SELECT/INSERT/DELETE own (no UPDATE) |
+
+Flashcard INSERT/UPDATE policies additionally require the referenced set to belong to
+the current user. Membership INSERT/SELECT/DELETE policies require both the referenced
+collection and flashcard to belong to the current user.
+
+## Grants
+
+- `anon`: no privileges on core tables.
+- `authenticated`: `profiles` (SELECT, UPDATE); the other four tables (full CRUD, except
+  no UPDATE on `special_collection_items`).
+- `service_role`: ALL on all core tables (server-side only; never exposed to the browser).
+- Default privileges grant `SELECT, INSERT, UPDATE, DELETE` on future tables (and
+  `USAGE, SELECT` on sequences) to `authenticated`, so later phases do not need repeated
+  grants.
+
+## Indexes
+
+| Index                                    | Table                      | Purpose                       |
+| ---------------------------------------- | -------------------------- | ----------------------------- |
+| `idx_flashcard_sets_user_created`        | `flashcard_sets`           | list sets by recency per user |
+| `idx_flashcards_set_position`            | `flashcards`               | order cards within a set      |
+| `idx_flashcards_user`                    | `flashcards`               | cards by user                 |
+| `idx_special_collections_user`           | `special_collections`      | collections by user           |
+| `idx_special_collection_items_flashcard` | `special_collection_items` | memberships by flashcard      |
+| `idx_special_collections_user_name`      | `special_collections`      | unique name per user (lower)  |
+
+## Commands
+
+Requires Docker and the local Supabase stack. Use the npm scripts:
+
+```bash
+npm run supabase:start    # start the local Supabase stack
+npm run supabase:stop     # stop the local Supabase stack
+npm run supabase:status   # show stack status and API keys
+npm run db:reset          # apply migrations + seed from a clean database
+npm run db:test           # run pgTAP database tests (supabase/tests/*.sql)
+npm run db:types          # regenerate src/lib/supabase/types.ts
+```
+
+Studio UI: <http://localhost:54323>. Local Postgres: `localhost:54322` (postgres/postgres).
+
+## Database tests
+
+pgTAP tests live in `supabase/tests/` and run inside a transaction against the reset
+database. They verify constraints, profile/trigger behavior, per-user ownership via the
+`authenticated` role, cascade behavior and database-level integrity:
+
+| File                                    | Coverage                                      |
+| --------------------------------------- | --------------------------------------------- |
+| `001_constraints.sql`                   | NOT NULL / CHECK / unique / FK constraints    |
+| `002_profiles.sql`                      | profile trigger + ownership                   |
+| `003_flashcard_sets_ownership.sql`      | set and flashcard ownership (A vs B)          |
+| `004_special_collections_ownership.sql` | collection + membership ownership             |
+| `005_cascades.sql`                      | delete cascades (card, collection, set, user) |
+| `006_triggers.sql`                      | updated_at refresh on all tables              |
+
+Tests run malicious operations as a low-privilege `authenticated` role (via
+`set local role authenticated; set local request.jwt.claim.sub = '<uuid>'`), never only
+as `postgres`, so they exercise RLS rather than bypassing it.
+
+## Generated types
+
+`npm run db:types` generates `src/lib/supabase/types.ts` from the live local database.
+Types are checked in and must be regenerated whenever the schema changes.

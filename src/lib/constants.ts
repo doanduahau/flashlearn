@@ -1,0 +1,12 @@
+export const APP_NAME = "FlashLearn";
+export const APP_DESCRIPTION =
+  "Biến bất kỳ file Excel hai cột nào thành bộ flashcard và bài kiểm tra thông minh.";
+
+export const DEFAULT_LOCALE = "vi";
+
+export const IMPORT_FILE_MAX_BYTES = 5 * 1024 * 1024;
+export const IMPORT_MAX_ROWS = 10_000;
+
+export const MIN_QUIZ_QUESTIONS = 10;
+
+export const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";

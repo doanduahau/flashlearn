@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+:root {
+  /* Soft Green Learning Garden palette */
+  --background: #f8fbf7;
+  --surface: #ffffff;
+  --surface-subtle: #f1f7f3;
+
+  --primary: #7bcfa6;
+  --primary-hover: #65be91;
+  --primary-soft: #eaf8f0;
+  --primary-foreground: #245c46;
+
+  --text-primary: #20352c;
+  --text-secondary: #64756d;
+  --border-soft: #ddebe3;
+
+  --success: #65be91;
+  --warning: #f3a66a;
+  --danger: #ef8585;
+  --info: #7ab8e8;
+  --achievement: #f6c85f;
+
+  /* shadcn/ui token mapping */
+  --foreground: var(--text-primary);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+  --secondary: var(--surface-subtle);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-subtle);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--primary-soft);
+  --accent-foreground: var(--primary-foreground);
+  --border: var(--border-soft);
+  --input: var(--border-soft);
+  --ring: var(--primary);
+  --destructive: #c4514e;
+  --destructive-foreground: #ffffff;
+  --chart-1: var(--primary);
+  --chart-2: var(--info);
+  --chart-3: var(--achievement);
+  --chart-4: var(--warning);
+  --chart-5: var(--danger);
+
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-border-soft: var(--border-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-achievement: var(--achievement);
+  --font-sans: var(--font-flash-sans);
+  --font-heading: var(--font-flash-heading);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+  font-family:
+    var(--font-flash-sans),
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-flash-heading), var(--font-flash-sans), system-ui, sans-serif;
+  color: var(--text-primary);
+}

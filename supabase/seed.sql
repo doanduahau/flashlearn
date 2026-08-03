@@ -1,0 +1,2 @@
+-- Development seed data will be added in Phase 2 together with authentication
+-- and the flashcard schema. Seed data must never contain real user data.

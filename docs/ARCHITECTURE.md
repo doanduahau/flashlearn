@@ -2,13 +2,14 @@
 
 ## Scope
 
-This document describes the architecture decisions that underpin the FlashLearn database
-foundation. The application is a Next.js App Router app backed by Supabase; see
+This document describes the architecture decisions that underpin the FlashLearn
+application. The application is a Next.js App Router app backed by Supabase; see
 `AGENTS.md` for the full product blueprint and `docs/DATABASE.md` for the schema details.
 
-The current foundation covers only data ownership (profiles, flashcard sets, flashcards,
-special collections and their membership table). Authentication UI, imports, study mode,
-quiz, streak and analytics are implemented in later phases.
+The foundation covers data ownership (profiles, flashcard sets, flashcards,
+special collections and their membership table) and authentication (email/password
+sign-up, sign-in, email confirmation, sign-out, route protection). Imports, study
+mode, quiz, streak and analytics are implemented in later phases.
 
 ## Principles applied
 
@@ -24,6 +25,31 @@ quiz, streak and analytics are implemented in later phases.
 4. **No over-engineering.** The MVP keeps the schema small and each table owned by a
    single user. Quiz, streak and analytics tables are intentionally deferred until their
    data shapes are known.
+
+## Authentication architecture
+
+Authentication uses Supabase Auth with email/password, managed through cookie-based
+sessions via `@supabase/ssr`. See `docs/AUTH.md` for the full auth documentation.
+
+### Key components
+
+- **`src/lib/supabase/client.ts`:** Browser client for Client Components only.
+- **`src/lib/supabase/server.ts`:** Server client for server-side data fetching and
+  server actions. Never imported into Client Components.
+- **`src/lib/supabase/proxy.ts`:** Proxy middleware that refreshes the session on every
+  request by calling `getClaims()`.
+- **`src/middleware.ts`:** Route protection middleware that checks auth state and
+  redirects unauthenticated users to `/sign-in`, and authenticated users away from
+  guest-only pages to `/dashboard`.
+- **`src/features/auth/`:** Feature-first auth code (schemas, server actions, components,
+  utils, types).
+
+### Auth checks
+
+- `supabase.auth.getClaims()` is used for authentication checks in middleware and layout.
+- `supabase.auth.getUser()` is used only where the latest full Auth user record is
+  needed (e.g., the `CurrentUser` component displaying the user's email).
+- `getSession()` is not used as proof of identity.
 
 ## Data ownership model
 
@@ -84,7 +110,10 @@ a rollback path.
 
 - Database behavior is verified with pgTAP in `supabase/tests/`, running as a
   low-privilege `authenticated` role so RLS is actually exercised.
-- Unit/integration/component/E2E tests for application code are added in later phases.
+- Unit tests for auth schemas, safe redirect, and error mapping are in
+  `tests/unit/features/auth/`.
+- Component tests for sign-in and sign-up forms are in `tests/unit/features/auth/`.
+- E2E tests for the complete auth flow are in `tests/e2e/auth.spec.ts`.
 
 ## Future phases
 

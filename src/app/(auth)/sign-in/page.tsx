@@ -2,7 +2,7 @@ import { Leaf } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { SignInForm } from "@/features/auth/components/sign-in-form";
 
 export const metadata: Metadata = {
   title: "Đăng nhập",
@@ -18,12 +18,16 @@ export default function SignInPage() {
 
       <div className="w-full max-w-sm rounded-3xl border border-border-soft bg-surface p-8 text-center shadow-soft-card">
         <h1 className="font-heading text-xl font-bold">Đăng nhập</h1>
-        <p className="mt-2 text-sm text-text-secondary">
-          Đăng nhập sẽ được bật ở Phase 2 khi tích hợp Supabase Auth.
+        <p className="mt-2 text-sm text-text-secondary">Đăng nhập để tiếp tục học tập.</p>
+
+        <SignInForm />
+
+        <p className="mt-4 text-sm text-text-secondary">
+          Chưa có tài khoản?{" "}
+          <Link href="/sign-up" className="font-medium text-primary hover:underline">
+            Đăng ký
+          </Link>
         </p>
-        <Button asChild className="mt-6 w-full">
-          <Link href="/">Quay lại</Link>
-        </Button>
       </div>
     </main>
   );

@@ -2,6 +2,8 @@ import { Leaf } from "lucide-react";
 import Link from "next/link";
 
 import { AppNavigation } from "@/components/layout/app-navigation";
+import { SignOutButton } from "@/features/auth/components/sign-out-button";
+import { CurrentUser } from "@/features/auth/components/current-user";
 
 export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -14,10 +16,14 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
           <span>FlashLearn</span>
         </Link>
         <AppNavigation variant="sidebar" />
+        <div className="mt-auto">
+          <CurrentUser />
+          <SignOutButton />
+        </div>
       </aside>
 
       <div className="flex min-h-dvh flex-col md:pl-72">
-        <header className="sticky top-0 z-20 flex h-16 items-center border-b border-border-soft bg-surface/90 px-4 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border-soft bg-surface/90 px-4 backdrop-blur md:hidden">
           <Link
             href="/dashboard"
             className="flex items-center gap-2 font-heading text-base font-bold"
@@ -25,13 +31,17 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
             <Leaf className="size-5 text-primary" aria-hidden="true" />
             FlashLearn
           </Link>
+          <div className="flex items-center gap-3">
+            <CurrentUser />
+            <SignOutButton />
+          </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-10">
           {children}
         </main>
-      </div>
 
-      <AppNavigation variant="bottom" />
+        <AppNavigation variant="bottom" />
+      </div>
     </div>
   );
 }

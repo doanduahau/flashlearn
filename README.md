@@ -104,6 +104,7 @@ supabase/
 └── config.toml
 docs/
 ├── ARCHITECTURE.md    # Kiến trúc tổng quan
+├── AUTH.md            # Auth flow and security
 ├── DATABASE.md        # Schema, RLS, constraints, commands
 ├── DECISIONS/         # ADRs
 └── QA/                # Báo cáo QA

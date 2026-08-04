@@ -11,7 +11,6 @@ export async function updateSession(request: NextRequest) {
   try {
     config = getSupabasePublishableConfig();
   } catch {
-    // Supabase is not configured yet; the request passes through untouched.
     return supabaseResponse;
   }
 
@@ -30,10 +29,7 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // The auth-aware client is wired up here as the Supabase foundation.
-  // Session refresh and route guards will be added together with the
-  // authentication feature.
-  void supabase;
+  await supabase.auth.getClaims();
 
   return supabaseResponse;
 }

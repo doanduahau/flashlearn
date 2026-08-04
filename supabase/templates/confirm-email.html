@@ -1,0 +1,23 @@
+<div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto">
+  <h2>Xác nhận email của bạn</h2>
+  <p>Chào {{ .Email }},</p>
+  <p>Bấm vào nút bên dưới để xác nhận email và hoàn tất đăng ký FlashLearn.</p>
+  <p>
+    <a
+      href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email"
+      style="
+        background: #7bcfa6;
+        color: #245c46;
+        padding: 12px 24px;
+        border-radius: 12px;
+        text-decoration: none;
+        display: inline-block;
+      "
+    >
+      Xác nhận email
+    </a>
+  </p>
+  <p>Nếu nút không hoạt động, hãy dán liên kết sau vào trình duyệt:</p>
+  <p>{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email</p>
+  <p>Nếu bạn không tạo tài khoản FlashLearn, bạn có thể bỏ qua email này.</p>
+</div>

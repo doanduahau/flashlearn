@@ -12,6 +12,14 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("@/features/auth/components/current-user", () => ({
+  CurrentUser: () => <div data-testid="current-user">User</div>,
+}));
+
+vi.mock("@/features/auth/components/sign-out-button", () => ({
+  SignOutButton: () => <button data-testid="sign-out-button">Sign out</button>,
+}));
+
 import { AppShell } from "@/components/layout/app-shell";
 
 describe("AppShell", () => {

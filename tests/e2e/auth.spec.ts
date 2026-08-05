@@ -86,7 +86,7 @@ test.describe("Authentication Flow", () => {
 
     await signUpAndConfirm(page, email);
     await assertSessionCookieForAppOrigin(page);
-    await expect(page.getByText("Auth Test").first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Dashboard");
   });
 
   test("authenticated user is redirected from /sign-in to /dashboard", async ({ page }) => {
@@ -134,7 +134,7 @@ test.describe("Authentication Flow", () => {
     await signIn(page, email);
 
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByText("Auth Test").first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Dashboard");
   });
 
   test("safe next parameter is restored after sign in", async ({ page }) => {

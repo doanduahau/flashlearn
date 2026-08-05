@@ -2,7 +2,7 @@
 
 begin;
 
-select plan(13);
+select plan(17);
 
 -- fixtures ------------------------------------------------------------------
 insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -82,9 +82,9 @@ select throws_ok(
   '42501', NULL, 'A cannot create a set owned by B'
 );
 
-select lives_ok(
+select throws_ok(
   'insert into public.flashcard_sets (user_id, name) values (''aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'', ''Set A2'')',
-  'A can create a set owned by A'
+  '42501', NULL, 'direct set creation is reserved for the import RPC'
 );
 
 select throws_ok(
@@ -92,9 +92,9 @@ select throws_ok(
   '42501', NULL, 'A cannot add a flashcard into B''s set'
 );
 
-select lives_ok(
+select throws_ok(
   'insert into public.flashcards (user_id, set_id, front, back) values (''aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'', ''11111111-1111-1111-1111-1111111111aa'', ''A2 front'',''A2 back'')',
-  'A can add a flashcard into A''s own set'
+  '42501', NULL, 'direct card creation is reserved for add_flashcard'
 );
 
 -- Database-level enforcement: even bypassing RLS, a flashcard cannot reference
@@ -114,6 +114,26 @@ select lives_ok(
   'A can update A''s own flashcard'
 );
 
+select throws_ok(
+  'update public.flashcards set position = 99 where id = ''22222222-2222-2222-2222-2222222222aa''',
+  '42501', NULL, 'A cannot choose a flashcard position'
+);
+
+select throws_ok(
+  'update public.flashcards set set_id = ''55555555-5555-5555-5555-5555555555aa'' where id = ''22222222-2222-2222-2222-2222222222aa''',
+  '42501', NULL, 'A cannot move a flashcard by supplying a set id'
+);
+
+select throws_ok(
+  'update public.flashcards set user_id = ''bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'' where id = ''22222222-2222-2222-2222-2222222222aa''',
+  '42501', NULL, 'A cannot supply a flashcard owner'
+);
+
+select throws_ok(
+  'update public.flashcard_sets set user_id = ''bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'' where id = ''11111111-1111-1111-1111-1111111111aa''',
+  '42501', NULL, 'A cannot supply a set owner'
+);
+
 select is(
   (select count(*) from public.flashcards where set_id = '55555555-5555-5555-5555-5555555555aa'),
   0::bigint,
@@ -122,7 +142,7 @@ select is(
 
 select is(
   (select count(*) from public.flashcards where set_id = '11111111-1111-1111-1111-1111111111aa' and user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
-  2::bigint,
+  1::bigint,
   'A can read A''s own flashcards'
 );
 

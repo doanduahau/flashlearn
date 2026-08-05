@@ -7,14 +7,14 @@ FlashLearn uses Supabase Auth with email and password authentication. The authen
 ### Key Principles
 
 1. **Server-first.** Auth state is verified on the server. Client Components never directly query the database for auth-sensitive data.
-2. **Cookie-based sessions.** Sessions are managed through HTTP-only cookies set by the Supabase SSR client. The `proxy.ts` middleware refreshes sessions on every request.
+2. **Cookie-based sessions.** Sessions are managed through HTTP-only cookies set by the Supabase SSR client. The `src/proxy.ts` middleware refreshes sessions on every request.
 3. **Claims-based auth checks.** The application uses `supabase.auth.getClaims()` for authentication checks, not `getSession()`. `getUser()` is only used where the latest full Auth user record is actually required (e.g., displaying the user's email in the app shell).
 4. **Separation of concerns.** Browser and server Supabase clients remain separate. The server client is never imported into Client Components.
 
 ### Cookie and Proxy Responsibilities
 
 - **Cookies:** Supabase Auth stores the session in browser cookies (`sb-access-token`, `sb-refresh-token`). These are automatically managed by the Supabase SSR client.
-- **Proxy (`proxy.ts`):** The proxy middleware runs on every request, refreshes the session by calling `getClaims()`, and enforces route protection. Unauthenticated requests to protected routes are redirected to `/sign-in` with a safe `next` parameter. Authenticated requests to guest-only pages are redirected to `/dashboard`.
+- **Proxy (`src/proxy.ts`):** The proxy middleware runs on every request, refreshes the session by calling `getClaims()`, and enforces route protection. Unauthenticated requests to protected routes are redirected to `/sign-in` with a safe `next` parameter. Authenticated requests to guest-only pages are redirected to `/dashboard`.
 
 ### Why `getClaims()` Is Used
 
@@ -30,7 +30,7 @@ FlashLearn uses Supabase Auth with email and password authentication. The authen
 
 Route protection is enforced at two levels:
 
-1. **Proxy (`proxy.ts`):** Runs on every request and checks auth state using `getClaims()`. Unauthenticated requests to protected routes are redirected to `/sign-in` with a safe `next` parameter. Authenticated requests to guest-only pages are redirected to `/dashboard`.
+1. **Proxy (`src/proxy.ts`):** Runs on every request and checks auth state using `getClaims()`. Unauthenticated requests to protected routes are redirected to `/sign-in` with a safe `next` parameter. Authenticated requests to guest-only pages are redirected to `/dashboard`.
 2. **App layout (`(app)/layout.tsx`):** Independently verifies authentication on the server side before rendering any authenticated content. This is the authoritative check.
 
 ## Sign-Up Flow

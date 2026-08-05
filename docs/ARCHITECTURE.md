@@ -38,8 +38,7 @@ sessions via `@supabase/ssr`. See `docs/AUTH.md` for the full auth documentation
   server actions. Never imported into Client Components.
 - **`src/lib/supabase/proxy.ts`:** Proxy middleware that refreshes the session on every
   request by calling `getClaims()`.
-- **`proxy.ts`:** Next.js 16 request interception entry point that refreshes sessions
-  and enforces route protection.
+- **`src/proxy.ts`:** Next.js 16 request interception entry point that refreshes sessions and enforces route protection.
 - **`src/features/auth/`:** Feature-first auth code (schemas, server actions, components,
   utils, types).
 

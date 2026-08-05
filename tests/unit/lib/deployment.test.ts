@@ -4,7 +4,7 @@ import path from "node:path";
 
 describe("deployment constraints", () => {
   const srcFiles = [
-    "proxy.ts",
+    "src/proxy.ts",
     "src/lib/supabase/proxy.ts",
     "src/lib/supabase/server.ts",
     "src/lib/supabase/client.ts",

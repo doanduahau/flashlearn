@@ -34,7 +34,7 @@ PASS
 
 | Finding                   | Result      | Evidence                                                                                                                |
 | ------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| FND-001 (proxy.ts)        | ✅ RESOLVED | `proxy.ts` exists in root and exports `proxy`. Middleware legacy warning is absent in build output.                     |
+| FND-001 (proxy.ts)        | ✅ RESOLVED | `src/proxy.ts` exists and exports `proxy`. Middleware legacy warning is absent in build output.                         |
 | FND-002 (server-only)     | ✅ RESOLVED | `import "server-only";` is present at the top of `src/lib/supabase/server.ts`.                                          |
 | FND-003 (Link tag)        | ✅ RESOLVED | Both application shell logo links use Next.js `<Link>` component. Client-side navigation works without document reload. |
 | FND-004 (Shadow token)    | ✅ RESOLVED | Duplicated arbitrary values removed. Replaced with `shadow-soft-card` referencing `--shadow-soft-card`.                 |

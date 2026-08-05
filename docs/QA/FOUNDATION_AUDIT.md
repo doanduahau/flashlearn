@@ -100,15 +100,15 @@ The existing E2E test only covers the landing page. The following routes are **n
 
 **Next.js compatibility: PASS WITH WARNINGS**
 
-| Aspect                          | Status       | Details                                                                                                                                                          |
-| ------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Root `proxy.ts` convention      | ✅ RESOLVED  | `proxy.ts` exists in root and exports `proxy`. The legacy `middleware.ts` convention has been removed. All route protection logic is consolidated in `proxy.ts`. |
-| Exported function and matcher   | ✅ VALID     | `proxy()` export with regex matcher is accepted by Next.js 16.2.12.                                                                                              |
-| Runtime used by proxy           | ✅ SUPPORTED | Default Edge runtime is used (no explicit runtime config), which is supported.                                                                                   |
-| `cookies()` async handling      | ✅ CORRECT   | `server.ts` correctly uses `await cookies()`. All usage is async.                                                                                                |
-| Supabase session refresh helper | ✅ CORRECT   | `src/lib/supabase/proxy.ts` follows the current SSR pattern with cookie read/write.                                                                              |
-| Server/Client Component imports | ✅ CORRECT   | `client.ts` has `"use client"` directive, `server.ts` has no directive (server by default).                                                                      |
-| Server-only module protection   | ⚠️ MISSING   | `server.ts` lacks `import "server-only"` guard; `server-only` package is not installed. See FND-002.                                                             |
+| Aspect                          | Status       | Details                                                                                                                                                                                      |
+| ------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/proxy.ts` convention       | ✅ RESOLVED  | `src/proxy.ts` exists and exports `proxy`. The legacy root-level `proxy.ts` and `middleware.ts` conventions have been removed. All route protection logic is consolidated in `src/proxy.ts`. |
+| Exported function and matcher   | ✅ VALID     | `proxy()` export with regex matcher is accepted by Next.js 16.2.12.                                                                                                                          |
+| Runtime used by proxy           | ✅ SUPPORTED | Default Edge runtime is used (no explicit runtime config), which is supported.                                                                                                               |
+| `cookies()` async handling      | ✅ CORRECT   | `server.ts` correctly uses `await cookies()`. All usage is async.                                                                                                                            |
+| Supabase session refresh helper | ✅ CORRECT   | `src/lib/supabase/proxy.ts` follows the current SSR pattern with cookie read/write.                                                                                                          |
+| Server/Client Component imports | ✅ CORRECT   | `client.ts` has `"use client"` directive, `server.ts` has no directive (server by default).                                                                                                  |
+| Server-only module protection   | ⚠️ MISSING   | `server.ts` lacks `import "server-only"` guard; `server-only` package is not installed. See FND-002.                                                                                         |
 
 ### See: FND-001 (middleware → proxy migration)
 
@@ -267,12 +267,12 @@ These match the shadow specification from AGENTS.md §11.5 (`box-shadow: 0 8px 2
 
 ## Findings
 
-### FND-001 — `middleware.ts` should be consolidated into `proxy.ts` for Next.js 16
+### FND-001 — `middleware.ts` should be consolidated into `src/proxy.ts` for Next.js 16
 
 - **Severity:** High (RESOLVED)
 - **Area:** Next.js compatibility
-- **File:** `proxy.ts` (root) and `src/middleware.ts` (removed)
-- **Resolution:** All route protection logic from `src/middleware.ts` has been merged into `proxy.ts`. The `src/middleware.ts` file has been deleted. `proxy.ts` now handles both session refresh (via `updateSession`) and route protection using `getClaims()`. The Next.js 16 deprecation warning is eliminated.
+- **File:** `src/proxy.ts` and `src/middleware.ts` (removed)
+- **Resolution:** All route protection logic from `src/middleware.ts` has been merged into `src/proxy.ts`. The root-level `proxy.ts` was moved to `src/proxy.ts` and `src/middleware.ts` was deleted. `src/proxy.ts` now handles both session refresh (via `updateSession`) and route protection using `getClaims()`. The Next.js 16 deprecation warning is eliminated.
 
 ---
 
@@ -364,7 +364,7 @@ These match the shadow specification from AGENTS.md §11.5 (`box-shadow: 0 8px 2
 
 ## Recommended Next Steps
 
-1. **FND-001** (High): Rename `middleware.ts` → `proxy.ts` and update the exported function name. This is the most important fix to align with Next.js 16 conventions before building the auth feature.
+1. **FND-001** (High): Move `proxy.ts` to `src/proxy.ts` and update the exported function name. This is the most important fix to align with Next.js 16 conventions before building the auth feature.
 2. **FND-002** (Medium): Install `server-only` package and add the guard import to `src/lib/supabase/server.ts`. This is critical before adding authentication logic that touches server-only code paths.
 3. **FND-003** (Low): Replace `<a>` tags with `<Link>` in `AppShell` logo links. Quick fix.
 4. **FND-004** (Low): Extract repeated shadow value to a design token. Can be done when building auth UI.

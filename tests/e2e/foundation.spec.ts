@@ -45,11 +45,10 @@ test.describe("Foundation Routes & Errors", () => {
     await expect(page).toHaveURL(/\/sign-in\?next=%2Fdashboard/);
   });
 
-  test("unknown route redirects to sign-in when not authenticated", async ({ page }) => {
-    await page.goto("/unknown-route-12345");
-    await expect(page).toHaveURL(/\/sign-in\?next=/);
-    const url = new URL(page.url());
-    expect(url.searchParams.get("next")).toBe("/unknown-route-12345");
+  test("unknown route renders the not-found experience", async ({ page }) => {
+    const response = await page.goto("/unknown-route-12345");
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("404");
   });
 });
 

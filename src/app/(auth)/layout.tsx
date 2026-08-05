@@ -11,13 +11,5 @@ export default async function AuthLayout({ children }: Readonly<{ children: Reac
     redirect("/dashboard");
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    redirect("/dashboard");
-  }
-
   return children;
 }

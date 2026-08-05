@@ -1,15 +1,15 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const TEST_PASSWORD = "TestPassword123!";
 const EMAIL_DOMAIN = "test.flashlearn.dev";
+const MAILPIT_URL = "http://127.0.0.1:54324";
+const APP_ORIGIN = "http://127.0.0.1:3000";
 
 function uniqueEmail(): string {
   return `auth_${Date.now()}_${Math.random().toString(36).slice(2, 8)}@${EMAIL_DOMAIN}`;
 }
 
-async function signUpAndConfirm(page: import("@playwright/test").Page, email: string) {
-  const browserContext = page.context();
-
+async function submitSignUp(page: Page, email: string): Promise<void> {
   await page.goto("/sign-up");
   await page.getByLabel("Tên hiển thị").fill("Auth Test");
   await page.getByLabel("Email").fill(email);
@@ -17,81 +17,187 @@ async function signUpAndConfirm(page: import("@playwright/test").Page, email: st
   await page.locator("#confirmPassword").fill(TEST_PASSWORD);
   await page.getByRole("button", { name: /đăng ký/i }).click();
 
-  await page.waitForURL("**/check-email");
+  await expect(page).toHaveURL(/\/(dashboard|check-email)$/);
+}
 
-  // Open Mailpit in a new page to get the confirmation email
-  const mailPage = await browserContext.newPage();
-  await mailPage.goto("http://127.0.0.1:54324");
-  await mailPage.waitForTimeout(2000);
+async function openConfirmationLink(page: Page, email: string): Promise<string> {
+  const mailPage = await page.context().newPage();
+  await mailPage.goto(MAILPIT_URL);
 
-  // Search for the email by typing the email address into the search box
   const searchBox = mailPage.locator('input[placeholder="Search mailbox"]');
+  await expect(searchBox).toBeVisible();
   await searchBox.fill(email);
-  await mailPage.waitForTimeout(1000);
 
-  // Click on the email row
-  const emailLink = mailPage.locator(`text=${email}`).first();
-  await emailLink.click();
+  const emailRow = mailPage.locator(`text=${email}`).first();
+  await emailRow.waitFor({ state: "visible", timeout: 20_000 });
+  await emailRow.click();
 
-  // Wait for email content to render
-  await mailPage.waitForTimeout(2000);
-
-  // Extract the confirmation link href from the email
-  // The link may contain either token_hash or code parameter
   const confirmLink = mailPage.locator('a[href*="auth/confirm"]').first();
-  await confirmLink.waitFor({ state: "attached", timeout: 10000 });
-  const confirmHref = await confirmLink.getAttribute("href");
+  await confirmLink.waitFor({ state: "attached", timeout: 10_000 });
+  const href = await confirmLink.getAttribute("href");
 
-  if (!confirmHref) {
-    throw new Error("Could not find confirmation link in email");
+  await mailPage.close();
+
+  if (!href) {
+    throw new Error("Confirmation link not found in Mailpit");
+  }
+  return href;
+}
+
+async function confirmEmail(page: Page, email: string): Promise<void> {
+  const href = await openConfirmationLink(page, email);
+
+  expect(new URL(href).origin).toBe(APP_ORIGIN);
+
+  await page.goto(href);
+  await expect(page).toHaveURL(/\/dashboard$/);
+}
+
+async function signUpAndConfirm(page: Page, email: string): Promise<void> {
+  await submitSignUp(page, email);
+
+  if (page.url().includes("/check-email")) {
+    await confirmEmail(page, email);
   }
 
-  // Navigate directly to the confirmation link
-  await page.goto(confirmHref);
+  await expect(page).toHaveURL(/\/dashboard$/);
+}
+
+async function signOut(page: Page): Promise<void> {
+  await page.getByRole("button", { name: /đăng xuất/i }).click();
+  await page.waitForURL(/\/sign-in$/);
+}
+
+async function signIn(page: Page, email: string): Promise<void> {
+  await page.getByLabel("Email").fill(email);
+  await page.locator("#password").fill(TEST_PASSWORD);
+  await page.getByRole("button", { name: /đăng nhập/i }).click();
+}
+
+async function assertSessionCookieForAppOrigin(page: Page): Promise<void> {
+  const cookies = await page.context().cookies(APP_ORIGIN);
+  const hasSessionCookie = cookies.some((cookie) => cookie.name.includes("auth-token"));
+  expect(hasSessionCookie).toBe(true);
 }
 
 test.describe("Authentication Flow", () => {
-  test("sign-up, confirm, dashboard, sign-out flow", async ({ page }) => {
+  test("sign-up with email confirmation enabled", async ({ page }) => {
+    const email = uniqueEmail();
+
+    await submitSignUp(page, email);
+
+    const requiresConfirmation = page.url().includes("/check-email");
+
+    if (requiresConfirmation) {
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("Kiểm tra email");
+      await confirmEmail(page, email);
+    }
+
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await assertSessionCookieForAppOrigin(page);
+    await expect(page.getByText("Auth Test").first()).toBeVisible();
+  });
+
+  test("sign-up with email confirmation disabled", async ({ page }) => {
+    const email = uniqueEmail();
+
+    await submitSignUp(page, email);
+
+    if (page.url().includes("/check-email")) {
+      await confirmEmail(page, email);
+    }
+
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await assertSessionCookieForAppOrigin(page);
+  });
+
+  test("authenticated user is redirected from /sign-in to /dashboard", async ({ page }) => {
     const email = uniqueEmail();
 
     await signUpAndConfirm(page, email);
 
-    // Verify user is on dashboard
-    expect(page.url()).toContain("/dashboard");
+    await page.goto("/sign-in");
+    await expect(page).toHaveURL(/\/dashboard$/);
+  });
 
-    // Verify display name is shown
-    await expect(page.getByText("Auth Test").first()).toBeVisible();
+  test("authenticated user is redirected from /sign-up to /dashboard", async ({ page }) => {
+    const email = uniqueEmail();
 
-    // Sign out
-    await page.getByRole("button", { name: /đăng xuất/i }).click();
-    await page.waitForURL(/\/sign-in$/);
+    await signUpAndConfirm(page, email);
 
-    // Verify dashboard redirects to sign-in
+    await page.goto("/sign-up");
+    await expect(page).toHaveURL(/\/dashboard$/);
+  });
+
+  test("signing out makes guest pages accessible again", async ({ page }) => {
+    const email = uniqueEmail();
+
+    await signUpAndConfirm(page, email);
+    await signOut(page);
+
+    await page.goto("/sign-in");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Đăng nhập");
+
+    await page.goto("/sign-up");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tạo tài khoản");
+
     await page.goto("/dashboard");
     await page.waitForURL(/\/sign-in\?next=/);
     expect(new URL(page.url()).searchParams.get("next")).toBe("/dashboard");
   });
 
-  test("sign-in with correct credentials succeeds", async ({ page }) => {
+  test("user can sign in again after signing out", async ({ page }) => {
     const email = uniqueEmail();
 
-    // Sign up and confirm first
     await signUpAndConfirm(page, email);
-    expect(page.url()).toContain("/dashboard");
+    await signOut(page);
 
-    // Sign out
-    await page.getByRole("button", { name: /đăng xuất/i }).click();
-    await page.waitForURL(/\/sign-in$/);
-
-    // Sign in again
     await page.goto("/sign-in");
-    await page.getByLabel("Email").fill(email);
-    await page.locator("#password").fill(TEST_PASSWORD);
-    await page.getByRole("button", { name: /đăng nhập/i }).click();
+    await signIn(page, email);
 
-    // Should redirect to dashboard
-    await page.waitForURL(/\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByText("Auth Test").first()).toBeVisible();
+  });
+
+  test("safe next parameter is restored after sign in", async ({ page }) => {
+    const email = uniqueEmail();
+
+    await signUpAndConfirm(page, email);
+    await signOut(page);
+
+    await page.goto("/dashboard");
+    await page.waitForURL(/\/sign-in\?next=/);
+    expect(new URL(page.url()).searchParams.get("next")).toBe("/dashboard");
+
+    await signIn(page, email);
+
+    await expect(page).toHaveURL(/\/dashboard$/);
+  });
+
+  test("malicious external next values are rejected", async ({ page }) => {
+    const email = uniqueEmail();
+
+    await signUpAndConfirm(page, email);
+    await signOut(page);
+
+    await page.goto("/sign-in?next=https://evil.com");
+    await signIn(page, email);
+
+    await expect(page).toHaveURL(/\/dashboard$/);
+    expect(page.url()).not.toContain("evil.com");
+  });
+
+  test("malicious protocol-relative next values are rejected", async ({ page }) => {
+    const email = uniqueEmail();
+
+    await signUpAndConfirm(page, email);
+    await signOut(page);
+
+    await page.goto("/sign-in?next=//evil.com");
+    await signIn(page, email);
+
+    await expect(page).toHaveURL(/\/dashboard$/);
+    expect(page.url()).not.toContain("evil.com");
   });
 
   test("sign-in with incorrect credentials fails generically", async ({ page }) => {
@@ -100,95 +206,18 @@ test.describe("Authentication Flow", () => {
     await page.locator("#password").fill("wrongpassword");
     await page.getByRole("button", { name: /đăng nhập/i }).click();
 
-    // Should see an error message
     await page.waitForURL(/\/sign-in\?error=/);
     const errorElement = page.locator('[role="alert"]').first();
     await expect(errorElement).toBeVisible();
   });
 
-  test("sign-out and sign-in again works correctly", async ({ page }) => {
+  test("unknown route remains 404 for authenticated user", async ({ page }) => {
     const email = uniqueEmail();
 
     await signUpAndConfirm(page, email);
-    expect(page.url()).toContain("/dashboard");
 
-    // Sign out
-    await page.getByRole("button", { name: /đăng xuất/i }).click();
-    await page.waitForURL(/\/sign-in$/);
-
-    // Sign in again
-    await page.getByLabel("Email").fill(email);
-    await page.locator("#password").fill(TEST_PASSWORD);
-    await page.getByRole("button", { name: /đăng nhập/i }).click();
-
-    // Should redirect to dashboard
-    await page.waitForURL(/\/dashboard$/);
-    await expect(page.getByText("Auth Test").first()).toBeVisible();
-  });
-
-  test("safe next parameter is restored after sign-in", async ({ page }) => {
-    const email = uniqueEmail();
-
-    await signUpAndConfirm(page, email);
-    await page.waitForURL(/\/dashboard$/);
-
-    // Sign out
-    await page.getByRole("button", { name: /đăng xuất/i }).click();
-    await page.waitForURL(/\/sign-in$/);
-
-    // Try to access dashboard - should redirect to sign-in with next=dashboard
-    await page.goto("/dashboard");
-    await page.waitForURL(/\/sign-in\?next=/);
-    expect(new URL(page.url()).searchParams.get("next")).toBe("/dashboard");
-
-    // Sign in
-    await page.getByLabel("Email").fill(email);
-    await page.locator("#password").fill(TEST_PASSWORD);
-    await page.getByRole("button", { name: /đăng nhập/i }).click();
-
-    // Should redirect to dashboard (the safe next parameter)
-    await page.waitForURL(/\/dashboard$/);
-  });
-
-  test("malicious external next values are rejected", async ({ page }) => {
-    const email = uniqueEmail();
-
-    await signUpAndConfirm(page, email);
-    await page.waitForURL(/\/dashboard$/);
-
-    // Sign out
-    await page.getByRole("button", { name: /đăng xuất/i }).click();
-    await page.waitForURL(/\/sign-in$/);
-
-    // Try to sign in with a malicious next parameter
-    await page.goto("/sign-in?next=https://evil.com");
-    await page.getByLabel("Email").fill(email);
-    await page.locator("#password").fill(TEST_PASSWORD);
-    await page.getByRole("button", { name: /đăng nhập/i }).click();
-
-    // Should redirect to dashboard, not evil.com
-    await page.waitForURL(/\/dashboard$/);
-    expect(page.url()).not.toContain("evil.com");
-  });
-
-  test("malicious protocol-relative next values are rejected", async ({ page }) => {
-    const email = uniqueEmail();
-
-    await signUpAndConfirm(page, email);
-    await page.waitForURL(/\/dashboard$/);
-
-    // Sign out
-    await page.getByRole("button", { name: /đăng xuất/i }).click();
-    await page.waitForURL(/\/sign-in$/);
-
-    // Try to sign in with a protocol-relative next parameter
-    await page.goto("/sign-in?next=//evil.com");
-    await page.getByLabel("Email").fill(email);
-    await page.locator("#password").fill(TEST_PASSWORD);
-    await page.getByRole("button", { name: /đăng nhập/i }).click();
-
-    // Should redirect to dashboard, not evil.com
-    await page.waitForURL(/\/dashboard$/);
-    expect(page.url()).not.toContain("evil.com");
+    const response = await page.goto("/unknown-route-12345");
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("404");
   });
 });

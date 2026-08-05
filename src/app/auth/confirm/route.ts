@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
+
+function redirectTo(path: string) {
+  return NextResponse.redirect(new URL(path, env.NEXT_PUBLIC_APP_URL));
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -9,7 +14,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
 
   if (!code && (!tokenHash || !type)) {
-    return NextResponse.redirect(new URL("/auth/error?error=missing_params", request.url));
+    return redirectTo("/auth/error?error=missing_params");
   }
 
   try {
@@ -19,9 +24,9 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (error || !data.session) {
         console.error("[confirm] Code exchange failed:", error?.message);
-        return NextResponse.redirect(new URL("/auth/error?error=confirmation_failed", request.url));
+        return redirectTo("/auth/error?error=confirmation_failed");
       }
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return redirectTo("/dashboard");
     }
 
     const { data, error } = await supabase.auth.verifyOtp({
@@ -31,11 +36,11 @@ export async function GET(request: NextRequest) {
 
     if (error || !data.session) {
       console.error("[confirm] OTP verification failed:", error?.message);
-      return NextResponse.redirect(new URL("/auth/error?error=confirmation_failed", request.url));
+      return redirectTo("/auth/error?error=confirmation_failed");
     }
 
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return redirectTo("/dashboard");
   } catch {
-    return NextResponse.redirect(new URL("/auth/error?error=confirmation_failed", request.url));
+    return redirectTo("/auth/error?error=confirmation_failed");
   }
 }

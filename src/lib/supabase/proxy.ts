@@ -11,7 +11,7 @@ export async function updateSession(request: NextRequest) {
   try {
     config = getSupabasePublishableConfig();
   } catch {
-    return supabaseResponse;
+    return { response: supabaseResponse, claims: null };
   }
 
   const supabase = createServerClient<Database>(config.url, config.publishableKey, {
@@ -29,7 +29,7 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
 
-  return supabaseResponse;
+  return { response: supabaseResponse, claims: data };
 }

@@ -36,5 +36,5 @@ All routes inside the `(app)` route group are protected. Unauthenticated request
 
 The route protection is enforced at two levels:
 
-1. **Middleware (`middleware.ts`):** Early redirect for improved UX.
+1. **Proxy (`proxy.ts`):** Early redirect for improved UX.
 2. **App layout (`(app)/layout.tsx`):** Authoritative server-side check.

@@ -14,15 +14,7 @@ FlashLearn uses Supabase Auth with email and password authentication. The authen
 ### Cookie and Proxy Responsibilities
 
 - **Cookies:** Supabase Auth stores the session in browser cookies (`sb-access-token`, `sb-refresh-token`). These are automatically managed by the Supabase SSR client.
-- **Proxy (`proxy.ts`):** The proxy middleware runs on every request and calls `supabase.auth.getClaims()` to refresh the session. This ensures the session is kept alive across requests.
-- **Server client (`server.ts`):** Creates a server-side Supabase client that reads cookies from the request and writes updated cookies to the response.
-
-### Server-Side Route Protection
-
-Route protection is enforced at two levels:
-
-1. **Middleware (`middleware.ts`):** Runs on every request and checks auth state using `getClaims()`. Unauthenticated requests to protected routes are redirected to `/sign-in` with a safe `next` parameter. Authenticated requests to guest-only pages are redirected to `/dashboard`.
-2. **App layout (`(app)/layout.tsx`):** Independently verifies authentication on the server side before rendering any authenticated content. This is the authoritative check.
+- **Proxy (`proxy.ts`):** The proxy middleware runs on every request, refreshes the session by calling `getClaims()`, and enforces route protection. Unauthenticated requests to protected routes are redirected to `/sign-in` with a safe `next` parameter. Authenticated requests to guest-only pages are redirected to `/dashboard`.
 
 ### Why `getClaims()` Is Used
 
@@ -33,6 +25,13 @@ Route protection is enforced at two levels:
 - It avoids the overhead of fetching the full session object when only the user's identity is needed.
 
 `getUser()` is used only in the `CurrentUser` component where the latest full Auth user record (including email) is needed for display purposes.
+
+### Server-Side Route Protection
+
+Route protection is enforced at two levels:
+
+1. **Proxy (`proxy.ts`):** Runs on every request and checks auth state using `getClaims()`. Unauthenticated requests to protected routes are redirected to `/sign-in` with a safe `next` parameter. Authenticated requests to guest-only pages are redirected to `/dashboard`.
+2. **App layout (`(app)/layout.tsx`):** Independently verifies authentication on the server side before rendering any authenticated content. This is the authoritative check.
 
 ## Sign-Up Flow
 
@@ -88,14 +87,14 @@ Local Supabase uses Mailpit for email delivery. To test the email confirmation f
 1. Start the local Supabase stack: `npm run supabase:start`
 2. Start the application: `npm run dev`
 3. Register a new user through the sign-up form.
-4. Open Mailpit at `http://localhost:8025` (default Mailpit UI).
+4. Obtain the Mailpit URL by running `npm run supabase:status` and checking the `MAILPIT_URL` value.
 5. Find the confirmation email for the registered user.
 6. Click the confirmation link in the email to complete the flow.
 7. The application should redirect to `/dashboard` with an active session.
 
 ### Mailpit URL Discovery
 
-Mailpit runs on port 8025 by default when the local Supabase stack is running. The URL is `http://localhost:8025`.
+The Mailpit port is configured in `supabase/config.toml` under `[inbucket].port`. Run `npm run supabase:status` to obtain the authoritative local Mailpit URL. Do not hardcode the Mailpit URL in production application logic.
 
 ## Hosted Supabase Redirect and Template Configuration
 

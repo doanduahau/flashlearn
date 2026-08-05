@@ -50,7 +50,7 @@ npm ci → success (476 packages, 25s)
 | `npm run lint`         | ✅ PASS | ~6.1s  | No ESLint warnings or errors                |
 | `npm run typecheck`    | ✅ PASS | ~3.2s  | TypeScript strict mode, no errors           |
 | `npm run test`         | ✅ PASS | ~3.8s  | 1 test file, 3 tests passed (Vitest 4.1.10) |
-| `npm run build`        | ✅ PASS | ~10.5s | 13 static routes + Proxy (Middleware)       |
+| `npm run build`        | ✅ PASS | ~10.5s | 13 static routes + Proxy                    |
 | `npm run check`        | ✅ PASS | ~20.1s | All four sub-commands pass sequentially     |
 
 All routes built successfully:
@@ -100,15 +100,15 @@ The existing E2E test only covers the landing page. The following routes are **n
 
 **Next.js compatibility: PASS WITH WARNINGS**
 
-| Aspect                           | Status        | Details                                                                                                                                                                                      |
-| -------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Root `middleware.ts` convention  | ⚠️ DEPRECATED | Next.js 16 renamed `middleware.ts` → `proxy.ts` and the export from `middleware` → `proxy`. The current file still works (build output shows `ƒ Proxy (Middleware)`) but should be migrated. |
-| Exported function and matcher    | ✅ VALID      | `middleware()` export with regex matcher is accepted by Next.js 16.2.12.                                                                                                                     |
-| Runtime used by middleware/proxy | ✅ SUPPORTED  | Default Edge runtime is used (no explicit runtime config), which is supported.                                                                                                               |
-| `cookies()` async handling       | ✅ CORRECT    | `server.ts` correctly uses `await cookies()`. All usage is async.                                                                                                                            |
-| Supabase session refresh helper  | ✅ CORRECT    | `src/lib/supabase/middleware.ts` follows the current SSR pattern with cookie read/write.                                                                                                     |
-| Server/Client Component imports  | ✅ CORRECT    | `client.ts` has `"use client"` directive, `server.ts` has no directive (server by default).                                                                                                  |
-| Server-only module protection    | ⚠️ MISSING    | `server.ts` lacks `import "server-only"` guard; `server-only` package is not installed. See FND-002.                                                                                         |
+| Aspect                          | Status       | Details                                                                                                                                                          |
+| ------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Root `proxy.ts` convention      | ✅ RESOLVED  | `proxy.ts` exists in root and exports `proxy`. The legacy `middleware.ts` convention has been removed. All route protection logic is consolidated in `proxy.ts`. |
+| Exported function and matcher   | ✅ VALID     | `proxy()` export with regex matcher is accepted by Next.js 16.2.12.                                                                                              |
+| Runtime used by proxy           | ✅ SUPPORTED | Default Edge runtime is used (no explicit runtime config), which is supported.                                                                                   |
+| `cookies()` async handling      | ✅ CORRECT   | `server.ts` correctly uses `await cookies()`. All usage is async.                                                                                                |
+| Supabase session refresh helper | ✅ CORRECT   | `src/lib/supabase/proxy.ts` follows the current SSR pattern with cookie read/write.                                                                              |
+| Server/Client Component imports | ✅ CORRECT   | `client.ts` has `"use client"` directive, `server.ts` has no directive (server by default).                                                                      |
+| Server-only module protection   | ⚠️ MISSING   | `server.ts` lacks `import "server-only"` guard; `server-only` package is not installed. See FND-002.                                                             |
 
 ### See: FND-001 (middleware → proxy migration)
 
@@ -267,22 +267,12 @@ These match the shadow specification from AGENTS.md §11.5 (`box-shadow: 0 8px 2
 
 ## Findings
 
-### FND-001 — `middleware.ts` should be renamed to `proxy.ts` for Next.js 16
+### FND-001 — `middleware.ts` should be consolidated into `proxy.ts` for Next.js 16
 
-- **Severity:** High
+- **Severity:** High (RESOLVED)
 - **Area:** Next.js compatibility
-- **File:** [middleware.ts](file:///c:/Users/ASUS/Desktop/dphva/flashlearn/middleware.ts)
-- **Reproduction:**
-  1. Run `npm run build`.
-  2. Observe output line: `ƒ Proxy (Middleware)` — Next.js 16 recognizes the file but flags it with the legacy `(Middleware)` label.
-  3. Next.js 16 documentation states `middleware.ts` is deprecated in favor of `proxy.ts`.
-- **Expected:** Project uses `proxy.ts` with an exported `proxy()` function, matching the Next.js 16 convention.
-- **Actual:** Project uses `middleware.ts` with an exported `middleware()` function (Next.js 15 convention).
-- **Recommended fix:**
-  1. Rename `middleware.ts` → `proxy.ts`.
-  2. Rename the exported function from `middleware` to `proxy`.
-  3. Update `src/lib/supabase/middleware.ts` import path if necessary.
-  4. Or run: `npx @next/codemod@canary middleware-to-proxy`.
+- **File:** `proxy.ts` (root) and `src/middleware.ts` (removed)
+- **Resolution:** All route protection logic from `src/middleware.ts` has been merged into `proxy.ts`. The `src/middleware.ts` file has been deleted. `proxy.ts` now handles both session refresh (via `updateSession`) and route protection using `getClaims()`. The Next.js 16 deprecation warning is eliminated.
 
 ---
 

@@ -1,3 +1,5 @@
+import { ALL_GUEST_ROUTES } from "@/features/auth/utils/routes";
+
 export function isSafeRedirect(destination: string): boolean {
   if (!destination) return false;
   if (destination.startsWith("//")) return false;
@@ -6,11 +8,7 @@ export function isSafeRedirect(destination: string): boolean {
   if (destination.startsWith("\\")) return false;
   if (destination.includes("\\")) return false;
   if (!destination.startsWith("/")) return false;
-  if (destination === "/sign-in") return false;
-  if (destination === "/sign-up") return false;
-  if (destination === "/check-email") return false;
-  if (destination === "/auth/confirm") return false;
-  if (destination === "/auth/error") return false;
+  if (ALL_GUEST_ROUTES.includes(destination as (typeof ALL_GUEST_ROUTES)[number])) return false;
   try {
     new URL(destination, "http://localhost");
   } catch {

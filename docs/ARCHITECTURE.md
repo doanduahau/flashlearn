@@ -38,15 +38,14 @@ sessions via `@supabase/ssr`. See `docs/AUTH.md` for the full auth documentation
   server actions. Never imported into Client Components.
 - **`src/lib/supabase/proxy.ts`:** Proxy middleware that refreshes the session on every
   request by calling `getClaims()`.
-- **`src/middleware.ts`:** Route protection middleware that checks auth state and
-  redirects unauthenticated users to `/sign-in`, and authenticated users away from
-  guest-only pages to `/dashboard`.
+- **`proxy.ts`:** Next.js 16 request interception entry point that refreshes sessions
+  and enforces route protection.
 - **`src/features/auth/`:** Feature-first auth code (schemas, server actions, components,
   utils, types).
 
 ### Auth checks
 
-- `supabase.auth.getClaims()` is used for authentication checks in middleware and layout.
+- `supabase.auth.getClaims()` is used for authentication checks in proxy and layout.
 - `supabase.auth.getUser()` is used only where the latest full Auth user record is
   needed (e.g., the `CurrentUser` component displaying the user's email).
 - `getSession()` is not used as proof of identity.

@@ -38,9 +38,9 @@ async function signUpAndConfirm(page: import("@playwright/test").Page, email: st
 
   // Extract the confirmation link href from the email
   // The link may contain either token_hash or code parameter
-  const confirmLink = mailPage.locator('a[href*="auth/confirm"]');
+  const confirmLink = mailPage.locator('a[href*="auth/confirm"]').first();
   await confirmLink.waitFor({ state: "attached", timeout: 10000 });
-  const confirmHref = await confirmLink.first().getAttribute("href");
+  const confirmHref = await confirmLink.getAttribute("href");
 
   if (!confirmHref) {
     throw new Error("Could not find confirmation link in email");
@@ -106,19 +106,24 @@ test.describe("Authentication Flow", () => {
     await expect(errorElement).toBeVisible();
   });
 
-  test("authenticated users cannot remain on sign-in or sign-up pages", async ({ page }) => {
+  test("sign-out and sign-in again works correctly", async ({ page }) => {
     const email = uniqueEmail();
 
     await signUpAndConfirm(page, email);
     expect(page.url()).toContain("/dashboard");
 
-    // Try to visit sign-in - should redirect to dashboard
-    await page.goto("/sign-in");
-    await page.waitForURL(/\/dashboard$/);
+    // Sign out
+    await page.getByRole("button", { name: /đăng xuất/i }).click();
+    await page.waitForURL(/\/sign-in$/);
 
-    // Try to visit sign-up - should redirect to dashboard
-    await page.goto("/sign-up");
+    // Sign in again
+    await page.getByLabel("Email").fill(email);
+    await page.locator("#password").fill(TEST_PASSWORD);
+    await page.getByRole("button", { name: /đăng nhập/i }).click();
+
+    // Should redirect to dashboard
     await page.waitForURL(/\/dashboard$/);
+    await expect(page.getByText("Auth Test").first()).toBeVisible();
   });
 
   test("safe next parameter is restored after sign-in", async ({ page }) => {

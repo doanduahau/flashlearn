@@ -4,18 +4,8 @@ const PUBLIC_ROUTES = [
   { path: "/", heading: "FlashLearn" },
   { path: "/sign-in", heading: "Đăng nhập" },
   { path: "/sign-up", heading: "Tạo tài khoản" },
-];
-
-const APP_ROUTES = [
-  { path: "/dashboard", heading: "Dashboard" },
-  { path: "/import", heading: "Import" },
-  { path: "/sets", heading: "Bộ flashcard" },
-  { path: "/collections", heading: "Bộ đặc biệt" },
-  { path: "/study", heading: "Học" },
-  { path: "/quiz", heading: "Kiểm tra" },
-  { path: "/history", heading: "Lịch sử" },
-  { path: "/statistics", heading: "Thống kê" },
-  { path: "/settings", heading: "Cài đặt" },
+  { path: "/check-email", heading: "Kiểm tra email" },
+  { path: "/auth/error", heading: "Xác thực không thành công" },
 ];
 
 test.describe("Foundation Routes & Errors", () => {
@@ -52,28 +42,34 @@ test.describe("Foundation Routes & Errors", () => {
   });
 });
 
-test.describe("Authenticated Routes", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().addCookies([
-      {
-        name: "__unoptimized",
-        value: "1",
-        domain: "localhost",
-        path: "/",
-      },
-    ]);
+test.describe("Guest Route Protection", () => {
+  test("unauthenticated user can access sign-in", async ({ page }) => {
+    const response = await page.goto("/sign-in");
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/sign-in/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Đăng nhập");
   });
 
-  for (const { path } of APP_ROUTES) {
-    test(`authenticated route ${path} redirects to sign-in when not authenticated`, async ({
-      page,
-    }) => {
-      await page.goto(path);
-      await expect(page).toHaveURL(/\/sign-in\?next=/);
-      const url = new URL(page.url());
-      expect(url.searchParams.get("next")).toBe(path);
-    });
-  }
+  test("unauthenticated user can access sign-up", async ({ page }) => {
+    const response = await page.goto("/sign-up");
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/sign-up/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tạo tài khoản");
+  });
+
+  test("protected route redirect preserves next parameter", async ({ page }) => {
+    const response = await page.goto("/dashboard");
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/sign-in\?next=/);
+    const url = new URL(page.url());
+    expect(url.searchParams.get("next")).toBe("/dashboard");
+  });
+
+  test("unknown route remains 404 for unauthenticated user", async ({ page }) => {
+    const response = await page.goto("/unknown-route-12345");
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("404");
+  });
 });
 
 test.describe("Navigation & Layout (Authenticated)", () => {

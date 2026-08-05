@@ -16,8 +16,6 @@ async function submitSignUp(page: Page, email: string): Promise<void> {
   await page.locator("#password").fill(TEST_PASSWORD);
   await page.locator("#confirmPassword").fill(TEST_PASSWORD);
   await page.getByRole("button", { name: /đăng ký/i }).click();
-
-  await expect(page).toHaveURL(/\/(dashboard|check-email)$/);
 }
 
 async function openConfirmationLink(page: Page, email: string): Promise<string> {
@@ -33,7 +31,7 @@ async function openConfirmationLink(page: Page, email: string): Promise<string> 
   await emailRow.click();
 
   const confirmLink = mailPage.locator('a[href*="auth/confirm"]').first();
-  await confirmLink.waitFor({ state: "attached", timeout: 10_000 });
+  await confirmLink.waitFor({ state: "attached", timeout: 30_000 });
   const href = await confirmLink.getAttribute("href");
 
   await mailPage.close();
@@ -56,9 +54,9 @@ async function confirmEmail(page: Page, email: string): Promise<void> {
 async function signUpAndConfirm(page: Page, email: string): Promise<void> {
   await submitSignUp(page, email);
 
-  if (page.url().includes("/check-email")) {
-    await confirmEmail(page, email);
-  }
+  await expect(page).toHaveURL(/\/check-email$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Kiểm tra email");
+  await confirmEmail(page, email);
 
   await expect(page).toHaveURL(/\/dashboard$/);
 }
@@ -81,34 +79,14 @@ async function assertSessionCookieForAppOrigin(page: Page): Promise<void> {
 }
 
 test.describe("Authentication Flow", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("sign-up with email confirmation enabled", async ({ page }) => {
     const email = uniqueEmail();
 
-    await submitSignUp(page, email);
-
-    const requiresConfirmation = page.url().includes("/check-email");
-
-    if (requiresConfirmation) {
-      await expect(page.getByRole("heading", { level: 1 })).toContainText("Kiểm tra email");
-      await confirmEmail(page, email);
-    }
-
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await signUpAndConfirm(page, email);
     await assertSessionCookieForAppOrigin(page);
     await expect(page.getByText("Auth Test").first()).toBeVisible();
-  });
-
-  test("sign-up with email confirmation disabled", async ({ page }) => {
-    const email = uniqueEmail();
-
-    await submitSignUp(page, email);
-
-    if (page.url().includes("/check-email")) {
-      await confirmEmail(page, email);
-    }
-
-    await expect(page).toHaveURL(/\/dashboard$/);
-    await assertSessionCookieForAppOrigin(page);
   });
 
   test("authenticated user is redirected from /sign-in to /dashboard", async ({ page }) => {

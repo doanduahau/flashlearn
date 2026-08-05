@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:auth:no-confirm": "node scripts/test-e2e-auth-no-confirm.mjs",
     "prepare": "husky",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
     "supabase:start": "supabase start",

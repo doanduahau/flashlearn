@@ -32,14 +32,14 @@ PASS
 
 ## Original Finding Verification
 
-| Finding                   | Result      | Evidence                                                                                                                |
-| ------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| FND-001 (proxy.ts)        | ✅ RESOLVED | `src/proxy.ts` exists and exports `proxy`. Middleware legacy warning is absent in build output.                         |
-| FND-002 (server-only)     | ✅ RESOLVED | `import "server-only";` is present at the top of `src/lib/supabase/server.ts`.                                          |
-| FND-003 (Link tag)        | ✅ RESOLVED | Both application shell logo links use Next.js `<Link>` component. Client-side navigation works without document reload. |
-| FND-004 (Shadow token)    | ✅ RESOLVED | Duplicated arbitrary values removed. Replaced with `shadow-soft-card` referencing `--shadow-soft-card`.                 |
-| FND-005 (Reduced motion)  | ✅ RESOLVED | Spinner in `loading.tsx` uses `motion-reduce:animate-none`.                                                             |
-| FND-006 (Publishable key) | ✅ RESOLVED | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is used in `.env.example` and validation logic.                                  |
+| Finding                   | Result      | Evidence                                                                                                                                                               |
+| ------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FND-001 (proxy.ts)        | ✅ RESOLVED | `src/proxy.ts` exists and exports `proxy`. Middleware legacy warning is absent in build output.                                                                        |
+| FND-002 (server-only)     | ✅ RESOLVED | `import "server-only";` is present at the top of `src/lib/supabase/server.ts`.                                                                                         |
+| FND-003 (Link tag)        | ✅ RESOLVED | Both application shell logo links use Next.js `<Link>` component. Client-side navigation works without document reload.                                                |
+| FND-004 (Shadow token)    | ✅ RESOLVED | Duplicated arbitrary values removed. Replaced with `shadow-soft-card` referencing `--shadow-soft-card`.                                                                |
+| FND-005 (Reduced motion)  | ✅ RESOLVED | Spinner in `loading.tsx` used `motion-reduce:animate-none`. The file was removed in the set-management task to fix HTTP 404 status streaming; the finding is now moot. |
+| FND-006 (Publishable key) | ✅ RESOLVED | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is used in `.env.example` and validation logic.                                                                                 |
 
 ## E2E Route Matrix
 

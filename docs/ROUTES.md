@@ -13,22 +13,22 @@
 
 ## Authenticated Routes
 
-| Route                      | Description                            |
-| -------------------------- | -------------------------------------- |
-| `/dashboard`               | Dashboard with overview                |
-| `/import`                  | Guided browser-memory CSV/XLSX import  |
-| `/sets`                    | Read-only regular flashcard set list   |
-| `/sets/[setId]`            | Read-only set detail and ordered cards |
-| `/collections`             | List of special collections            |
-| `/collections/[id]`        | Special collection detail              |
-| `/study`                   | Choose study scope                     |
-| `/study/[sessionId]`       | Flashcard study session                |
-| `/quiz`                    | Quiz setup                             |
-| `/quiz/[attemptId]`        | Take a quiz                            |
-| `/quiz/[attemptId]/result` | Quiz result                            |
-| `/history`                 | Quiz history                           |
-| `/statistics`              | Statistics and streak                  |
-| `/settings`                | Profile and settings                   |
+| Route                      | Description                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| `/dashboard`               | Dashboard with overview                                                          |
+| `/import`                  | Guided browser-memory CSV/XLSX import                                            |
+| `/sets`                    | Regular flashcard set list (search + card counts)                                |
+| `/sets/[setId]`            | Set detail: rename/delete set, add/edit/delete cards, card search and pagination |
+| `/collections`             | List of special collections                                                      |
+| `/collections/[id]`        | Special collection detail                                                        |
+| `/study`                   | Choose study scope                                                               |
+| `/study/[sessionId]`       | Flashcard study session                                                          |
+| `/quiz`                    | Quiz setup                                                                       |
+| `/quiz/[attemptId]`        | Take a quiz                                                                      |
+| `/quiz/[attemptId]/result` | Quiz result                                                                      |
+| `/history`                 | Quiz history                                                                     |
+| `/statistics`              | Statistics and streak                                                            |
+| `/settings`                | Profile and settings                                                             |
 
 ## Route Protection
 

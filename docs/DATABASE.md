@@ -187,14 +187,16 @@ pgTAP tests live in `supabase/tests/` and run inside a transaction against the r
 database. They verify constraints, profile/trigger behavior, per-user ownership via the
 `authenticated` role, cascade behavior and database-level integrity:
 
-| File                                    | Coverage                                      |
-| --------------------------------------- | --------------------------------------------- |
-| `001_constraints.sql`                   | NOT NULL / CHECK / unique / FK constraints    |
-| `002_profiles.sql`                      | profile trigger + ownership                   |
-| `003_flashcard_sets_ownership.sql`      | set and flashcard ownership (A vs B)          |
-| `004_special_collections_ownership.sql` | collection + membership ownership             |
-| `005_cascades.sql`                      | delete cascades (card, collection, set, user) |
-| `006_triggers.sql`                      | updated_at refresh on all tables              |
+| File                                    | Coverage                                                                       |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| `001_constraints.sql`                   | NOT NULL / CHECK / unique / FK constraints                                     |
+| `002_profiles.sql`                      | profile trigger + ownership                                                    |
+| `003_flashcard_sets_ownership.sql`      | set and flashcard ownership (A vs B)                                           |
+| `004_special_collections_ownership.sql` | collection + membership ownership                                              |
+| `005_cascades.sql`                      | delete cascades (card, collection, set, user)                                  |
+| `006_triggers.sql`                      | updated_at refresh on all tables                                               |
+| `007_import_flashcard_set.sql`          | atomic import RPC (counts, owner, validation)                                  |
+| `008_set_card_mutations.sql`            | rename/delete set, add/edit/delete card, next position, isolation, anon denial |
 
 Tests run malicious operations as a low-privilege `authenticated` role (via
 `set local role authenticated; set local request.jwt.claim.sub = '<uuid>'`), never only
@@ -203,6 +205,46 @@ as `postgres`, so they exercise RLS rather than bypassing it.
 ## Atomic file import
 
 `public.import_flashcard_set(text, jsonb)` derives ownership from `auth.uid()` and atomically creates one regular set and ordered cards. It validates 1–2,000 normalized cards before writing. Errors roll back all writes. The security-definer function uses an empty `search_path` and grants EXECUTE only to `authenticated`.
+
+## Set and card management
+
+Regular sets are created exclusively through import (see `docs/IMPORT.md`). Manual
+empty-set creation is deferred. The following mutations are supported:
+
+| Operation   | Mechanism                                | Notes                                               |
+| ----------- | ---------------------------------------- | --------------------------------------------------- |
+| Rename set  | `UPDATE flashcard_sets` via RLS          | Name trimmed by the shared Zod schema               |
+| Delete set  | `DELETE flashcard_sets` via RLS          | Cascades to its flashcards and their memberships    |
+| Add card    | `public.add_flashcard(uuid, text, text)` | Positions assigned at the database boundary         |
+| Edit card   | `UPDATE flashcards` via RLS              | Front/back only; position never changes             |
+| Delete card | `DELETE flashcards` via RLS              | Position gaps are acceptable; relative order stable |
+
+### Position behavior
+
+- Every card carries a `position` starting at `0` within its set.
+- New cards are appended with `max(position) + 1`, computed by the `add_flashcard`
+  RPC which locks the parent set row (`SELECT ... FOR UPDATE`) so concurrent or
+  repeated submissions serialize and never observe a stale maximum.
+- The client never supplies `user_id`, set ownership, or position.
+- Deleting a card leaves the remaining positions unchanged, so gaps may appear;
+  reordering is deferred to a later phase.
+
+### Ownership and security
+
+- All mutations run under RLS keyed to `auth.uid()`; identity always comes from the
+  Supabase session, never from the browser.
+- Rename/delete/edit operations that touch another user's rows are filtered by RLS
+  and return zero affected rows, which the server action maps to a generic
+  not-found message (no data disclosure).
+- `add_flashcard` verifies the target set belongs to the caller and raises the same
+  error for a missing set and a foreign set.
+- `anon` is denied table privileges and the `add_flashcard` EXECUTE grant.
+- Card content is never logged.
+
+### Deferred work
+
+Card reordering and manual empty-set creation are intentionally out of scope for the
+current phase; the schema already supports both without migration.
 
 ## Generated types
 

@@ -203,6 +203,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_flashcard: {
+        Args: { p_back: string; p_front: string; p_set_id: string }
+        Returns: {
+          flashcard_id: string
+          position: number
+        }[]
+      }
       import_flashcard_set: {
         Args: { p_cards: Json; p_name: string }
         Returns: {

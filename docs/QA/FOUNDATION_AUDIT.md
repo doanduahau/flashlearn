@@ -333,6 +333,7 @@ These match the shadow specification from AGENTS.md §11.5 (`box-shadow: 0 8px 2
 - **Expected:** Per AGENTS.md §11.6: "Tôn trọng `prefers-reduced-motion`." The spinner should reduce or stop animation when the preference is set.
 - **Actual:** No `motion-reduce:` Tailwind variant or `@media (prefers-reduced-motion)` rule applied.
 - **Recommended fix:** Add `motion-reduce:animate-none` class to the spinner div, or add a global CSS rule.
+- **Status:** RESOLVED. `motion-reduce:animate-none` was added in the foundation retest. The file was later removed in the set-management task because the root `loading.tsx` streaming boundary caused `notFound()` to return HTTP 200; the finding is now moot.
 
 ---
 
@@ -368,5 +369,5 @@ These match the shadow specification from AGENTS.md §11.5 (`box-shadow: 0 8px 2
 2. **FND-002** (Medium): Install `server-only` package and add the guard import to `src/lib/supabase/server.ts`. This is critical before adding authentication logic that touches server-only code paths.
 3. **FND-003** (Low): Replace `<a>` tags with `<Link>` in `AppShell` logo links. Quick fix.
 4. **FND-004** (Low): Extract repeated shadow value to a design token. Can be done when building auth UI.
-5. **FND-005** (Low): Add reduced-motion handling to the loading spinner.
+5. **FND-005** (Low): ~~Add reduced-motion handling to the loading spinner.~~ Resolved; `loading.tsx` was removed in the set-management task.
 6. Continue to Phase 2: Supabase Auth integration, database schema, and first feature implementation.

@@ -4,6 +4,10 @@
 
 The import page accepts `.csv` and `.xlsx` files up to 5 MB. Parsing happens in browser memory and FlashLearn never stores the original source file. Users select a worksheet and two distinct columns, review normalized rows, then confirm one atomic set import. Blank and partial pairs are excluded; exact normalized duplicates retain only their first occurrence; imports reject more than 2,000 valid rows.
 
+## Quản lý bộ và thẻ
+
+Bộ flashcard thông thường được tạo qua import. Trang `/sets` liệt kê các bộ kèm số thẻ và ô tìm kiếm; trang `/sets/[setId]` cho phép đổi tên bộ, xóa bộ, thêm/sửa/xóa thẻ, tìm kiếm và phân trang. Thẻ mới được thêm vào cuối bộ với vị trí do database gán (an toàn khi thêm đồng thời). Mọi thao tác chỉ tác động lên dữ liệu của chính người dùng, được bảo vệ bằng RLS. Sắp xếp lại thẻ và tạo bộ trống bằng tay nằm ngoài phạm vi hiện tại.
+
 Biến bất kỳ file Excel hai cột nào thành bộ flashcard và bài kiểm tra thông minh.
 
 Học ngoại ngữ, lập trình, công thức, luật, y khoa, câu hỏi phỏng vấn — bất kỳ nội dung hỏi–đáp nào

@@ -8,6 +8,10 @@ export const IMPORT_FILE_MAX_BYTES = 5 * 1024 * 1024;
 export const IMPORT_MAX_ROWS = 2_000;
 export const IMPORT_PREVIEW_ROWS = 100;
 
+export const SET_NAME_MAX_LENGTH = 120;
+export const CARD_TEXT_MAX_LENGTH = 50_000;
+export const SET_CARDS_PAGE_SIZE = 20;
+
 export const MIN_QUIZ_QUESTIONS = 10;
 
 export const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";

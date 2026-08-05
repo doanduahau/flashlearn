@@ -1,41 +1,32 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 
+import { SetsList, type SetSummary } from "@/features/flashcard-sets/components/sets-list";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Bộ flashcard" };
 
 export default async function SetsPage() {
   const supabase = await createClient();
-  const { data: sets } = await supabase
-    .from("flashcard_sets")
-    .select("id, name, created_at")
-    .order("created_at", { ascending: false });
+  const [setsResult, cardsResult] = await Promise.all([
+    supabase.from("flashcard_sets").select("id, name").order("created_at", { ascending: false }),
+    supabase.from("flashcards").select("set_id"),
+  ]);
+
+  const cardCounts = new Map<string, number>();
+  for (const card of cardsResult.data ?? []) {
+    cardCounts.set(card.set_id, (cardCounts.get(card.set_id) ?? 0) + 1);
+  }
+
+  const sets: SetSummary[] = (setsResult.data ?? []).map((set) => ({
+    id: set.id,
+    name: set.name,
+    cardCount: cardCounts.get(set.id) ?? 0,
+  }));
+
   return (
     <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
       <h1 className="text-3xl font-bold">Bộ flashcard</h1>
-      {sets?.length ? (
-        <ul className="mt-6 grid gap-3">
-          {sets.map((set) => (
-            <li key={set.id}>
-              <Link
-                className="block rounded-2xl border border-border-soft bg-surface p-5 hover:bg-surface-subtle"
-                href={`/sets/${set.id}`}
-              >
-                {set.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-6 text-text-secondary">
-          Chưa có bộ flashcard.{" "}
-          <Link className="underline" href="/import">
-            Import tệp đầu tiên
-          </Link>
-          .
-        </p>
-      )}
+      <SetsList sets={sets} />
     </main>
   );
 }

@@ -4,6 +4,27 @@
 
 The import feature parses selected files entirely in browser memory, presents a client-side guided mapping and preview, then sends only normalized text rows to a server action. The action validates its Zod payload and calls a single authenticated database RPC; no source file or `user_id` is persisted or accepted.
 
+## Set and card management
+
+Regular sets are created only through import. `/sets` lists them with card counts and
+client-side name search. `/sets/[setId]` supports rename, delete-set, add/edit/delete
+cards, card search and pagination.
+
+- **Server actions** (`src/features/flashcard-sets/server/actions.ts`) validate every
+  payload with shared Zod schemas, derive identity from the session via
+  `supabase.auth.getClaims()`, and never trust a client-supplied `user_id`.
+- **Positioning** is database-bound. `public.add_flashcard` locks the parent set row
+  and computes `max(position) + 1`, so concurrent or repeated additions cannot
+  collide; the browser never sends a position.
+- **Ownership isolation** comes from RLS. Updates/deletes that match another user's
+  rows affect zero rows and surface as a generic not-found, so users cannot learn
+  whether a set or card exists.
+- **Cascade deletion** is enforced by foreign keys: deleting a set removes its cards
+  and their special-collection memberships.
+- Rename, delete-set, edit-card and delete-card use direct RLS-filtered table
+  operations; only card insertion needs an RPC for atomic positioning. Card
+  reordering and manual empty-set creation are deferred.
+
 ## Scope
 
 This document describes the architecture decisions that underpin the FlashLearn
@@ -11,8 +32,9 @@ application. The application is a Next.js App Router app backed by Supabase; see
 `AGENTS.md` for the full product blueprint and `docs/DATABASE.md` for the schema details.
 
 The foundation covers data ownership (profiles, flashcard sets, flashcards,
-special collections and their membership table) and authentication (email/password
-sign-up, sign-in, email confirmation, sign-out, route protection). Imports, study
+special collections and their membership table), authentication (email/password
+sign-up, sign-in, email confirmation, sign-out, route protection), imports and
+regular set/card management (rename, delete, add/edit/delete cards). Study
 mode, quiz, streak and analytics are implemented in later phases.
 
 ## Principles applied
@@ -111,11 +133,20 @@ a rollback path.
 ## Testing strategy
 
 - Database behavior is verified with pgTAP in `supabase/tests/`, running as a
-  low-privilege `authenticated` role so RLS is actually exercised.
+  low-privilege `authenticated` role so RLS is actually exercised. `008` covers set
+  rename/delete, card add/edit/delete, next-position assignment, cross-user
+  isolation and anonymous denial.
 - Unit tests for auth schemas, safe redirect, and error mapping are in
   `tests/unit/features/auth/`.
+- Unit tests for set/card schemas, search sanitization and mutation error mapping are
+  in `tests/unit/features/flashcard-sets/`.
+- Component tests for set/card management forms (rename, add/edit/delete card, delete
+  set, confirmation, pending and error states) are in
+  `tests/unit/features/flashcard-sets/`.
 - Component tests for sign-in and sign-up forms are in `tests/unit/features/auth/`.
 - E2E tests for the complete auth flow are in `tests/e2e/auth.spec.ts`.
+- E2E tests for set/card management with isolated users (including import, rename,
+  add/edit/delete, cross-user 404 isolation) are in `tests/e2e/set-management.spec.ts`.
 
 ## Future phases
 

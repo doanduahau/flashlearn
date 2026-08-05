@@ -5,7 +5,8 @@ export const APP_DESCRIPTION =
 export const DEFAULT_LOCALE = "vi";
 
 export const IMPORT_FILE_MAX_BYTES = 5 * 1024 * 1024;
-export const IMPORT_MAX_ROWS = 10_000;
+export const IMPORT_MAX_ROWS = 2_000;
+export const IMPORT_PREVIEW_ROWS = 100;
 
 export const MIN_QUIZ_QUESTIONS = 10;
 

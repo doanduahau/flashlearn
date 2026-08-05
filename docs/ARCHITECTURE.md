@@ -1,5 +1,9 @@
 # Architecture
 
+## CSV/XLSX import
+
+The import feature parses selected files entirely in browser memory, presents a client-side guided mapping and preview, then sends only normalized text rows to a server action. The action validates its Zod payload and calls a single authenticated database RPC; no source file or `user_id` is persisted or accepted.
+
 ## Scope
 
 This document describes the architecture decisions that underpin the FlashLearn

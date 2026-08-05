@@ -1,5 +1,9 @@
 # FlashLearn
 
+## Import CSV/XLSX
+
+The import page accepts `.csv` and `.xlsx` files up to 5 MB. Parsing happens in browser memory and FlashLearn never stores the original source file. Users select a worksheet and two distinct columns, review normalized rows, then confirm one atomic set import. Blank and partial pairs are excluded; exact normalized duplicates retain only their first occurrence; imports reject more than 2,000 valid rows.
+
 Biến bất kỳ file Excel hai cột nào thành bộ flashcard và bài kiểm tra thông minh.
 
 Học ngoại ngữ, lập trình, công thức, luật, y khoa, câu hỏi phỏng vấn — bất kỳ nội dung hỏi–đáp nào

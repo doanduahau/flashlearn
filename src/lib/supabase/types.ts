@@ -203,7 +203,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      import_flashcard_set: {
+        Args: { p_cards: Json; p_name: string }
+        Returns: {
+          imported_count: number
+          set_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

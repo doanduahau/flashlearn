@@ -200,6 +200,10 @@ Tests run malicious operations as a low-privilege `authenticated` role (via
 `set local role authenticated; set local request.jwt.claim.sub = '<uuid>'`), never only
 as `postgres`, so they exercise RLS rather than bypassing it.
 
+## Atomic file import
+
+`public.import_flashcard_set(text, jsonb)` derives ownership from `auth.uid()` and atomically creates one regular set and ordered cards. It validates 1–2,000 normalized cards before writing. Errors roll back all writes. The security-definer function uses an empty `search_path` and grants EXECUTE only to `authenticated`.
+
 ## Generated types
 
 `npm run db:types` generates `src/lib/supabase/types.ts` from the live local database.

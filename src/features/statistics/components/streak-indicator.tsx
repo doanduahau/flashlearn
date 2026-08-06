@@ -6,7 +6,8 @@ import { streakLabel } from "@/features/statistics/utils/streak-label";
 export function StreakIndicator({
   streak,
   completedToday,
-}: Readonly<{ streak: number; completedToday: boolean }>) {
+  className,
+}: Readonly<{ streak: number; completedToday: boolean; className?: string }>) {
   return (
     <span
       className={cn(
@@ -14,6 +15,7 @@ export function StreakIndicator({
         completedToday
           ? "border-warning/40 bg-warning/10 text-primary-foreground"
           : "border-border-soft bg-surface-subtle text-text-secondary",
+        className,
       )}
       aria-label={streakLabel(streak, completedToday)}
       title={streakLabel(streak, completedToday)}

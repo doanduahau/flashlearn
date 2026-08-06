@@ -26,7 +26,11 @@ export function AppShell({
         </Link>
         <AppNavigation variant="sidebar" />
         <div className="mt-auto flex flex-col gap-3 border-t border-border-soft pt-4">
-          <StreakIndicator streak={streak} completedToday={completedToday} />
+          <StreakIndicator
+            streak={streak}
+            completedToday={completedToday}
+            className="w-fit self-center justify-center px-2"
+          />
           <div className="flex items-center gap-1">
             <div className="min-w-0 flex-1">
               <CurrentUser />

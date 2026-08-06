@@ -44,6 +44,15 @@ describe("studySourceSchema", () => {
     );
     expect(studySourceSchema.safeParse({ setIds: uuidList(STUDY_MAX_SOURCES) }).success).toBe(true);
   });
+
+  it("rejects more than the source limit across both lists", () => {
+    expect(
+      studySourceSchema.safeParse({
+        setIds: uuidList(STUDY_MAX_SOURCES),
+        collectionIds: [UUID_A],
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("parseStudySessionParams", () => {
@@ -93,5 +102,14 @@ describe("parseStudySessionParams", () => {
 
   it("rejects source lists longer than the limit", () => {
     expect(parseStudySessionParams({ sets: uuidList(STUDY_MAX_SOURCES + 1).join(",") })).toBeNull();
+  });
+
+  it("rejects more than the source limit across both query lists", () => {
+    expect(
+      parseStudySessionParams({
+        sets: uuidList(STUDY_MAX_SOURCES).join(","),
+        collections: UUID_A,
+      }),
+    ).toBeNull();
   });
 });

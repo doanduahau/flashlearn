@@ -50,7 +50,9 @@ export function StudySession({
       if (
         target &&
         typeof target.closest === "function" &&
-        target.closest('button, input, textarea, select, [contenteditable="true"]')
+        target.closest(
+          'a, button, input, textarea, select, [role="button"], [contenteditable="true"]',
+        )
       ) {
         return;
       }

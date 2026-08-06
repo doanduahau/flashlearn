@@ -173,6 +173,18 @@ describe("StudySession", () => {
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
   });
 
+  it("ignores shortcuts while a link is focused", () => {
+    renderSession();
+    const link = screen.getByRole("link", { name: /Chọn phạm vi học/ });
+    fireEvent.keyDown(link, { key: " " });
+    fireEvent.keyDown(link, { key: "ArrowRight" });
+    expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  });
+
   it("adds a seed to the url when shuffling", async () => {
     const user = userEvent.setup();
     renderSession();

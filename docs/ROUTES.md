@@ -23,10 +23,10 @@
 | `/collections/[collectionId]` | Special collection detail: rename/delete collection, card list with original set name and remove-membership              |
 | `/study`                      | Choose study scope (all cards or specific sets/collections)                                                              |
 | `/study/session`              | Flashcard study session (deterministic source-query route, optional `seed`)                                              |
-| `/quiz`                       | Quiz setup                                                                                                               |
+| `/quiz`                       | Quiz setup: source selection, mode, unique count and question count                                                      |
 | `/quiz/[attemptId]`           | Take a quiz                                                                                                              |
 | `/quiz/[attemptId]/result`    | Quiz result                                                                                                              |
-| `/history`                    | Quiz history                                                                                                             |
+| `/history`                    | Current-user completed quiz history                                                                                      |
 | `/statistics`                 | Statistics and streak                                                                                                    |
 | `/settings`                   | Profile and settings                                                                                                     |
 

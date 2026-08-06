@@ -132,6 +132,108 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_questions: {
+        Row: {
+          answered_at: string | null
+          choices: Json
+          correct_answer: string
+          correct_choice_index: number
+          flashcard_id: string | null
+          id: string
+          is_correct: boolean | null
+          position: number
+          prompt: string
+          selected_choice_index: number | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string | null
+          choices: Json
+          correct_answer: string
+          correct_choice_index: number
+          flashcard_id?: string | null
+          id?: string
+          is_correct?: boolean | null
+          position: number
+          prompt: string
+          selected_choice_index?: number | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string | null
+          choices?: Json
+          correct_answer?: string
+          correct_choice_index?: number
+          flashcard_id?: string | null
+          id?: string
+          is_correct?: boolean | null
+          position?: number
+          prompt?: string
+          selected_choice_index?: number | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_flashcard_id_fkey"
+            columns: ["flashcard_id"]
+            isOneToOne: false
+            referencedRelation: "flashcards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_questions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_sessions: {
+        Row: {
+          actual_question_count: number
+          completed_at: string | null
+          correct_answer_count: number
+          id: string
+          mode: string
+          requested_question_count: number
+          source_all: boolean
+          source_collection_ids: string[]
+          source_set_ids: string[]
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_question_count: number
+          completed_at?: string | null
+          correct_answer_count?: number
+          id?: string
+          mode: string
+          requested_question_count: number
+          source_all?: boolean
+          source_collection_ids?: string[]
+          source_set_ids?: string[]
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_question_count?: number
+          completed_at?: string | null
+          correct_answer_count?: number
+          id?: string
+          mode?: string
+          requested_question_count?: number
+          source_all?: boolean
+          source_collection_ids?: string[]
+          source_set_ids?: string[]
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       special_collection_items: {
         Row: {
           collection_id: string
@@ -210,6 +312,16 @@ export type Database = {
           position: number
         }[]
       }
+      create_quiz_session: {
+        Args: {
+          p_all: boolean
+          p_collection_ids: string[]
+          p_mode: string
+          p_question_count: number
+          p_set_ids: string[]
+        }
+        Returns: string
+      }
       create_special_collection: {
         Args: { p_color?: string; p_icon?: string; p_name: string }
         Returns: string
@@ -224,6 +336,14 @@ export type Database = {
       set_card_collections: {
         Args: { p_card_id: string; p_collection_ids: string[] }
         Returns: string
+      }
+      submit_quiz_answer: {
+        Args: { p_question_id: string; p_selected_choice_index: number }
+        Returns: {
+          completed: boolean
+          is_correct: boolean
+          session_id: string
+        }[]
       }
     }
     Enums: {

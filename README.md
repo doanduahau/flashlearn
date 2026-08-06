@@ -4,6 +4,10 @@
 
 The import page accepts `.csv` and `.xlsx` files up to 5 MB. Parsing happens in browser memory and FlashLearn never stores the original source file. Users select a worksheet and two distinct columns, review normalized rows, then confirm one atomic set import. Blank and partial pairs are excluded; exact normalized duplicates retain only their first occurrence; imports reject more than 2,000 valid rows.
 
+## Quiz
+
+Quiz sessions are resumable server-owned multiple-choice plans built from regular sets, special collections or all cards. They support Balanced, Never Tested, Wrong Answers and Pure Random selection and preserve question/answer snapshots in result history. See `docs/QUIZ.md` for selection, limits and security details.
+
 ## Quản lý bộ và thẻ
 
 Bộ flashcard thông thường được tạo qua import. Trang `/sets` liệt kê các bộ kèm số thẻ và ô tìm kiếm; trang `/sets/[setId]` cho phép đổi tên bộ, xóa bộ, thêm/sửa/xóa thẻ, tìm kiếm và phân trang. Thẻ mới được thêm vào cuối bộ với vị trí do database gán (an toàn khi thêm đồng thời). Mọi thao tác chỉ tác động lên dữ liệu của chính người dùng, được bảo vệ bằng RLS. Sắp xếp lại thẻ và tạo bộ trống bằng tay nằm ngoài phạm vi hiện tại.

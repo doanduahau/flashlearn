@@ -217,11 +217,14 @@ a rollback path.
 - E2E tests for study mode (deduplicated count, deterministic refresh, shuffle across
   reload, in-session membership, cross-user source isolation) are in
   `tests/e2e/study-mode.spec.ts`.
+- Quiz sessions use server-rendered routes and small client interaction components. The
+  browser receives choices but not a correct-choice index before answer submission; the
+  database RPC owns card selection, snapshots, answer state and scoring.
 
 ## Future phases
 
-- Quiz attempts, attempt items, learning stats and daily learning records will reuse the
-  same ownership pattern (composite FKs + RLS keyed to `auth.uid()`).
+- Learning statistics and daily streak presentation will build from completed quiz
+  timestamps and question snapshots without changing historical results.
 - Import parsing stays client-side for preview, but the persisted payload is re-validated
   server-side before insert, and a transaction guarantees set + flashcards are written
   atomically.

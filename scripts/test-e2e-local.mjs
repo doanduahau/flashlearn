@@ -22,7 +22,9 @@ function runNpm(args, env) {
   });
 }
 
-const status = JSON.parse(await runNpm(["exec", "--", "supabase", "status"], process.env));
+const status = JSON.parse(
+  await runNpm(["exec", "--", "supabase", "status", "-o", "json"], process.env),
+);
 const supabaseUrl = status.API_URL;
 const key = status.PUBLISHABLE_KEY ?? status.ANON_KEY;
 const hostname = new URL(supabaseUrl).hostname;

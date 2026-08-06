@@ -298,3 +298,7 @@ Types are checked in and must be regenerated whenever the schema changes.
 ## Quiz persistence
 
 `quiz_sessions` and `quiz_questions` store immutable question/answer snapshots, source metadata, completion time and server-computed score. Both use own-row RLS for reads and revoke direct browser writes. The authenticated-only `create_quiz_session` and `submit_quiz_answer` RPCs use `auth.uid()`, empty `search_path`, source ownership validation and row locking. `completed_at` is retained for future streak and statistics work.
+
+## Derived statistics
+
+`get_learning_statistics()` is a read-only `SECURITY INVOKER` RPC. It derives all totals, local active days, streaks, the fixed 30-day series and recent history from completed owned quiz sessions. It accepts no browser-controlled user, timezone or range and falls back to `Asia/Ho_Chi_Minh` when a profile timezone is invalid.

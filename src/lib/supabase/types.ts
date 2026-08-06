@@ -326,6 +326,7 @@ export type Database = {
         Args: { p_color?: string; p_icon?: string; p_name: string }
         Returns: string
       }
+      get_learning_statistics: { Args: never; Returns: Json }
       import_flashcard_set: {
         Args: { p_cards: Json; p_name: string }
         Returns: {

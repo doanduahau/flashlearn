@@ -27,7 +27,7 @@
 | `/quiz/[attemptId]`           | Take a quiz                                                                                                              |
 | `/quiz/[attemptId]/result`    | Quiz result                                                                                                              |
 | `/history`                    | Current-user completed quiz history                                                                                      |
-| `/statistics`                 | Statistics and streak                                                                                                    |
+| `/statistics`                 | Server-rendered streak and completed-quiz statistics                                                                     |
 | `/settings`                   | Profile and settings                                                                                                     |
 
 ## Route Protection

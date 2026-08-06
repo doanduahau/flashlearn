@@ -8,6 +8,10 @@ The import page accepts `.csv` and `.xlsx` files up to 5 MB. Parsing happens in 
 
 Quiz sessions are resumable server-owned multiple-choice plans built from regular sets, special collections or all cards. They support Balanced, Never Tested, Wrong Answers and Pure Random selection and preserve question/answer snapshots in result history. See `docs/QUIZ.md` for selection, limits and security details.
 
+## Statistics and streaks
+
+`/statistics` derives activity, accuracy and quiz mode totals only from completed quiz sessions. A streak uses the profile timezone and counts at most one active local day per calendar day. See `docs/STATISTICS.md`.
+
 ## Quản lý bộ và thẻ
 
 Bộ flashcard thông thường được tạo qua import. Trang `/sets` liệt kê các bộ kèm số thẻ và ô tìm kiếm; trang `/sets/[setId]` cho phép đổi tên bộ, xóa bộ, thêm/sửa/xóa thẻ, tìm kiếm và phân trang. Thẻ mới được thêm vào cuối bộ với vị trí do database gán (an toàn khi thêm đồng thời). Mọi thao tác chỉ tác động lên dữ liệu của chính người dùng, được bảo vệ bằng RLS. Sắp xếp lại thẻ và tạo bộ trống bằng tay nằm ngoài phạm vi hiện tại.

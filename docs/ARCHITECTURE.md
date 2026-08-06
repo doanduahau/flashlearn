@@ -220,6 +220,8 @@ a rollback path.
 - Quiz sessions use server-rendered routes and small client interaction components. The
   browser receives choices but not a correct-choice index before answer submission; the
   database RPC owns card selection, snapshots, answer state and scoring.
+- Statistics are server-rendered from a zero-argument, read-only RPC. It derives streaks
+  and aggregate values from completed owned sessions and never persists duplicated analytics.
 
 ## Future phases
 

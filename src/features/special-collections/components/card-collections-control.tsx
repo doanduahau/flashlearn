@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { FolderPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { updateCardCollections } from "@/features/special-collections/server/actions";
+import { cn } from "@/lib/utils";
 
 export interface CardCollectionOption {
   id: string;
@@ -17,17 +19,27 @@ export function CardCollectionsControl({
   setId,
   collections,
   memberships,
+  variant = "text",
 }: Readonly<{
   cardId: string;
   setId: string;
   collections: CardCollectionOption[];
   memberships: string[];
+  variant?: "text" | "icon";
 }>) {
   const router = useRouter();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const hasOpened = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(memberships));
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (hasOpened.current && !isOpen && !isPending) {
+      triggerRef.current?.focus();
+    }
+  }, [isOpen, isPending]);
 
   if (collections.length === 0) {
     return (
@@ -36,6 +48,8 @@ export function CardCollectionsControl({
       </Link>
     );
   }
+
+  const isIcon = variant === "icon";
 
   function toggle(collectionId: string): void {
     setSelected((previous) => {
@@ -47,6 +61,11 @@ export function CardCollectionsControl({
       }
       return next;
     });
+  }
+
+  function closePanel(): void {
+    setIsOpen(false);
+    setError("");
   }
 
   function save(): void {
@@ -61,29 +80,52 @@ export function CardCollectionsControl({
         setError(result.error);
         return;
       }
-      setIsOpen(false);
+      closePanel();
       router.refresh();
     });
   }
 
   return (
-    <div className="space-y-2">
+    <div
+      className={isIcon ? "relative" : "space-y-2"}
+      onClick={isIcon ? (event) => event.stopPropagation() : undefined}
+    >
       <Button
+        ref={triggerRef}
         type="button"
         variant="outline"
-        onClick={() => setIsOpen((open) => !open)}
+        size={isIcon ? "icon" : "default"}
+        onClick={() => {
+          if (!isOpen) hasOpened.current = true;
+          setIsOpen((open) => !open);
+        }}
         aria-expanded={isOpen}
+        aria-label={isIcon ? "Thêm vào bộ đặc biệt" : undefined}
+        title={isIcon ? "Thêm vào bộ đặc biệt" : undefined}
+        disabled={isPending}
       >
-        Bộ đặc biệt ({memberships.length})
+        {isIcon ? <FolderPlus aria-hidden="true" /> : `Bộ đặc biệt (${memberships.length})`}
       </Button>
-      {error ? (
+      {error && !isIcon ? (
         <p role="alert" className="text-danger">
           {error}
         </p>
       ) : null}
       {isOpen ? (
-        <div className="rounded-2xl border border-border-soft bg-surface-subtle p-4">
+        <div
+          className={cn(
+            "rounded-2xl border border-border-soft p-4",
+            isIcon
+              ? "absolute right-0 top-12 z-20 w-72 bg-surface shadow-[0_8px_24px_rgba(39,93,70,0.08)]"
+              : "bg-surface-subtle",
+          )}
+        >
           <p className="text-sm font-medium">Thêm vào bộ đặc biệt</p>
+          {error && isIcon ? (
+            <p role="alert" className="mt-2 text-danger">
+              {error}
+            </p>
+          ) : null}
           <ul className="mt-2 space-y-2">
             {collections.map((collection) => (
               <li key={collection.id}>
@@ -107,9 +149,8 @@ export function CardCollectionsControl({
               variant="ghost"
               disabled={isPending}
               onClick={() => {
-                setIsOpen(false);
+                closePanel();
                 setSelected(new Set(memberships));
-                setError("");
               }}
             >
               Hủy

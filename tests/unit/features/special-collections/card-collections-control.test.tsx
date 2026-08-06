@@ -177,4 +177,68 @@ describe("CardCollectionsControl", () => {
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(mocks.updateCardCollections).not.toHaveBeenCalled();
   });
+
+  it("renders an icon trigger with an accessible label and tooltip", () => {
+    render(
+      <CardCollectionsControl
+        cardId={CARD_ID}
+        setId={SET_ID}
+        collections={COLLECTIONS}
+        memberships={[]}
+        variant="icon"
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
+    expect(trigger).toHaveAttribute("title", "Thêm vào bộ đặc biệt");
+    expect(trigger.querySelector("svg")).not.toBeNull();
+  });
+
+  it("opens the selector from the icon trigger", async () => {
+    const user = userEvent.setup();
+    render(
+      <CardCollectionsControl
+        cardId={CARD_ID}
+        setId={SET_ID}
+        collections={COLLECTIONS}
+        memberships={[COLLECTION_A]}
+        variant="icon"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" }));
+    expect(screen.getByRole("checkbox", { name: /khó nhớ/i })).toBeChecked();
+  });
+
+  it("returns focus to the icon trigger after saving", async () => {
+    const user = userEvent.setup();
+    render(
+      <CardCollectionsControl
+        cardId={CARD_ID}
+        setId={SET_ID}
+        collections={COLLECTIONS}
+        memberships={[]}
+        variant="icon"
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: /^lưu$/i }));
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("returns focus to the icon trigger after cancelling", async () => {
+    const user = userEvent.setup();
+    render(
+      <CardCollectionsControl
+        cardId={CARD_ID}
+        setId={SET_ID}
+        collections={COLLECTIONS}
+        memberships={[]}
+        variant="icon"
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: /hủy/i }));
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
 });

@@ -65,7 +65,11 @@ test.describe("Study mode", () => {
     await expect(page.getByText("1 / 2")).toBeVisible();
     await expect(page.getByText("Bộ học A")).toBeVisible();
     await expect(page.getByText("Xin chào")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Bộ đặc biệt (1)" })).toBeVisible();
+    const collectionTrigger = page.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
+    await expect(collectionTrigger).toHaveAttribute("title", "Thêm vào bộ đặc biệt");
+    await collectionTrigger.click();
+    await expect(page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) })).toBeChecked();
+    await page.getByRole("button", { name: /^Hủy$/i }).click();
 
     await page.getByRole("button", { name: /Nhấn để lật/ }).click();
     await expect(page.getByRole("button", { name: /Nhấn để xem mặt trước/ })).toBeVisible();
@@ -155,15 +159,22 @@ test.describe("Study mode", () => {
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
     await expect(page).toHaveURL(/\/study\/session/);
 
-    await page.getByRole("button", { name: "Bộ đặc biệt (1)" }).click();
+    const collectionTrigger = page.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
+
+    await collectionTrigger.click();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).uncheck();
     await page.getByRole("button", { name: /^Lưu$/i }).click();
-    await expect(page.getByRole("button", { name: "Bộ đặc biệt (0)" })).toBeVisible();
+    await collectionTrigger.click();
+    await expect(
+      page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }),
+    ).not.toBeChecked();
+    await page.getByRole("button", { name: /^Hủy$/i }).click();
 
-    await page.getByRole("button", { name: "Bộ đặc biệt (0)" }).click();
+    await collectionTrigger.click();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
     await page.getByRole("button", { name: /^Lưu$/i }).click();
-    await expect(page.getByRole("button", { name: "Bộ đặc biệt (1)" })).toBeVisible();
+    await collectionTrigger.click();
+    await expect(page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) })).toBeChecked();
 
     await context.close();
   });

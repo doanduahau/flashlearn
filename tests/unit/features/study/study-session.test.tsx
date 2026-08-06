@@ -6,11 +6,12 @@ import type { ReactNode } from "react";
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
+  refresh: vi.fn(),
   updateCardCollections: vi.fn() as Mock,
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mocks.push, replace: mocks.replace }),
+  useRouter: () => ({ push: mocks.push, replace: mocks.replace, refresh: mocks.refresh }),
 }));
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => (
@@ -63,6 +64,7 @@ describe("StudySession", () => {
   beforeEach(() => {
     mocks.push.mockReset();
     mocks.replace.mockReset();
+    mocks.refresh.mockReset();
     mocks.updateCardCollections.mockReset();
     mocks.updateCardCollections.mockResolvedValue({ ok: true });
   });
@@ -133,14 +135,29 @@ describe("StudySession", () => {
     expect(screen.getByText("Bộ một")).toBeInTheDocument();
   });
 
-  it("shows the current card's membership count and updates when navigating", async () => {
+  it("opens the collection control and reflects the current card's memberships", async () => {
     const user = userEvent.setup();
     renderSession({
       membershipsByCard: { [CARD_1.id]: [COLLECTIONS[0].id], [CARD_2.id]: [] },
     });
-    expect(screen.getByRole("button", { name: "Bộ đặc biệt (1)" })).toBeInTheDocument();
+    const trigger = screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
+    expect(trigger).toHaveAttribute("title", "Thêm vào bộ đặc biệt");
+    await user.click(trigger);
+    expect(screen.getByRole("checkbox", { name: "Khó nhớ" })).toBeChecked();
+    await user.click(screen.getByRole("button", { name: /^Hủy$/i }));
     await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
-    expect(screen.getByRole("button", { name: "Bộ đặc biệt (0)" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" }));
+    expect(screen.getByRole("checkbox", { name: "Khó nhớ" })).not.toBeChecked();
+  });
+
+  it("does not flip the card when opening the collection control", async () => {
+    const user = userEvent.setup();
+    renderSession();
+    await user.click(screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" }));
+    expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   it("shows a notice when the session is truncated", () => {

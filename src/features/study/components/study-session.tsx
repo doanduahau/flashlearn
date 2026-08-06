@@ -140,6 +140,16 @@ export function StudySession({
             </p>
           </div>
         </div>
+        <div className="absolute right-4 top-4 z-10">
+          <CardCollectionsControl
+            key={card.id}
+            cardId={card.id}
+            setId={card.setId}
+            collections={collections}
+            memberships={membershipsByCard[card.id] ?? []}
+            variant="icon"
+          />
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -180,13 +190,6 @@ export function StudySession({
             >
               {seed !== undefined ? "Bỏ trộn thứ tự" : "Trộn thứ tự"}
             </Button>
-            <CardCollectionsControl
-              key={card.id}
-              cardId={card.id}
-              setId={card.setId}
-              collections={collections}
-              memberships={membershipsByCard[card.id] ?? []}
-            />
           </div>
         </div>
         {truncated ? (

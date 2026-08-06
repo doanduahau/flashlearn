@@ -19,8 +19,8 @@ test.describe("Profile settings", () => {
     const email = uniqueEmail("profile_a");
     await signUpAndConfirm(page, email);
 
-    await page.goto("/settings");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Cài đặt");
+    await page.goto("/profile?tab=settings");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Cá nhân");
 
     const emailInput = page.getByLabel("Email");
     await expect(emailInput).toHaveValue(email);
@@ -33,7 +33,7 @@ test.describe("Profile settings", () => {
     await page.getByRole("button", { name: /Lưu thay đổi/ }).click();
     await expect(page.getByRole("status")).toContainText("Đã lưu thay đổi.");
 
-    await page.goto("/settings");
+    await page.goto("/profile?tab=settings");
     await page.getByLabel("Múi giờ").selectOption(A_TIMEZONE);
     await page.getByRole("button", { name: /Lưu thay đổi/ }).click();
     await expect(page.getByRole("status")).toContainText("Đã lưu thay đổi.");
@@ -45,7 +45,7 @@ test.describe("Profile settings", () => {
     await page.goto("/dashboard");
     await expect(page.getByRole("complementary").getByText(A_DISPLAY_NAME)).toBeVisible();
 
-    await page.goto("/statistics");
+    await page.goto("/profile?tab=statistics");
     await expect(page.getByText(new RegExp(`Theo múi giờ ${A_TIMEZONE}`))).toBeVisible();
 
     mkdirSync(dirname(AUTH_STATE), { recursive: true });
@@ -81,7 +81,7 @@ test.describe("Profile settings", () => {
     expect(patch.status).toBeGreaterThanOrEqual(400);
 
     const aPage = await aContext.newPage();
-    await aPage.goto("/settings");
+    await aPage.goto("/profile?tab=settings");
     await expect(aPage.getByLabel("Tên hiển thị")).toHaveValue(A_DISPLAY_NAME);
     await expect(aPage.getByLabel("Múi giờ")).toHaveValue(A_TIMEZONE);
 

@@ -11,16 +11,20 @@ export function MonthActivityCalendar({
   timezone,
   activeDates,
   today,
+  baseHref = "/profile?tab=statistics",
 }: Readonly<{
   month: string;
   currentMonth: string;
   timezone: string;
   activeDates: string[];
   today: string;
+  baseHref?: string;
 }>) {
   const days = calendarDays(month, new Set(activeDates), today);
   const nextMonth = addMonths(month, 1);
   const previousMonth = addMonths(month, -1);
+  const monthHref = (targetMonth: string): string =>
+    `${baseHref}${baseHref.includes("?") ? "&" : "?"}month=${targetMonth}`;
 
   return (
     <section className="mt-8" aria-labelledby="activity-calendar-heading">
@@ -35,7 +39,7 @@ export function MonthActivityCalendar({
         </div>
         <div className="flex items-center gap-1">
           <Link
-            href={`/statistics?month=${previousMonth}`}
+            href={monthHref(previousMonth)}
             aria-label="Tháng trước"
             title="Tháng trước"
             className="inline-flex size-11 items-center justify-center rounded-xl border border-border-soft bg-surface hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-ring"
@@ -51,7 +55,7 @@ export function MonthActivityCalendar({
             </span>
           ) : (
             <Link
-              href={`/statistics?month=${nextMonth}`}
+              href={monthHref(nextMonth)}
               aria-label="Tháng sau"
               title="Tháng sau"
               className="inline-flex size-11 items-center justify-center rounded-xl border border-border-soft bg-surface hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-ring"

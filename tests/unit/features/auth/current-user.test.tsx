@@ -78,7 +78,7 @@ describe("CurrentUser", () => {
     const name = await screen.findByText(longName);
     expect(name).toHaveClass("truncate");
 
-    const row = name.closest("div");
+    const row = name.closest("a");
     expect(row?.className).toContain("min-w-0");
     expect(container.querySelectorAll("span.truncate")).toHaveLength(1);
   });

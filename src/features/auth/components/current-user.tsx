@@ -1,6 +1,7 @@
 "use client";
 
 import { User } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -81,7 +82,10 @@ export function CurrentUser() {
   const emailLabel = `${visibleName} (${userEmail})`;
 
   return (
-    <div className="group relative flex min-w-0 items-center gap-2.5 rounded-xl px-2 py-1.5">
+    <Link
+      href="/profile"
+      className="group relative flex min-w-0 items-center gap-2.5 rounded-xl px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+    >
       <span
         aria-hidden="true"
         className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary-foreground"
@@ -91,7 +95,6 @@ export function CurrentUser() {
       <span
         aria-label={emailLabel}
         className="min-w-0 truncate text-sm font-medium text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-        tabIndex={0}
       >
         {visibleName}
       </span>
@@ -102,6 +105,6 @@ export function CurrentUser() {
       >
         {userEmail}
       </span>
-    </div>
+    </Link>
   );
 }

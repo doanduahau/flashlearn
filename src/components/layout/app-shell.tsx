@@ -26,11 +26,16 @@ export function AppShell({
         </Link>
         <AppNavigation variant="sidebar" />
         <div className="mt-auto flex flex-col gap-3 border-t border-border-soft pt-4">
-          <StreakIndicator
-            streak={streak}
-            completedToday={completedToday}
-            className="w-fit self-center justify-center px-2"
-          />
+          <Link
+            href="/profile"
+            className="w-fit self-center rounded-full focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <StreakIndicator
+              streak={streak}
+              completedToday={completedToday}
+              className="w-fit justify-center px-2"
+            />
+          </Link>
           <div className="flex items-center gap-1">
             <div className="min-w-0 flex-1">
               <CurrentUser />
@@ -50,7 +55,12 @@ export function AppShell({
             FlashLearn
           </Link>
           <div className="flex min-w-0 items-center gap-2">
-            <StreakIndicator streak={streak} completedToday={completedToday} />
+            <Link
+              href="/profile"
+              className="shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <StreakIndicator streak={streak} completedToday={completedToday} />
+            </Link>
             <CurrentUser />
             <SignOutButton />
           </div>

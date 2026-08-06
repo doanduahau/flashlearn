@@ -27,8 +27,7 @@ export async function updateProfile(input: unknown): Promise<MutationResult> {
   if (error) return { ok: false, error: mapMutationError(error) };
   if (!data) return { ok: false, error: "Không tìm thấy hồ sơ." };
 
-  revalidatePath("/settings");
-  revalidatePath("/statistics");
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return { ok: true };
 }

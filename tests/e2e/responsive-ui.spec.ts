@@ -53,17 +53,14 @@ test.describe("Responsive flashcard management and navigation", () => {
     await page.keyboard.press("Escape");
 
     const mobileNav = page.getByRole("navigation", { name: /Điều hướng chính/i });
-    await expect(mobileNav.getByRole("link")).toHaveCount(4);
-    await expect(mobileNav.getByRole("button")).toHaveCount(1);
-    for (const item of await mobileNav.locator("a,button").all()) {
+    await expect(mobileNav.getByRole("link")).toHaveCount(5);
+    for (const item of await mobileNav.locator("a").all()) {
       const box = await item.boundingBox();
       expect(box?.width).toBeGreaterThan(0);
     }
 
-    await mobileNav.getByRole("button").click();
-    const overflowImport = page.locator('a[href="/import"]').last();
-    await overflowImport.click();
-    await expect(page).toHaveURL(/\/import$/);
+    await mobileNav.getByRole("link", { name: "Cá nhân" }).click();
+    await expect(page).toHaveURL(/\/profile$/);
   });
 
   test("shows the streak in the mobile header on every authenticated page", async ({ page }) => {

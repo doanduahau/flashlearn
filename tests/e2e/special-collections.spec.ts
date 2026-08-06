@@ -89,7 +89,7 @@ test.describe("Special collections", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Khó nhớ");
     await page.getByRole("button", { name: /Xóa bộ/ }).click();
     await page.getByRole("button", { name: /Xóa vĩnh viễn/ }).click();
-    await expect(page).toHaveURL(/\/collections$/);
+    await expect(page).toHaveURL(/\/sets\?tab=special$/);
     await expect(page.getByRole("link", { name: /Khó nhớ/ })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /Quan trọng/ })).toBeVisible();
 

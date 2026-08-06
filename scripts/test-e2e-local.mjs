@@ -41,8 +41,12 @@ const localEnv = {
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: key,
 };
 await runNpm(["run", "build"], localEnv);
-const child = spawn(process.execPath, [npmCliPath, "exec", "--", "playwright", "test"], {
-  stdio: "inherit",
-  env: localEnv,
-});
+const child = spawn(
+  process.execPath,
+  [npmCliPath, "exec", "--", "playwright", "test", ...process.argv.slice(2)],
+  {
+    stdio: "inherit",
+    env: localEnv,
+  },
+);
 child.once("exit", (code) => (process.exitCode = code ?? 1));

@@ -38,7 +38,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
             <SignOutButton />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-10">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:px-8 md:py-10">
           {children}
         </main>
 

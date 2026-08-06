@@ -154,7 +154,10 @@ async function addCardToCollections(
 }
 
 async function removeCardFromCollection(page: Page): Promise<void> {
-  await page.getByRole("button", { name: /Bỏ thẻ/ }).click();
-  await page.getByRole("button", { name: /Bỏ thẻ/ }).click();
+  await page.getByRole("button", { name: /Gỡ thẻ/ }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /^Bỏ thẻ$/ })
+    .click();
   await expect(page.getByText("Xin chào")).toHaveCount(0);
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { accuracy, loadLearningStatistics } from "@/features/statistics/server/load-statistics";
+import { StreakSummary } from "@/features/statistics/components/streak-summary";
 import { createClient } from "@/lib/supabase/server";
 export default async function DashboardPage() {
   const stats = await loadLearningStatistics(await createClient());
@@ -8,10 +9,7 @@ export default async function DashboardPage() {
       <h1 className="text-3xl font-bold">Dashboard</h1>
       {stats ? (
         <section className="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Tóm tắt học tập">
-          <article className="rounded-2xl border border-border-soft p-4">
-            <h2 className="text-sm text-text-secondary">Chuỗi học</h2>
-            <p className="text-2xl font-bold">{stats.current_streak} ngày</p>
-          </article>
+          <StreakSummary streak={stats.current_streak} completedToday={stats.completed_today} />
           <article className="rounded-2xl border border-border-soft p-4">
             <h2 className="text-sm text-text-secondary">Mục tiêu hôm nay</h2>
             <p className="text-2xl font-bold">{stats.completed_today ? "Đã xong" : "Chưa xong"}</p>

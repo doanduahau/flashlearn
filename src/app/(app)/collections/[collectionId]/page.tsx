@@ -80,20 +80,23 @@ export default async function CollectionDetailPage({
               const card = item.flashcards;
               if (!card) return null;
               return (
-                <li key={card.id} className="rounded-2xl border border-border-soft bg-surface p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
+                <li
+                  key={card.id}
+                  className="rounded-2xl border border-border-soft bg-surface p-4 sm:p-5"
+                >
+                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                    <div className="min-w-0 flex-1 max-w-full">
                       <p className="text-sm font-medium text-text-secondary">
                         {card.flashcard_sets?.name ?? "Bộ flashcard"}
                       </p>
-                      <p className="mt-1 whitespace-pre-wrap break-words font-semibold">
+                      <p className="mt-1 max-w-full whitespace-pre-wrap break-words font-semibold [overflow-wrap:anywhere]">
                         {card.front}
                       </p>
-                      <p className="mt-2 whitespace-pre-wrap break-words text-text-secondary">
+                      <p className="mt-2 max-w-full whitespace-pre-wrap break-words text-text-secondary [overflow-wrap:anywhere]">
                         {card.back}
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                    <div className="flex min-h-11 shrink-0 flex-wrap items-center gap-1 self-end sm:self-auto">
                       <RemoveCollectionItemButton collectionId={collection.id} cardId={card.id} />
                     </div>
                   </div>

@@ -2,11 +2,21 @@ import Link from "next/link";
 import {
   accuracy,
   loadLearningStatistics,
+  loadMonthlyActivity,
   modeLabel,
 } from "@/features/statistics/server/load-statistics";
+import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
+import {
+  dateInTimezone,
+  isValidMonth,
+  monthInTimezone,
+} from "@/features/statistics/utils/month-activity";
 import { createClient } from "@/lib/supabase/server";
-export default async function StatisticsPage() {
-  const stats = await loadLearningStatistics(await createClient());
+export default async function StatisticsPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<{ month?: string | string[] }> }>) {
+  const supabase = await createClient();
+  const stats = await loadLearningStatistics(supabase);
   if (!stats)
     return (
       <main className="p-8">
@@ -16,6 +26,13 @@ export default async function StatisticsPage() {
         </p>
       </main>
     );
+  const raw = await searchParams;
+  const currentMonth = monthInTimezone(new Date(), stats.timezone);
+  const requestedMonth = typeof raw.month === "string" ? raw.month : "";
+  const month =
+    isValidMonth(requestedMonth) && requestedMonth <= currentMonth ? requestedMonth : currentMonth;
+  const monthActivity = await loadMonthlyActivity(supabase, stats.timezone, month);
+  const today = dateInTimezone(new Date(), stats.timezone);
   const cards = [
     ["Chuỗi hiện tại", `${stats.current_streak} ngày`],
     ["Chuỗi dài nhất", `${stats.longest_streak} ngày`],
@@ -41,26 +58,19 @@ export default async function StatisticsPage() {
           </article>
         ))}
       </section>
-      <section className="mt-8">
-        <h2 className="text-xl font-bold">Hoạt động 30 ngày</h2>
-        <div
-          className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-10"
-          aria-label="Hoạt động học tập trong 30 ngày"
-        >
-          {stats.daily_activity.map((day) => (
-            <div
-              className="rounded border border-border-soft p-2 text-center text-xs"
-              key={day.date}
-              aria-label={`${day.date}: ${day.active ? "đã học" : "chưa học"}`}
-            >
-              <span aria-hidden>{day.active ? "●" : "○"}</span>
-              <span className="sr-only">{day.active ? "đã học" : "chưa học"}</span>
-              <br />
-              {day.date.slice(8)}
-            </div>
-          ))}
-        </div>
-      </section>
+      {monthActivity ? (
+        <MonthActivityCalendar
+          month={month}
+          currentMonth={currentMonth}
+          timezone={stats.timezone}
+          activeDates={monthActivity}
+          today={today}
+        />
+      ) : (
+        <p role="alert" className="mt-8 text-danger">
+          Không thể tải hoạt động tháng này.
+        </p>
+      )}
       <section className="mt-8">
         <h2 className="text-xl font-bold">Theo chế độ</h2>
         {stats.mode_breakdown.length ? (

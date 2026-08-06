@@ -113,16 +113,20 @@ async function editCard(
 ): Promise<void> {
   const row = page.locator("li").filter({ hasText: oldFront }).last();
   await row.getByRole("button", { name: /Sửa/i }).click();
-  await row.getByLabel("Mặt trước").fill(newFront);
-  await row.getByLabel("Mặt sau").fill(newBack);
-  await row.getByRole("button", { name: /^Lưu$/i }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Mặt trước").fill(newFront);
+  await dialog.getByLabel("Mặt sau").fill(newBack);
+  await dialog.getByRole("button", { name: /^Lưu$/i }).click();
   await expect(page.getByText(newFront)).toHaveCount(1);
 }
 
 async function deleteCard(page: Page, front: string): Promise<void> {
   const row = page.locator("li").filter({ hasText: front }).last();
   await row.getByRole("button", { name: /Xóa thẻ/i }).click();
-  await row.getByRole("button", { name: /Xóa vĩnh viễn/i }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /Xóa vĩnh viễn/i })
+    .click();
   await expect(page.getByText(front)).toHaveCount(0);
 }
 

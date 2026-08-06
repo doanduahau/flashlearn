@@ -25,7 +25,7 @@ export function CardCollectionsControl({
   setId: string;
   collections: CardCollectionOption[];
   memberships: string[];
-  variant?: "text" | "icon";
+  variant?: "text" | "icon" | "responsive";
 }>) {
   const router = useRouter();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -50,6 +50,7 @@ export function CardCollectionsControl({
   }
 
   const isIcon = variant === "icon";
+  const isResponsive = variant === "responsive";
 
   function toggle(collectionId: string): void {
     setSelected((previous) => {
@@ -87,26 +88,42 @@ export function CardCollectionsControl({
 
   return (
     <div
-      className={isIcon ? "relative" : "space-y-2"}
-      onClick={isIcon ? (event) => event.stopPropagation() : undefined}
+      className={isIcon || isResponsive ? "relative" : "space-y-2"}
+      onClick={isIcon || isResponsive ? (event) => event.stopPropagation() : undefined}
     >
       <Button
         ref={triggerRef}
         type="button"
         variant="outline"
-        size={isIcon ? "icon" : "default"}
+        size={isIcon || isResponsive ? "icon" : "default"}
+        className={isResponsive ? "size-11 sm:h-10 sm:w-auto sm:px-4" : undefined}
         onClick={() => {
           if (!isOpen) hasOpened.current = true;
           setIsOpen((open) => !open);
         }}
         aria-expanded={isOpen}
-        aria-label={isIcon ? "Thêm vào bộ đặc biệt" : undefined}
-        title={isIcon ? "Thêm vào bộ đặc biệt" : undefined}
+        aria-label={
+          isIcon
+            ? "Thêm vào bộ đặc biệt"
+            : isResponsive
+              ? `Bộ đặc biệt (${memberships.length})`
+              : undefined
+        }
+        title={isIcon || isResponsive ? "Thêm vào bộ đặc biệt" : undefined}
         disabled={isPending}
       >
-        {isIcon ? <FolderPlus aria-hidden="true" /> : `Bộ đặc biệt (${memberships.length})`}
+        {isIcon ? (
+          <FolderPlus aria-hidden="true" />
+        ) : isResponsive ? (
+          <>
+            <FolderPlus aria-hidden="true" />
+            <span className="hidden sm:inline">Bộ đặc biệt ({memberships.length})</span>
+          </>
+        ) : (
+          `Bộ đặc biệt (${memberships.length})`
+        )}
       </Button>
-      {error && !isIcon ? (
+      {error && !isIcon && !isResponsive ? (
         <p role="alert" className="text-danger">
           {error}
         </p>
@@ -115,13 +132,13 @@ export function CardCollectionsControl({
         <div
           className={cn(
             "rounded-2xl border border-border-soft p-4",
-            isIcon
+            isIcon || isResponsive
               ? "absolute right-0 top-12 z-20 w-72 bg-surface shadow-[0_8px_24px_rgba(39,93,70,0.08)]"
               : "bg-surface-subtle",
           )}
         >
           <p className="text-sm font-medium">Thêm vào bộ đặc biệt</p>
-          {error && isIcon ? (
+          {error && (isIcon || isResponsive) ? (
             <p role="alert" className="mt-2 text-danger">
               {error}
             </p>

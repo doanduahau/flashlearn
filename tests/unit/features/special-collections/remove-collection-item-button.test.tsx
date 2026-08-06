@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -26,13 +26,13 @@ describe("RemoveCollectionItemButton", () => {
 
   it("renders a remove trigger", () => {
     render(<RemoveCollectionItemButton collectionId={COLLECTION_ID} cardId={CARD_ID} />);
-    expect(screen.getByRole("button", { name: /bỏ thẻ/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /gỡ thẻ/i })).toBeInTheDocument();
   });
 
   it("requires explicit confirmation before removing", async () => {
     const user = userEvent.setup();
     render(<RemoveCollectionItemButton collectionId={COLLECTION_ID} cardId={CARD_ID} />);
-    await user.click(screen.getByRole("button", { name: /bỏ thẻ/i }));
+    await user.click(screen.getByRole("button", { name: /gỡ thẻ/i }));
     expect(screen.getByText(/bỏ thẻ này khỏi bộ đặc biệt/i)).toBeInTheDocument();
     expect(screen.getByText(/thẻ gốc trong bộ flashcard không bị xóa/i)).toBeInTheDocument();
     expect(mocks.removeCollectionItem).not.toHaveBeenCalled();
@@ -41,8 +41,8 @@ describe("RemoveCollectionItemButton", () => {
   it("removes the item and refreshes on confirmation", async () => {
     const user = userEvent.setup();
     render(<RemoveCollectionItemButton collectionId={COLLECTION_ID} cardId={CARD_ID} />);
-    await user.click(screen.getByRole("button", { name: /bỏ thẻ/i }));
-    await user.click(screen.getByRole("button", { name: /bỏ thẻ/i }));
+    await user.click(screen.getByRole("button", { name: /gỡ thẻ/i }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: /^bỏ thẻ$/i }));
     await waitFor(() =>
       expect(mocks.removeCollectionItem).toHaveBeenCalledWith({
         collectionId: COLLECTION_ID,
@@ -59,8 +59,8 @@ describe("RemoveCollectionItemButton", () => {
     });
     const user = userEvent.setup();
     render(<RemoveCollectionItemButton collectionId={COLLECTION_ID} cardId={CARD_ID} />);
-    await user.click(screen.getByRole("button", { name: /bỏ thẻ/i }));
-    await user.click(screen.getByRole("button", { name: /bỏ thẻ/i }));
+    await user.click(screen.getByRole("button", { name: /gỡ thẻ/i }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: /^bỏ thẻ$/i }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Không tìm thấy thẻ trong bộ.");
     expect(mocks.refresh).not.toHaveBeenCalled();
     expect(screen.queryByText(/bỏ thẻ này khỏi bộ đặc biệt/i)).not.toBeInTheDocument();
@@ -75,8 +75,8 @@ describe("RemoveCollectionItemButton", () => {
     );
     const user = userEvent.setup();
     render(<RemoveCollectionItemButton collectionId={COLLECTION_ID} cardId={CARD_ID} />);
-    await user.click(screen.getByRole("button", { name: /bỏ thẻ/i }));
-    const confirm = screen.getByRole("button", { name: /bỏ thẻ/i });
+    await user.click(screen.getByRole("button", { name: /gỡ thẻ/i }));
+    const confirm = within(screen.getByRole("dialog")).getByRole("button", { name: /^bỏ thẻ$/i });
     await user.click(confirm);
     expect(confirm).toBeDisabled();
     await user.click(confirm);

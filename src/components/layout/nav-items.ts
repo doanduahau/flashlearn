@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  CirclePlus,
   FolderHeart,
   GraduationCap,
   History,
@@ -30,4 +31,18 @@ export const secondaryNavItems: NavItem[] = [
   { label: "Lịch sử", href: "/history", icon: History },
   { label: "Thống kê", href: "/statistics", icon: BarChart3 },
   { label: "Cài đặt", href: "/settings", icon: Settings },
+];
+
+export const mobilePrimaryNavItems: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard", icon: Home },
+  { label: "B\u1ed9 flashcard", href: "/sets", icon: Layers },
+  { label: "H\u1ecdc", href: "/study", icon: GraduationCap },
+  { label: "Ki\u1ec3m tra", href: "/quiz", icon: ListChecks },
+  { label: "Th\u00eam", href: "#more", icon: CirclePlus },
+];
+
+export const mobileOverflowNavItems: NavItem[] = [
+  { label: "Import", href: "/import", icon: Upload },
+  { label: "B\u1ed9 \u0111\u1eb7c bi\u1ec7t", href: "/collections", icon: FolderHeart },
+  ...secondaryNavItems,
 ];

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
@@ -89,8 +90,16 @@ export function StudySession({
         <Link href="/study" className="text-sm text-text-secondary hover:text-text-primary">
           ← Chọn phạm vi học
         </Link>
-        <Button type="button" variant="ghost" onClick={() => router.push("/study")}>
-          Thoát
+        <Button
+          type="button"
+          variant="ghost"
+          className="size-11 p-0 sm:h-10 sm:w-auto sm:px-4"
+          onClick={() => router.push("/study")}
+          aria-label="Thoát phiên học"
+          title="Thoát phiên học"
+        >
+          <LogOut aria-hidden="true" />
+          <span className="hidden sm:inline">Thoát</span>
         </Button>
       </div>
 
@@ -153,8 +162,17 @@ export function StudySession({
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <Button type="button" variant="outline" onClick={goPrevious} disabled={isFirst}>
-          Thẻ trước
+        <Button
+          type="button"
+          variant="outline"
+          className="size-11 p-0 sm:h-10 sm:w-auto sm:px-4"
+          onClick={goPrevious}
+          disabled={isFirst}
+          aria-label="Thẻ trước"
+          title="Thẻ trước"
+        >
+          <ArrowLeft aria-hidden="true" />
+          <span className="hidden sm:inline">Thẻ trước</span>
         </Button>
         <Button
           type="button"
@@ -169,8 +187,15 @@ export function StudySession({
             Hoàn thành
           </Button>
         ) : (
-          <Button type="button" onClick={goNext}>
-            Thẻ tiếp theo
+          <Button
+            type="button"
+            className="size-11 p-0 sm:h-10 sm:w-auto sm:px-4"
+            onClick={goNext}
+            aria-label="Thẻ tiếp theo"
+            title="Thẻ tiếp theo"
+          >
+            <ArrowRight aria-hidden="true" />
+            <span className="hidden sm:inline">Thẻ tiếp theo</span>
           </Button>
         )}
       </div>

@@ -2,7 +2,7 @@
 
 begin;
 
-select plan(12);
+select plan(13);
 
 -- fixtures ------------------------------------------------------------------
 insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -84,27 +84,33 @@ set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
 select throws_ok(
   'insert into public.special_collections (user_id, name) values (''bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'', ''Coll B2'')',
-  '42501', NULL, 'A cannot create a collection owned by B'
+  '42501', NULL, 'authenticated cannot insert collections directly (creation goes through the RPC)'
 );
 
 select lives_ok(
-  'insert into public.special_collection_items (user_id, collection_id, flashcard_id) values (''aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'', ''44444444-4444-4444-4444-4444444444aa'', ''22222222-2222-2222-2222-2222222222aa'')',
+  $$select public.set_card_collections('22222222-2222-2222-2222-2222222222aa', array['44444444-4444-4444-4444-4444444444aa']::uuid[])$$,
   'A can add A''s flashcard to A''s collection'
 );
 
 select throws_ok(
-  'insert into public.special_collection_items (user_id, collection_id, flashcard_id) values (''aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'', ''44444444-4444-4444-4444-4444444444aa'', ''66666666-6666-6666-6666-6666666666aa'')',
-  '42501', NULL, 'A cannot add B''s flashcard to A''s collection'
+  $$select public.set_card_collections('66666666-6666-6666-6666-6666666666aa', array['44444444-4444-4444-4444-4444444444aa']::uuid[])$$,
+  '22023', NULL, 'A cannot add B''s flashcard to A''s collection'
 );
 
-select throws_ok(
-  'insert into public.special_collection_items (user_id, collection_id, flashcard_id) values (''aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'', ''77777777-7777-7777-7777-7777777777aa'', ''22222222-2222-2222-2222-2222222222aa'')',
-  '42501', NULL, 'A cannot add A''s flashcard to B''s collection'
+select lives_ok(
+  $$select public.set_card_collections('22222222-2222-2222-2222-2222222222aa', array['77777777-7777-7777-7777-7777777777aa']::uuid[])$$,
+  'A adding A''s flashcard to B''s collection ignores the foreign collection'
 );
 
-select throws_ok(
-  'insert into public.special_collection_items (user_id, collection_id, flashcard_id) values (''aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'', ''44444444-4444-4444-4444-4444444444aa'', ''22222222-2222-2222-2222-2222222222aa'')',
-  '23505', NULL, 'duplicate membership in a collection is rejected'
+select is(
+  (select count(*) from public.special_collection_items where collection_id = '77777777-7777-7777-7777-7777777777aa'),
+  0::bigint,
+  'no membership is created for B''s collection'
+);
+
+select lives_ok(
+  $$select public.set_card_collections('22222222-2222-2222-2222-2222222222aa', array['44444444-4444-4444-4444-4444444444aa']::uuid[])$$,
+  'repeated membership submission is idempotent'
 );
 
 select is(

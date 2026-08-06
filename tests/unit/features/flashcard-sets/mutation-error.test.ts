@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapMutationError } from "@/features/flashcard-sets/utils/mutation-error";
+import { mapMutationError } from "@/lib/mutation-error";
 
 describe("mapMutationError", () => {
   it("returns a safe fallback for null or unknown errors", () => {
@@ -24,6 +24,9 @@ describe("mapMutationError", () => {
     ).toBe("Bạn không có quyền thực hiện thao tác này.");
     expect(mapMutationError({ code: "23503", message: "foreign key violation" })).toBe(
       "Bản ghi liên quan không còn tồn tại.",
+    );
+    expect(mapMutationError({ code: "23505", message: "duplicate key value" })).toBe(
+      "Tên đã tồn tại.",
     );
     expect(mapMutationError({ code: "22023", message: "invalid set id" })).toBe(
       "Dữ liệu gửi lên không hợp lệ.",

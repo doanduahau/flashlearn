@@ -143,13 +143,21 @@ entirely (no `anon` grants).
 
 Flashcard INSERT/UPDATE policies additionally require the referenced set to belong to
 the current user. Membership INSERT/SELECT/DELETE policies require both the referenced
-collection and flashcard to belong to the current user.
+collection and flashcard to belong to the current user. Note that the INSERT policies on
+`special_collections` and `special_collection_items` are effectively dormant: the
+corresponding table grants were revoked in the special-collections hardening migration and
+writes now go through scoped RPCs (see below).
 
 ## Grants
 
 - `anon`: no privileges on core tables.
-- `authenticated`: `profiles` (SELECT, UPDATE); the other four tables (full CRUD, except
-  no UPDATE on `special_collection_items`).
+- `authenticated`: `profiles` (SELECT, UPDATE); `flashcard_sets`/`flashcards`
+  (SELECT, DELETE + column-limited UPDATE); `special_collections`
+  (SELECT, DELETE + `UPDATE (name, icon, color)`); `special_collection_items`
+  (SELECT, DELETE).
+- Direct INSERT and unrestricted UPDATE are revoked for `flashcard_sets`, `flashcards`,
+  `special_collections` and `special_collection_items`. Rows are created only through
+  scoped RPCs that derive ownership from `auth.uid()`.
 - `service_role`: ALL on all core tables (server-side only; never exposed to the browser).
 - Default privileges grant `SELECT, INSERT, UPDATE, DELETE` on future tables (and
   `USAGE, SELECT` on sequences) to `authenticated`, so later phases do not need repeated
@@ -187,16 +195,17 @@ pgTAP tests live in `supabase/tests/` and run inside a transaction against the r
 database. They verify constraints, profile/trigger behavior, per-user ownership via the
 `authenticated` role, cascade behavior and database-level integrity:
 
-| File                                    | Coverage                                                                       |
-| --------------------------------------- | ------------------------------------------------------------------------------ |
-| `001_constraints.sql`                   | NOT NULL / CHECK / unique / FK constraints                                     |
-| `002_profiles.sql`                      | profile trigger + ownership                                                    |
-| `003_flashcard_sets_ownership.sql`      | set and flashcard ownership (A vs B)                                           |
-| `004_special_collections_ownership.sql` | collection + membership ownership                                              |
-| `005_cascades.sql`                      | delete cascades (card, collection, set, user)                                  |
-| `006_triggers.sql`                      | updated_at refresh on all tables                                               |
-| `007_import_flashcard_set.sql`          | atomic import RPC (counts, owner, validation)                                  |
-| `008_set_card_mutations.sql`            | rename/delete set, add/edit/delete card, next position, isolation, anon denial |
+| File                                      | Coverage                                                                                |
+| ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| `001_constraints.sql`                     | NOT NULL / CHECK / unique / FK constraints                                              |
+| `002_profiles.sql`                        | profile trigger + ownership                                                             |
+| `003_flashcard_sets_ownership.sql`        | set and flashcard ownership (A vs B)                                                    |
+| `004_special_collections_ownership.sql`   | collection + membership ownership                                                       |
+| `005_cascades.sql`                        | delete cascades (card, collection, set, user)                                           |
+| `006_triggers.sql`                        | updated_at refresh on all tables                                                        |
+| `007_import_flashcard_set.sql`            | atomic import RPC (counts, owner, validation)                                           |
+| `008_set_card_mutations.sql`              | rename/delete set, add/edit/delete card, next position, isolation, anon denial          |
+| `009_special_collections_memberships.sql` | create/rename/delete collection, idempotent membership sync, duplicate names, isolation |
 
 Tests run malicious operations as a low-privilege `authenticated` role (via
 `set local role authenticated; set local request.jwt.claim.sub = '<uuid>'`), never only
@@ -245,6 +254,39 @@ empty-set creation is deferred. The following mutations are supported:
 
 Card reordering and manual empty-set creation are intentionally out of scope for the
 current phase; the schema already supports both without migration.
+
+## Special collections
+
+Collections group flashcards from one or more regular sets. A flashcard can belong to
+many collections; `special_collection_items` stores only the link, never a copy of card
+content. Edits to the original flashcard are visible everywhere it is collected.
+
+| Operation                   | Mechanism                                            | Notes                                                                                |
+| --------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Create collection           | `public.create_special_collection(text, text, text)` | Derives owner from `auth.uid()`; trims name; duplicate names rejected (unique index) |
+| Rename collection           | `UPDATE special_collections` via RLS                 | `name`/`icon`/`color` only; name trimmed by Zod                                      |
+| Delete collection           | `DELETE special_collections` via RLS                 | Cascades to its memberships only                                                     |
+| Add/remove card memberships | `public.set_card_collections(uuid, uuid[])`          | Idempotent sync; removes unlisted, adds listed on conflict-do-nothing                |
+| Remove one membership       | `DELETE special_collection_items` via RLS            | Only own collection + card memberships                                               |
+
+Both RPCs are `SECURITY DEFINER` with an empty `search_path` and EXECUTE granted only to
+`authenticated`. They derive `user_id` from `auth.uid()` and validate inputs:
+
+- `create_special_collection` rejects blank names, names over 60 chars, and icons/colors
+  over 32 chars (`22023`), and lets the `(user_id, lower(name))` unique index surface
+  duplicates as `23505`.
+- `set_card_collections` requires the card to belong to the caller (a missing and a
+  foreign card raise the same `22023`), silently ignores collection ids the caller does
+  not own, and is idempotent: repeating the same sync never duplicates memberships.
+- Rename/delete/remove operations touch another user's rows under RLS and return zero
+  affected rows, which the server action maps to a generic not-found message.
+
+### Duplicate collection names
+
+Collection names are unique per user with a case-insensitive comparison
+(`idx_special_collections_user_name`). The client never pre-checks; it relies on the
+database rule and maps the `23505` unique violation to a friendly "Tên đã tồn tại."
+message shared with regular set naming.
 
 ## Generated types
 

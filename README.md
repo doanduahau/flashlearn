@@ -8,6 +8,10 @@ The import page accepts `.csv` and `.xlsx` files up to 5 MB. Parsing happens in 
 
 Bộ flashcard thông thường được tạo qua import. Trang `/sets` liệt kê các bộ kèm số thẻ và ô tìm kiếm; trang `/sets/[setId]` cho phép đổi tên bộ, xóa bộ, thêm/sửa/xóa thẻ, tìm kiếm và phân trang. Thẻ mới được thêm vào cuối bộ với vị trí do database gán (an toàn khi thêm đồng thời). Mọi thao tác chỉ tác động lên dữ liệu của chính người dùng, được bảo vệ bằng RLS. Sắp xếp lại thẻ và tạo bộ trống bằng tay nằm ngoài phạm vi hiện tại.
 
+## Bộ đặc biệt
+
+Bộ đặc biệt gom thẻ từ nhiều bộ flashcard thông thường mà không sao chép nội dung. Trang `/collections` cho phép tạo, tìm và liệt kê các bộ kèm số thẻ; trang `/collections/[collectionId]` cho phép đổi tên, xóa bộ và bỏ thẻ khỏi bộ. Tại trang `/sets/[setId]`, mỗi thẻ có bộ điều khiển để thêm/bớt thẻ khỏi một hoặc nhiều bộ đặc biệt. Tên bộ đặc biệt phải là duy nhất theo từng người dùng (không phân biệt hoa thường), do database đảm bảo. Khi flashcard gốc được sửa, thay đổi hiển thị ở mọi bộ đặc biệt chứa thẻ đó.
+
 Biến bất kỳ file Excel hai cột nào thành bộ flashcard và bài kiểm tra thông minh.
 
 Học ngoại ngữ, lập trình, công thức, luật, y khoa, câu hỏi phỏng vấn — bất kỳ nội dung hỏi–đáp nào

@@ -9,6 +9,7 @@ import { DeleteSetButton } from "@/features/flashcard-sets/components/delete-set
 import { EditCardForm } from "@/features/flashcard-sets/components/edit-card-form";
 import { RenameSetForm } from "@/features/flashcard-sets/components/rename-set-form";
 import { sanitizeSearchQuery } from "@/features/flashcard-sets/utils/search";
+import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
 import { SET_CARDS_PAGE_SIZE } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 
@@ -63,6 +64,26 @@ export default async function SetDetailPage({
     listQuery = listQuery.or(searchFilter);
   }
   const { data: cards } = await listQuery;
+
+  const cardIds = (cards ?? []).map((card) => card.id);
+  const [collectionsResult, membershipsResult] = await Promise.all([
+    supabase.from("special_collections").select("id, name").order("name", { ascending: true }),
+    cardIds.length
+      ? supabase
+          .from("special_collection_items")
+          .select("collection_id, flashcard_id")
+          .in("flashcard_id", cardIds)
+      : Promise.resolve({ data: [] as { collection_id: string; flashcard_id: string }[] }),
+  ]);
+
+  const collections = (collectionsResult.data ?? []).map((collection) => ({
+    id: collection.id,
+    name: collection.name,
+  }));
+  const membershipsByCard: Record<string, string[]> = {};
+  for (const item of membershipsResult.data ?? []) {
+    (membershipsByCard[item.flashcard_id] ??= []).push(item.collection_id);
+  }
 
   function pageHref(target: number): string {
     const params = new URLSearchParams();
@@ -126,6 +147,12 @@ export default async function SetDetailPage({
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                    <CardCollectionsControl
+                      cardId={card.id}
+                      setId={set.id}
+                      collections={collections}
+                      memberships={membershipsByCard[card.id] ?? []}
+                    />
                     <EditCardForm
                       setId={set.id}
                       cardId={card.id}

@@ -12,6 +12,10 @@ export const SET_NAME_MAX_LENGTH = 120;
 export const CARD_TEXT_MAX_LENGTH = 50_000;
 export const SET_CARDS_PAGE_SIZE = 20;
 
+export const COLLECTION_NAME_MAX_LENGTH = 60;
+export const COLLECTION_CARDS_PAGE_SIZE = 20;
+export const COLLECTION_MAX_MEMBERSHIP_IDS = 50;
+
 export const MIN_QUIZ_QUESTIONS = 10;
 
 export const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";

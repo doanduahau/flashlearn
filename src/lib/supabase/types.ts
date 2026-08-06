@@ -210,12 +210,20 @@ export type Database = {
           position: number
         }[]
       }
+      create_special_collection: {
+        Args: { p_color?: string; p_icon?: string; p_name: string }
+        Returns: string
+      }
       import_flashcard_set: {
         Args: { p_cards: Json; p_name: string }
         Returns: {
           imported_count: number
           set_id: string
         }[]
+      }
+      set_card_collections: {
+        Args: { p_card_id: string; p_collection_ids: string[] }
+        Returns: string
       }
     }
     Enums: {

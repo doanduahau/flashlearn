@@ -25,6 +25,31 @@ cards, card search and pagination.
   operations; only card insertion needs an RPC for atomic positioning. Card
   reordering and manual empty-set creation are deferred.
 
+## Special collections
+
+Special collections let a user group flashcards across regular sets without copying card
+content. `/collections` lists collections with card counts and a create form;
+`/collections/[collectionId]` supports rename, delete and remove-membership; each card on
+`/sets/[setId]` has a compact membership control.
+
+- **Server actions** (`src/features/special-collections/server/actions.ts`) validate
+  shared Zod payloads and derive identity from the session; the client never supplies
+  `user_id`.
+- **Write boundary is the database.** Direct INSERT on `special_collections` and
+  `special_collection_items` is revoked. `create_special_collection` and
+  `set_card_collections` are narrow `SECURITY DEFINER` RPCs that derive the owner from
+  `auth.uid()` and validate inputs. Rename, delete and remove-membership remain direct
+  RLS-filtered table operations with column-limited grants.
+- **Idempotent membership sync.** `set_card_collections(card_id, collection_ids)` deletes
+  memberships not in the list and inserts the listed ones with
+  `on conflict (collection_id, flashcard_id) do nothing`, so repeated submissions never
+  duplicate a card in a collection.
+- **Duplicate names** are enforced by the existing `(user_id, lower(name))` unique index;
+  the server action maps the `23505` violation to a friendly Vietnamese message.
+- **Non-disclosing errors.** A missing or foreign card, collection or membership all
+  surface as the same generic message, and foreign collection ids passed to
+  `set_card_collections` are silently ignored.
+
 ## Scope
 
 This document describes the architecture decisions that underpin the FlashLearn
@@ -33,9 +58,10 @@ application. The application is a Next.js App Router app backed by Supabase; see
 
 The foundation covers data ownership (profiles, flashcard sets, flashcards,
 special collections and their membership table), authentication (email/password
-sign-up, sign-in, email confirmation, sign-out, route protection), imports and
-regular set/card management (rename, delete, add/edit/delete cards). Study
-mode, quiz, streak and analytics are implemented in later phases.
+sign-up, sign-in, email confirmation, sign-out, route protection), imports,
+regular set/card management (rename, delete, add/edit/delete cards) and special
+collection management (create, rename, delete, membership sync). Study mode,
+quiz, streak and analytics are implemented in later phases.
 
 ## Principles applied
 
@@ -135,11 +161,15 @@ a rollback path.
 - Database behavior is verified with pgTAP in `supabase/tests/`, running as a
   low-privilege `authenticated` role so RLS is actually exercised. `008` covers set
   rename/delete, card add/edit/delete, next-position assignment, cross-user
-  isolation and anonymous denial.
+  isolation and anonymous denial. `009` covers collection create/rename/delete and
+  idempotent membership sync against the hardened grants.
 - Unit tests for auth schemas, safe redirect, and error mapping are in
   `tests/unit/features/auth/`.
 - Unit tests for set/card schemas, search sanitization and mutation error mapping are
   in `tests/unit/features/flashcard-sets/`.
+- Unit tests for collection schemas and special-collection components (create, rename,
+  delete, remove-membership, per-card membership control) are in
+  `tests/unit/features/special-collections/`.
 - Component tests for set/card management forms (rename, add/edit/delete card, delete
   set, confirmation, pending and error states) are in
   `tests/unit/features/flashcard-sets/`.
@@ -147,6 +177,9 @@ a rollback path.
 - E2E tests for the complete auth flow are in `tests/e2e/auth.spec.ts`.
 - E2E tests for set/card management with isolated users (including import, rename,
   add/edit/delete, cross-user 404 isolation) are in `tests/e2e/set-management.spec.ts`.
+- E2E tests for special collections (create, duplicate-name rejection, membership add
+  and idempotency, per-collection remove, rename, delete, cross-user 404 isolation) are
+  in `tests/e2e/special-collections.spec.ts`.
 
 ## Future phases
 

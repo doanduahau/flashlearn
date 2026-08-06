@@ -5,7 +5,7 @@
 
 begin;
 
-select plan(35);
+select plan(34);
 
 -- fixtures ------------------------------------------------------------------
 insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -111,20 +111,15 @@ select is(
   'repeated submission does not duplicate memberships'
 );
 
-select lives_ok(
+select throws_ok(
   format('select public.set_card_collections(''22222222-2222-2222-2222-2222222222aa'', array[%L, ''88888888-8888-8888-8888-8888888888bb'']::uuid[])',
     (select id from created_coll)),
-  'sync with a foreign collection id succeeds'
+  '22023', 'collection not found', 'foreign collection id is rejected without disclosure'
 );
 select is(
   (select count(*) from public.special_collection_items where flashcard_id = '22222222-2222-2222-2222-2222222222aa'),
-  1::bigint,
-  'foreign collection id is silently ignored'
-);
-select is(
-  (select collection_id from public.special_collection_items where flashcard_id = '22222222-2222-2222-2222-2222222222aa'),
-  (select id from created_coll),
-  'removing a collection from the list drops its membership'
+  2::bigint,
+  'foreign collection id leaves existing memberships unchanged'
 );
 
 select lives_ok(

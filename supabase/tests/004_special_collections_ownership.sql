@@ -97,9 +97,9 @@ select throws_ok(
   '22023', NULL, 'A cannot add B''s flashcard to A''s collection'
 );
 
-select lives_ok(
+select throws_ok(
   $$select public.set_card_collections('22222222-2222-2222-2222-2222222222aa', array['77777777-7777-7777-7777-7777777777aa']::uuid[])$$,
-  'A adding A''s flashcard to B''s collection ignores the foreign collection'
+  '22023', 'collection not found', 'A cannot use a foreign collection id'
 );
 
 select is(

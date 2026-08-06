@@ -47,8 +47,8 @@ content. `/collections` lists collections with card counts and a create form;
 - **Duplicate names** are enforced by the existing `(user_id, lower(name))` unique index;
   the server action maps the `23505` violation to a friendly Vietnamese message.
 - **Non-disclosing errors.** A missing or foreign card, collection or membership all
-  surface as the same generic message, and foreign collection ids passed to
-  `set_card_collections` are silently ignored.
+  surface as the same generic message. Invalid collection ids are rejected before the
+  membership sync mutates any rows.
 
 ## Scope
 

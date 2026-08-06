@@ -266,7 +266,7 @@ content. Edits to the original flashcard are visible everywhere it is collected.
 | Create collection           | `public.create_special_collection(text, text, text)` | Derives owner from `auth.uid()`; trims name; duplicate names rejected (unique index) |
 | Rename collection           | `UPDATE special_collections` via RLS                 | `name`/`icon`/`color` only; name trimmed by Zod                                      |
 | Delete collection           | `DELETE special_collections` via RLS                 | Cascades to its memberships only                                                     |
-| Add/remove card memberships | `public.set_card_collections(uuid, uuid[])`          | Idempotent sync; removes unlisted, adds listed on conflict-do-nothing                |
+| Add/remove card memberships | `public.set_card_collections(uuid, uuid[])`          | Idempotent sync; validates caller-owned ids before removing or adding memberships    |
 | Remove one membership       | `DELETE special_collection_items` via RLS            | Only own collection + card memberships                                               |
 
 Both RPCs are `SECURITY DEFINER` with an empty `search_path` and EXECUTE granted only to
@@ -275,9 +275,11 @@ Both RPCs are `SECURITY DEFINER` with an empty `search_path` and EXECUTE granted
 - `create_special_collection` rejects blank names, names over 60 chars, and icons/colors
   over 32 chars (`22023`), and lets the `(user_id, lower(name))` unique index surface
   duplicates as `23505`.
-- `set_card_collections` requires the card to belong to the caller (a missing and a
-  foreign card raise the same `22023`), silently ignores collection ids the caller does
-  not own, and is idempotent: repeating the same sync never duplicates memberships.
+- `set_card_collections` requires the card and every collection id to belong to the caller.
+  Missing and foreign card or collection ids raise the same non-disclosing `22023`; null
+  arrays/elements and arrays over 50 ids are rejected before any membership is changed. An
+  explicit empty array clears all memberships, and repeating a valid sync never duplicates
+  memberships.
 - Rename/delete/remove operations touch another user's rows under RLS and return zero
   affected rows, which the server action maps to a generic not-found message.
 

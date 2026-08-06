@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { answerSchema, quizStartSchema } from "@/features/quiz/schemas/quiz-schema";
 import { createClient } from "@/lib/supabase/server";
 
@@ -41,6 +39,5 @@ export async function submitQuizAnswer(input: unknown): Promise<Result> {
   });
   const answer = data?.[0];
   if (error || !answer) return { ok: false, error: generic };
-  revalidatePath(`/quiz/${answer.session_id}`);
   return { ok: true, correct: answer.is_correct, completed: answer.completed };
 }

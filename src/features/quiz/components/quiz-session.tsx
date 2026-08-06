@@ -15,30 +15,53 @@ export function QuizSession({
   const router = useRouter();
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<boolean | null>(null);
+  const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, transition] = useTransition();
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const feedbackRef = useRef<HTMLParagraphElement>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     headingRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (feedback !== null) feedbackRef.current?.focus();
+  }, [feedback]);
+
   const submit = () => {
+    if (pending || feedback !== null || submittingRef.current) return;
+
     if (selected === null) {
       setError("Hãy chọn một đáp án.");
       return;
     }
+
+    submittingRef.current = true;
     transition(async () => {
-      const result = await submitQuizAnswer({
-        questionId: question.id,
-        selectedChoiceIndex: selected,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await submitQuizAnswer({
+          questionId: question.id,
+          selectedChoiceIndex: selected,
+        });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setError(null);
+        setFeedback(result.correct ?? false);
+        setCompleted(result.completed ?? false);
+      } finally {
+        submittingRef.current = false;
       }
-      setFeedback(result.correct ?? false);
-      if (result.completed) router.push(`/quiz/${sessionId}/result`);
     });
+  };
+
+  const advance = () => {
+    if (pending || feedback === null) return;
+    if (completed) router.push(`/quiz/${sessionId}/result`);
+    else router.refresh();
   };
   return (
     <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
@@ -59,14 +82,17 @@ export function QuizSession({
               name="answer"
               disabled={pending || feedback !== null}
               checked={selected === index}
-              onChange={() => setSelected(index)}
+              onChange={() => {
+                setSelected(index);
+                setError(null);
+              }}
             />
             <span className="whitespace-pre-wrap">{choice}</span>
           </label>
         ))}
       </fieldset>
       {feedback !== null ? (
-        <p role="status" className="mt-4 font-semibold">
+        <p ref={feedbackRef} role="status" tabIndex={-1} className="mt-4 font-semibold">
           {feedback ? "Chính xác." : "Chưa chính xác."}
         </p>
       ) : null}
@@ -75,14 +101,15 @@ export function QuizSession({
           {error}
         </p>
       ) : null}
-      <Button
-        className="mt-6"
-        type="button"
-        onClick={feedback === null ? submit : () => router.refresh()}
-        disabled={pending}
-      >
-        {pending ? "Đang chấm…" : feedback === null ? "Xác nhận đáp án" : "Câu tiếp theo"}
-      </Button>
+      {feedback === null ? (
+        <Button className="mt-6" type="button" onClick={submit} disabled={pending}>
+          {pending ? "Đang chấm…" : "Xác nhận đáp án"}
+        </Button>
+      ) : (
+        <Button className="mt-6" type="button" onClick={advance} disabled={pending}>
+          {completed ? "Xem kết quả" : "Câu tiếp theo"}
+        </Button>
+      )}
     </main>
   );
 }

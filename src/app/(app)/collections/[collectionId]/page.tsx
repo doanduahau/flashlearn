@@ -5,7 +5,9 @@ import type { Metadata } from "next";
 import { DeleteCollectionButton } from "@/features/special-collections/components/delete-collection-button";
 import { RemoveCollectionItemButton } from "@/features/special-collections/components/remove-collection-item-button";
 import { RenameCollectionForm } from "@/features/special-collections/components/rename-collection-form";
+import { PaginationControls } from "@/components/shared/pagination-controls";
 import { COLLECTION_CARDS_PAGE_SIZE } from "@/lib/constants";
+import { pageHref, parsePage, type RouteSearchParams } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Chi tiết bộ đặc biệt" };
@@ -15,11 +17,11 @@ export default async function CollectionDetailPage({
   searchParams,
 }: Readonly<{
   params: Promise<{ collectionId: string }>;
-  searchParams: Promise<{ page?: string | string[] }>;
+  searchParams: Promise<RouteSearchParams>;
 }>) {
   const { collectionId } = await params;
   const raw = await searchParams;
-  const requestedPage = Number.parseInt(typeof raw.page === "string" ? raw.page : "1", 10) || 1;
+  const requestedPage = parsePage(raw.page);
 
   const supabase = await createClient();
   const { data: collection } = await supabase
@@ -46,9 +48,6 @@ export default async function CollectionDetailPage({
     .eq("collection_id", collectionId)
     .order("created_at", { ascending: false })
     .range(from, to);
-
-  const navLinkClass =
-    "inline-flex h-10 items-center justify-center rounded-xl border border-border-soft bg-surface px-4 text-sm font-medium hover:bg-surface-subtle disabled:pointer-events-none disabled:opacity-50";
 
   return (
     <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
@@ -111,27 +110,11 @@ export default async function CollectionDetailPage({
         )}
 
         {totalPages > 1 ? (
-          <nav aria-label="Phân trang" className="mt-6 flex items-center justify-center gap-3">
-            <Link
-              href={`?page=${page - 1}`}
-              className={navLinkClass}
-              aria-disabled={page <= 1}
-              tabIndex={page <= 1 ? -1 : undefined}
-            >
-              Trước
-            </Link>
-            <span className="text-sm text-text-secondary">
-              Trang {page} / {totalPages}
-            </span>
-            <Link
-              href={`?page=${page + 1}`}
-              className={navLinkClass}
-              aria-disabled={page >= totalPages}
-              tabIndex={page >= totalPages ? -1 : undefined}
-            >
-              Sau
-            </Link>
-          </nav>
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            pageHref={(targetPage) => pageHref(raw, targetPage)}
+          />
         ) : null}
       </section>
     </main>

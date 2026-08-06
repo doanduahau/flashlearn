@@ -346,6 +346,23 @@ export type Database = {
           session_id: string
         }[]
       }
+      update_profile: {
+        Args: { p_display_name: string; p_timezone: string }
+        Returns: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          timezone: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never

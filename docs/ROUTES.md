@@ -28,7 +28,7 @@
 | `/quiz/[attemptId]/result`    | Quiz result                                                                                                              |
 | `/history`                    | Current-user completed quiz history                                                                                      |
 | `/statistics`                 | Server-rendered streak and completed-quiz statistics                                                                     |
-| `/settings`                   | Profile and settings                                                                                                     |
+| `/settings`                   | Profile settings: read-only email, editable display name and IANA timezone with local-time preview                       |
 
 ## Route Protection
 

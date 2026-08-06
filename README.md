@@ -42,6 +42,15 @@ biểu diễn được bằng hai cột.
 - Node.js ≥ 20
 - npm
 
+## Cài đặt (Settings)
+
+Trang `/settings` cho phép người dùng cập nhật hồ sơ: email đăng nhập ở dạng chỉ đọc, tên
+hiển thị (tùy chọn, để trống sẽ dùng email) và múi giờ IANA (mặc định `Asia/Ho_Chi_Minh`).
+Múi giờ được dùng để tính chuỗi học và thống kê theo ngày địa phương; trang hiển thị giờ địa
+phương của múi giờ đang chọn. Thay đổi hồ sơ được thực hiện qua RPC `update_profile` với
+kiểm tra sở hữu và validate múi giờ ở database boundary. Đổi email, mật khẩu, avatar và
+thông báo nằm ngoài phạm vi hiện tại.
+
 ## Cài đặt
 
 ```bash

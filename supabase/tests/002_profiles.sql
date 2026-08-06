@@ -2,7 +2,7 @@
 
 begin;
 
-select plan(9);
+select plan(10);
 
 -- fixtures ------------------------------------------------------------------
 insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -87,17 +87,20 @@ select is(
   'A cannot read B''s profile'
 );
 
--- A tries to update B''s profile; RLS filters the row so nothing changes.
-update public.profiles
-set display_name = 'hacked'
-where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+-- A tries to update B''s profile. Direct table UPDATE is revoked from
+-- authenticated entirely (profile changes go through the scoped
+-- update_profile RPC), so any direct update is denied.
+select throws_ok(
+  'update public.profiles set display_name = ''hacked'' where id = ''aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa''',
+  '42501', NULL, 'authenticated cannot directly update a profile row'
+);
 
 reset role;
 
 select is(
   (select display_name from public.profiles where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
   NULL,
-  'A cannot update B''s profile'
+  'B''s profile is never touched by A''s attempts'
 );
 
 set local role authenticated;

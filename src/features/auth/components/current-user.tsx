@@ -1,7 +1,9 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { createClient } from "@/lib/supabase/client";
 
 type ProfileRow = {
   display_name: string | null;
@@ -9,11 +11,13 @@ type ProfileRow = {
 };
 
 export function CurrentUser() {
+  const pathname = usePathname();
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     async function fetchUser() {
       try {
         const supabase = createClient();
@@ -30,17 +34,20 @@ export function CurrentUser() {
             .eq("id", user.id)
             .single();
 
-          setProfile(profileData);
+          if (!cancelled) setProfile(profileData);
         }
       } catch {
         // Profile fetch failure should not block the shell.
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     fetchUser();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   if (loading) {
     return (

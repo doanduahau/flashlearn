@@ -18,6 +18,8 @@ export const COLLECTION_MAX_MEMBERSHIP_IDS = 50;
 
 export const MIN_QUIZ_QUESTIONS = 10;
 
+export const PROFILE_DISPLAY_NAME_MAX_LENGTH = 100;
+
 export const STUDY_MAX_SOURCES = 50;
 export const STUDY_MAX_CARDS = 1_000;
 

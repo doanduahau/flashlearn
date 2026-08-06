@@ -135,7 +135,7 @@ entirely (no `anon` grants).
 
 | Table                      | Policies (all `to authenticated`)    |
 | -------------------------- | ------------------------------------ |
-| `profiles`                 | SELECT own, UPDATE own               |
+| `profiles`                 | SELECT own (direct UPDATE revoked)   |
 | `flashcard_sets`           | SELECT/INSERT/UPDATE/DELETE own      |
 | `flashcards`               | SELECT/INSERT/UPDATE/DELETE own      |
 | `special_collections`      | SELECT/INSERT/UPDATE/DELETE own      |
@@ -146,18 +146,21 @@ the current user. Membership INSERT/SELECT/DELETE policies require both the refe
 collection and flashcard to belong to the current user. Note that the INSERT policies on
 `special_collections` and `special_collection_items` are effectively dormant: the
 corresponding table grants were revoked in the special-collections hardening migration and
-writes now go through scoped RPCs (see below).
+writes now go through scoped RPCs (see below). The `profiles` UPDATE policy is likewise
+effectively dormant because the direct UPDATE grant was revoked; profile changes go through
+the scoped `update_profile` RPC.
 
 ## Grants
 
 - `anon`: no privileges on core tables.
-- `authenticated`: `profiles` (SELECT, UPDATE); `flashcard_sets`/`flashcards`
+- `authenticated`: `profiles` (SELECT only); `flashcard_sets`/`flashcards`
   (SELECT, DELETE + column-limited UPDATE); `special_collections`
   (SELECT, DELETE + `UPDATE (name, icon, color)`); `special_collection_items`
   (SELECT, DELETE).
 - Direct INSERT and unrestricted UPDATE are revoked for `flashcard_sets`, `flashcards`,
-  `special_collections` and `special_collection_items`. Rows are created only through
-  scoped RPCs that derive ownership from `auth.uid()`.
+  `special_collections` and `special_collection_items`. Direct UPDATE on `profiles` is
+  revoked entirely; profile fields are updated only through the scoped `update_profile`
+  RPC. Rows are created only through scoped RPCs that derive ownership from `auth.uid()`.
 - `service_role`: ALL on all core tables (server-side only; never exposed to the browser).
 - Default privileges grant `SELECT, INSERT, UPDATE, DELETE` on future tables (and
   `USAGE, SELECT` on sequences) to `authenticated`, so later phases do not need repeated
@@ -195,17 +198,21 @@ pgTAP tests live in `supabase/tests/` and run inside a transaction against the r
 database. They verify constraints, profile/trigger behavior, per-user ownership via the
 `authenticated` role, cascade behavior and database-level integrity:
 
-| File                                      | Coverage                                                                                |
-| ----------------------------------------- | --------------------------------------------------------------------------------------- |
-| `001_constraints.sql`                     | NOT NULL / CHECK / unique / FK constraints                                              |
-| `002_profiles.sql`                        | profile trigger + ownership                                                             |
-| `003_flashcard_sets_ownership.sql`        | set and flashcard ownership (A vs B)                                                    |
-| `004_special_collections_ownership.sql`   | collection + membership ownership                                                       |
-| `005_cascades.sql`                        | delete cascades (card, collection, set, user)                                           |
-| `006_triggers.sql`                        | updated_at refresh on all tables                                                        |
-| `007_import_flashcard_set.sql`            | atomic import RPC (counts, owner, validation)                                           |
-| `008_set_card_mutations.sql`              | rename/delete set, add/edit/delete card, next position, isolation, anon denial          |
-| `009_special_collections_memberships.sql` | create/rename/delete collection, idempotent membership sync, duplicate names, isolation |
+| File                                              | Coverage                                                                                |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `001_constraints.sql`                             | NOT NULL / CHECK / unique / FK constraints                                              |
+| `002_profiles.sql`                                | profile trigger + ownership                                                             |
+| `003_flashcard_sets_ownership.sql`                | set and flashcard ownership (A vs B)                                                    |
+| `004_special_collections_ownership.sql`           | collection + membership ownership                                                       |
+| `005_cascades.sql`                                | delete cascades (card, collection, set, user)                                           |
+| `006_triggers.sql`                                | updated_at refresh on all tables                                                        |
+| `007_import_flashcard_set.sql`                    | atomic import RPC (counts, owner, validation)                                           |
+| `008_set_card_mutations.sql`                      | rename/delete set, add/edit/delete card, next position, isolation, anon denial          |
+| `009_special_collections_memberships.sql`         | create/rename/delete collection, idempotent membership sync, duplicate names, isolation |
+| `010_special_collection_rpc_input_validation.sql` | special-collection RPC input validation                                                 |
+| `011_profile_settings.sql`                        | `update_profile` RPC validation, timezone, ownership, statistics integration            |
+| `011_quiz_engine.sql`                             | quiz session creation, snapshot, submission and scoring                                 |
+| `012_learning_statistics.sql`                     | derived statistics and streak timezone logic                                            |
 
 Tests run malicious operations as a low-privilege `authenticated` role (via
 `set local role authenticated; set local request.jwt.claim.sub = '<uuid>'`), never only
@@ -289,6 +296,23 @@ Collection names are unique per user with a case-insensitive comparison
 (`idx_special_collections_user_name`). The client never pre-checks; it relies on the
 database rule and maps the `23505` unique violation to a friendly "Tên đã tồn tại."
 message shared with regular set naming.
+
+## Profile settings
+
+`public.update_profile(text, text)` updates only `display_name` and `timezone` for the
+caller's own `profiles` row. It is `SECURITY DEFINER` with an empty `search_path` and
+EXECUTE granted only to `authenticated` (revoked from `public`/`anon`).
+
+- Owner is always `auth.uid()`; the function never accepts a user id.
+- `display_name` is trimmed; blank/whitespace-only values are stored as NULL (the UI shows
+  the email instead). Values over 100 chars are rejected (`22023`). Unicode is preserved.
+- `timezone` is validated against `pg_catalog.pg_timezone_names`; null, overlong or unknown
+  values are rejected (`22023`).
+- Direct `UPDATE` on `profiles` is revoked, so `id`, `avatar_url`, `created_at` and
+  `updated_at` cannot be rewritten by any client. The row's `updated_at` is refreshed by
+  the existing trigger.
+- Failed updates leave the profile unchanged. Errors are surfaced as generic
+  non-disclosing messages by the server action.
 
 ## Generated types
 

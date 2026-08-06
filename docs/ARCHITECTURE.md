@@ -79,6 +79,34 @@ so refreshes are predictable and the session is derived entirely from query stat
   leak or reset; scoring, streaks and statistics remain quiz-scoped. See `docs/STUDY.md`
   for the full session behavior (flip, navigation, keyboard, shuffle).
 
+## Profile settings
+
+`/settings` lets a user view their read-only email and edit their display name and IANA
+timezone. The feature lives under `src/features/profile/` and follows the same hardened
+boundaries as the other features:
+
+- **Read-only page data.** `settings/page.tsx` is a Server Component that loads
+  `{ email, display_name, timezone }` through `loadProfileSettings`; the email comes from
+  `supabase.auth.getUser()` and the profile fields from the user's own RLS row. Identity is
+  always derived from the session, never from the client.
+- **Write boundary is an RPC.** `update_profile` (a `SECURITY DEFINER` function with an
+  empty `search_path`) is the only way to change profile fields. Direct `UPDATE` on
+  `profiles` is revoked, so neither the client nor a forged request can rewrite `id`,
+  `avatar_url` or timestamps. The RPC validates the timezone against
+  `pg_timezone_names` at the database boundary and trims/validates the display name.
+- **Client + server validation.** `updateProfileSchema` trims the display name (blank →
+  null, max 100) and checks the timezone against a curated list derived from the IANA
+  database, so the server action re-validates whatever the form submits.
+- **Timezone drives statistics.** `get_learning_statistics` reads the profile timezone and
+  groups quiz days in the user's local timezone, so a timezone change flows into streaks,
+  the "today" flag and the 30-day calendar without any analytics rewrite. `/settings`
+  revalidates `/settings`, `/statistics` and `/dashboard` after a successful save, and the
+  app-shell `CurrentUser` refetches the display name on navigation.
+- **Local-time preview.** `LocalTimePreview` shows the current time in the selected
+  timezone (refreshed every minute), so the user can verify the choice before saving.
+- **Not implemented (deferred).** Email change, password change/recovery, avatar upload,
+  account deletion and notification settings are outside the current scope.
+
 ## Scope
 
 This document describes the architecture decisions that underpin the FlashLearn

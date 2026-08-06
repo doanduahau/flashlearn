@@ -14,6 +14,8 @@ test.describe("Primary application navigation", () => {
     await page.getByRole("link", { name: "Đóng" }).click();
     await page.getByRole("link", { name: "Tạo bộ thủ công" }).click();
     await expect(page.getByLabel("Tên bộ flashcard")).toBeVisible();
+    await page.getByRole("dialog").getByRole("button", { name: "Đóng" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
 
     const navigation = page.getByRole("navigation", { name: "Điều hướng chính" }).last();
     await expect(navigation.getByRole("link")).toHaveCount(5);

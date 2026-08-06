@@ -8,6 +8,7 @@ import { authSubject, supabaseRest } from "./support/supabase-api";
 
 const AUTH_STATE = "tests/e2e/.auth/profile-a.json";
 const A_DISPLAY_NAME = "Nguyễn Văn A";
+const A_DISPLAY_NAME_DURING_COOLDOWN = "Nguyễn Văn A (đã xác nhận)";
 const A_TIMEZONE = "Pacific/Pago_Pago";
 
 test.describe("Profile settings", () => {
@@ -37,13 +38,21 @@ test.describe("Profile settings", () => {
     await page.getByLabel("Múi giờ").selectOption(A_TIMEZONE);
     await page.getByRole("button", { name: /Lưu thay đổi/ }).click();
     await expect(page.getByRole("status")).toContainText("Đã lưu thay đổi.");
+    await expect(page.getByText(/Có thể đổi múi giờ lại sau/)).toBeVisible();
+    await expect(page.getByLabel("Múi giờ")).toBeDisabled();
+
+    await page.getByLabel("Tên hiển thị").fill(A_DISPLAY_NAME_DURING_COOLDOWN);
+    await page.getByRole("button", { name: /Lưu thay đổi/ }).click();
+    await expect(page.getByRole("status")).toContainText("Đã lưu thay đổi.");
 
     await page.reload();
-    await expect(page.getByLabel("Tên hiển thị")).toHaveValue(A_DISPLAY_NAME);
+    await expect(page.getByLabel("Tên hiển thị")).toHaveValue(A_DISPLAY_NAME_DURING_COOLDOWN);
     await expect(page.getByLabel("Múi giờ")).toHaveValue(A_TIMEZONE);
 
     await page.goto("/dashboard");
-    await expect(page.getByRole("complementary").getByText(A_DISPLAY_NAME)).toBeVisible();
+    await expect(
+      page.getByRole("complementary").getByText(A_DISPLAY_NAME_DURING_COOLDOWN),
+    ).toBeVisible();
 
     await page.goto("/profile?tab=statistics");
     await expect(page.getByText(new RegExp(`Theo múi giờ ${A_TIMEZONE}`))).toBeVisible();
@@ -82,7 +91,7 @@ test.describe("Profile settings", () => {
 
     const aPage = await aContext.newPage();
     await aPage.goto("/profile?tab=settings");
-    await expect(aPage.getByLabel("Tên hiển thị")).toHaveValue(A_DISPLAY_NAME);
+    await expect(aPage.getByLabel("Tên hiển thị")).toHaveValue(A_DISPLAY_NAME_DURING_COOLDOWN);
     await expect(aPage.getByLabel("Múi giờ")).toHaveValue(A_TIMEZONE);
 
     await aContext.close();

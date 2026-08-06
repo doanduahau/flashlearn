@@ -14,15 +14,21 @@ export function ProfileSettingsForm({
   email,
   displayName,
   timezone,
+  timezoneChangeAvailableAt = null,
+  timezoneChangeCooldownHours = null,
 }: Readonly<{
   email: string;
   displayName: string | null;
   timezone: string;
+  timezoneChangeAvailableAt?: string | null;
+  timezoneChangeCooldownHours?: number | null;
 }>) {
   const [name, setName] = useState(displayName ?? "");
   const [zone, setZone] = useState(isSupportedTimezone(timezone) ? timezone : DEFAULT_TIMEZONE);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [cooldownUntil, setCooldownUntil] = useState(timezoneChangeAvailableAt);
+  const [cooldownHours, setCooldownHours] = useState(timezoneChangeCooldownHours);
   const [isPending, startTransition] = useTransition();
 
   function submit(): void {
@@ -32,14 +38,22 @@ export function ProfileSettingsForm({
       const result = await updateProfile({ displayName: name, timezone: zone });
       if (!result.ok) {
         setError(result.error);
+        if (result.timezoneChangeAvailableAt) {
+          setCooldownUntil(result.timezoneChangeAvailableAt);
+          setCooldownHours(result.timezoneChangeCooldownHours ?? null);
+        }
         return;
       }
+      setCooldownUntil(result.timezoneChangeAvailableAt);
+      setCooldownHours(result.timezoneChangeCooldownHours);
       setSuccess("Đã lưu thay đổi.");
     });
   }
 
   const selectClass =
     "mt-1 block w-full rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+  const cooldownActive = (cooldownHours ?? 0) > 0;
+  const cooldownDate = cooldownUntil ? new Date(cooldownUntil) : null;
 
   return (
     <form
@@ -90,6 +104,12 @@ export function ProfileSettingsForm({
               id="settings-timezone"
               className={selectClass}
               value={zone}
+              disabled={cooldownActive}
+              aria-describedby={
+                cooldownActive
+                  ? "settings-timezone-description settings-timezone-cooldown"
+                  : "settings-timezone-description"
+              }
               onChange={(event) => setZone(event.target.value)}
             >
               {TIMEZONE_GROUPS.map((group) => (
@@ -102,9 +122,20 @@ export function ProfileSettingsForm({
                 </optgroup>
               ))}
             </select>
-            <p className="mt-1 text-xs text-text-secondary">
+            <p id="settings-timezone-description" className="mt-1 text-xs text-text-secondary">
               Múi giờ này được dùng để tính chuỗi học và thống kê theo ngày.
             </p>
+            {cooldownActive && cooldownDate ? (
+              <p id="settings-timezone-cooldown" className="mt-2 text-xs text-text-secondary">
+                Có thể đổi múi giờ lại sau khoảng {cooldownHours} giờ, vào{" "}
+                {new Intl.DateTimeFormat("vi-VN", {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                  timeZone: zone,
+                }).format(cooldownDate)}
+                . Tên hiển thị vẫn có thể cập nhật.
+              </p>
+            ) : null}
           </div>
           <LocalTimePreview timezone={zone} />
         </div>

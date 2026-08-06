@@ -10,7 +10,10 @@ Quiz sessions are resumable server-owned multiple-choice plans built from regula
 
 ## Statistics and streaks
 
-`/statistics` derives activity, accuracy and quiz mode totals only from completed quiz sessions. A streak uses the profile timezone and counts at most one active local day per calendar day. See `docs/STATISTICS.md`.
+`/profile?tab=statistics` derives accuracy and quiz mode totals from completed quiz sessions. A
+streak uses one immutable activity date recorded when each quiz is completed, so later profile
+timezone changes do not rewrite history; timezone changes are database-limited to once per 72 hours.
+See `docs/STATISTICS.md`.
 
 ## Quản lý bộ và thẻ
 
@@ -44,11 +47,13 @@ biểu diễn được bằng hai cột.
 
 ## Cài đặt (Settings)
 
-Trang `/settings` cho phép người dùng cập nhật hồ sơ: email đăng nhập ở dạng chỉ đọc, tên
+Trang `/profile?tab=settings` cho phép người dùng cập nhật hồ sơ: email đăng nhập ở dạng chỉ đọc, tên
 hiển thị (tùy chọn, để trống sẽ dùng email) và múi giờ IANA (mặc định `Asia/Ho_Chi_Minh`).
 Múi giờ được dùng để tính chuỗi học và thống kê theo ngày địa phương; trang hiển thị giờ địa
 phương của múi giờ đang chọn. Thay đổi hồ sơ được thực hiện qua RPC `update_profile` với
-kiểm tra sở hữu và validate múi giờ ở database boundary. Đổi email, mật khẩu, avatar và
+kiểm tra sở hữu và validate múi giờ ở database boundary. Đổi múi giờ bị database giới hạn một
+lần mỗi 72 giờ; các ngày streak đã hoàn thành được giữ bất biến và tên hiển thị vẫn đổi được
+trong thời gian cooldown. Đổi email, mật khẩu, avatar và
 thông báo nằm ngoài phạm vi hiện tại.
 
 ## Cài đặt

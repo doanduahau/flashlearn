@@ -37,7 +37,7 @@ export async function StatisticsPanel({
   const requestedMonth = typeof requestedMonthValue === "string" ? requestedMonthValue : "";
   const month =
     isValidMonth(requestedMonth) && requestedMonth <= currentMonth ? requestedMonth : currentMonth;
-  const monthActivity = await loadMonthlyActivity(supabase, stats.timezone, month);
+  const monthActivity = await loadMonthlyActivity(supabase, month);
   const today = dateInTimezone(new Date(), stats.timezone);
   const cards = [
     ["Chuỗi hiện tại", `${stats.current_streak} ngày`],

@@ -82,6 +82,53 @@ describe("ProfileSettingsForm", () => {
     );
   });
 
+  it("shows the database-provided timezone cooldown while still allowing a display-name update", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProfileSettingsForm
+        {...PROPS}
+        timezoneChangeAvailableAt="2026-08-09T00:00:00.000Z"
+        timezoneChangeCooldownHours={72}
+      />,
+    );
+
+    expect(screen.getByLabelText("Múi giờ")).toBeDisabled();
+    expect(screen.getByText(/Có thể đổi múi giờ lại sau khoảng 72 giờ/)).toBeInTheDocument();
+
+    const name = screen.getByLabelText("Tên hiển thị");
+    await user.clear(name);
+    await user.type(name, "Tên mới trong cooldown");
+    await user.click(screen.getByRole("button", { name: /Lưu thay đổi/ }));
+
+    await waitFor(() =>
+      expect(mocks.updateProfile).toHaveBeenCalledWith({
+        displayName: "Tên mới trong cooldown",
+        timezone: "Asia/Ho_Chi_Minh",
+      }),
+    );
+  });
+
+  it("keeps a cooldown error structured and visible after a rejected timezone change", async () => {
+    mocks.updateProfile.mockResolvedValue({
+      ok: false,
+      code: "timezone_change_cooldown",
+      error: "Bạn chỉ có thể thay đổi múi giờ mỗi 72 giờ.",
+      timezoneChangeAvailableAt: "2099-01-01T00:00:00.000Z",
+      timezoneChangeCooldownHours: 72,
+    });
+    const user = userEvent.setup();
+    render(<ProfileSettingsForm {...PROPS} />);
+
+    await user.selectOptions(screen.getByLabelText("Múi giờ"), "Europe/Paris");
+    await user.click(screen.getByRole("button", { name: /Lưu thay đổi/ }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Bạn chỉ có thể thay đổi múi giờ mỗi 72 giờ.",
+    );
+    expect(screen.getByLabelText("Múi giờ")).toBeDisabled();
+    expect(screen.getByText(/Có thể đổi múi giờ lại sau/)).toBeInTheDocument();
+  });
+
   it("keeps entered values and shows the error on a recoverable failure", async () => {
     mocks.updateProfile.mockResolvedValue({
       ok: false,

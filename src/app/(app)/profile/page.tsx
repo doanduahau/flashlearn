@@ -42,6 +42,8 @@ export default async function ProfilePage({
             email={profile.email}
             displayName={profile.displayName}
             timezone={profile.timezone}
+            timezoneChangeAvailableAt={profile.timezoneChangeAvailableAt}
+            timezoneChangeCooldownHours={profile.timezoneChangeCooldownHours}
           />
         ) : (
           <section

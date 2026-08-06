@@ -81,12 +81,12 @@ so refreshes are predictable and the session is derived entirely from query stat
 
 ## Profile settings
 
-`/settings` lets a user view their read-only email and edit their display name and IANA
+`/profile?tab=settings` lets a user view their read-only email and edit their display name and IANA
 timezone. The feature lives under `src/features/profile/` and follows the same hardened
 boundaries as the other features:
 
-- **Read-only page data.** `settings/page.tsx` is a Server Component that loads
-  `{ email, display_name, timezone }` through `loadProfileSettings`; the email comes from
+- **Read-only page data.** `profile/page.tsx` is a Server Component that loads
+  `{ email, display_name, timezone, timezone_changed_at }` through `loadProfileSettings`; the email comes from
   `supabase.auth.getUser()` and the profile fields from the user's own RLS row. Identity is
   always derived from the session, never from the client.
 - **Write boundary is an RPC.** `update_profile` (a `SECURITY DEFINER` function with an
@@ -97,11 +97,14 @@ boundaries as the other features:
 - **Client + server validation.** `updateProfileSchema` trims the display name (blank →
   null, max 100) and checks the timezone against a curated list derived from the IANA
   database, so the server action re-validates whatever the form submits.
-- **Timezone drives statistics.** `get_learning_statistics` reads the profile timezone and
-  groups quiz days in the user's local timezone, so a timezone change flows into streaks,
-  the "today" flag and the 30-day calendar without any analytics rewrite. `/settings`
-  revalidates `/settings`, `/statistics` and `/dashboard` after a successful save, and the
-  app-shell `CurrentUser` refetches the display name on navigation.
+- **Timezone cooldown and immutable activity.** A successful timezone change records a
+  server-controlled `timezone_changed_at`; PostgreSQL refuses another changed timezone for 72
+  hours and returns the next permitted timestamp. Display-name-only changes remain allowed. On
+  quiz completion, the answer RPC snapshots the current timezone and local date into one
+  `daily_learning_records` row. Statistics use those immutable rows, so a later timezone change
+  affects only future completed activity—not prior streak dates. `/profile` and `/dashboard` are
+  revalidated after a successful save, and the app-shell `CurrentUser` refetches the display name
+  on navigation.
 - **Local-time preview.** `LocalTimePreview` shows the current time in the selected
   timezone (refreshed every minute), so the user can verify the choice before saving.
 - **Not implemented (deferred).** Email change, password change/recovery, avatar upload,

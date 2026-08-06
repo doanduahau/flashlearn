@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/types";
-import { addMonths, dateInTimezone } from "@/features/statistics/utils/month-activity";
+import { addMonths } from "@/features/statistics/utils/month-activity";
 
 export type DailyActivity = { date: string; active: boolean };
 export type ModeBreakdown = {
@@ -98,56 +98,17 @@ export async function loadLearningStatistics(
 
 export async function loadMonthlyActivity(
   supabase: SupabaseClient<Database>,
-  timezone: string,
   month: string,
 ): Promise<string[] | null> {
-  const start = zonedMidnight(month + "-01", timezone);
-  const end = zonedMidnight(`${addMonths(month, 1)}-01`, timezone);
+  const start = `${month}-01`;
+  const end = `${addMonths(month, 1)}-01`;
   const { data, error } = await supabase
-    .from("quiz_sessions")
-    .select("completed_at")
-    .not("completed_at", "is", null)
-    .gte("completed_at", start.toISOString())
-    .lt("completed_at", end.toISOString());
+    .from("daily_learning_records")
+    .select("local_date")
+    .gte("local_date", start)
+    .lt("local_date", end);
   if (error) return null;
-  return Array.from(
-    new Set(
-      (data ?? []).flatMap((quiz) =>
-        quiz.completed_at ? [dateInTimezone(new Date(quiz.completed_at), timezone)] : [],
-      ),
-    ),
-  );
-}
-
-function zonedMidnight(date: string, timezone: string): Date {
-  const [year, month, day] = date.split("-").map(Number);
-  const expected = Date.UTC(year, month - 1, day);
-  let timestamp = expected;
-  for (let index = 0; index < 3; index += 1) {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hourCycle: "h23",
-    }).formatToParts(new Date(timestamp));
-    const part = (type: Intl.DateTimeFormatPartTypes): number =>
-      Number(parts.find((item) => item.type === type)?.value ?? 0);
-    timestamp +=
-      expected -
-      Date.UTC(
-        part("year"),
-        part("month") - 1,
-        part("day"),
-        part("hour"),
-        part("minute"),
-        part("second"),
-      );
-  }
-  return new Date(timestamp);
+  return Array.from(new Set((data ?? []).map((record) => record.local_date)));
 }
 export function accuracy(correct: number, answers: number): number {
   return answers === 0 ? 0 : Math.round((correct / answers) * 100);

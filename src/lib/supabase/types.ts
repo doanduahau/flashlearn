@@ -34,6 +34,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_learning_records: {
+        Row: {
+          completed_quiz_count: number
+          correct_answers: number
+          first_completed_at: string
+          last_completed_at: string
+          local_date: string
+          questions_answered: number
+          timezone: string
+          user_id: string
+        }
+        Insert: {
+          completed_quiz_count?: number
+          correct_answers?: number
+          first_completed_at: string
+          last_completed_at: string
+          local_date: string
+          questions_answered?: number
+          timezone: string
+          user_id: string
+        }
+        Update: {
+          completed_quiz_count?: number
+          correct_answers?: number
+          first_completed_at?: string
+          last_completed_at?: string
+          local_date?: string
+          questions_answered?: number
+          timezone?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       flashcard_sets: {
         Row: {
           created_at: string
@@ -112,6 +145,7 @@ export type Database = {
           display_name: string | null
           id: string
           timezone: string
+          timezone_changed_at: string | null
           updated_at: string
         }
         Insert: {
@@ -120,6 +154,7 @@ export type Database = {
           display_name?: string | null
           id: string
           timezone?: string
+          timezone_changed_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -128,6 +163,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           timezone?: string
+          timezone_changed_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -354,6 +390,7 @@ export type Database = {
           display_name: string | null
           id: string
           timezone: string
+          timezone_changed_at: string | null
           updated_at: string
         }
         SetofOptions: {

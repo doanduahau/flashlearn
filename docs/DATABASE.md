@@ -37,14 +37,15 @@ erDiagram
 
 ### `public.profiles`
 
-| Column         | Type          | Default              | Notes                                       |
-| -------------- | ------------- | -------------------- | ------------------------------------------- |
-| `id`           | `uuid`        | —                    | PK, FK → `auth.users(id)` ON DELETE CASCADE |
-| `display_name` | `text`        | —                    | NULL if blank; max 100 chars                |
-| `avatar_url`   | `text`        | —                    | max 500 chars                               |
-| `timezone`     | `text`        | `'Asia/Ho_Chi_Minh'` | max 64 chars                                |
-| `created_at`   | `timestamptz` | `now()`              |                                             |
-| `updated_at`   | `timestamptz` | `now()`              | refreshed by trigger                        |
+| Column                | Type          | Default              | Notes                                       |
+| --------------------- | ------------- | -------------------- | ------------------------------------------- |
+| `id`                  | `uuid`        | —                    | PK, FK → `auth.users(id)` ON DELETE CASCADE |
+| `display_name`        | `text`        | —                    | NULL if blank; max 100 chars                |
+| `avatar_url`          | `text`        | —                    | max 500 chars                               |
+| `timezone`            | `text`        | `'Asia/Ho_Chi_Minh'` | max 64 chars                                |
+| `timezone_changed_at` | `timestamptz` | —                    | server-written 72-hour cooldown timestamp   |
+| `created_at`          | `timestamptz` | `now()`              |                                             |
+| `updated_at`          | `timestamptz` | `now()`              | refreshed by trigger                        |
 
 Rows are created only by the `handle_new_user` trigger (one per Auth user). There is no
 public INSERT policy, so users cannot create a profile for another Auth user.
@@ -210,7 +211,7 @@ database. They verify constraints, profile/trigger behavior, per-user ownership 
 | `008_set_card_mutations.sql`                      | rename/delete set, add/edit/delete card, next position, isolation, anon denial          |
 | `009_special_collections_memberships.sql`         | create/rename/delete collection, idempotent membership sync, duplicate names, isolation |
 | `010_special_collection_rpc_input_validation.sql` | special-collection RPC input validation                                                 |
-| `011_profile_settings.sql`                        | `update_profile` RPC validation, timezone, ownership, statistics integration            |
+| `011_profile_settings.sql`                        | timezone cooldown, immutable activity dates, ownership and direct-update denial         |
 | `011_quiz_engine.sql`                             | quiz session creation, snapshot, submission and scoring                                 |
 | `012_learning_statistics.sql`                     | derived statistics and streak timezone logic                                            |
 
@@ -308,8 +309,11 @@ EXECUTE granted only to `authenticated` (revoked from `public`/`anon`).
   the email instead). Values over 100 chars are rejected (`22023`). Unicode is preserved.
 - `timezone` is validated against `pg_catalog.pg_timezone_names`; null, overlong or unknown
   values are rejected (`22023`).
+- A changed timezone sets server-owned `timezone_changed_at`. A different timezone is rejected
+  for 72 hours with the structured `timezone_change_cooldown` error and next allowed timestamp.
+  A display-name-only update remains available; PostgreSQL time, never browser time, decides it.
 - Direct `UPDATE` on `profiles` is revoked, so `id`, `avatar_url`, `created_at` and
-  `updated_at` cannot be rewritten by any client. The row's `updated_at` is refreshed by
+  `updated_at` or `timezone_changed_at` cannot be rewritten by any client. The row's `updated_at` is refreshed by
   the existing trigger.
 - Failed updates leave the profile unchanged. Errors are surfaced as generic
   non-disclosing messages by the server action.
@@ -321,8 +325,15 @@ Types are checked in and must be regenerated whenever the schema changes.
 
 ## Quiz persistence
 
-`quiz_sessions` and `quiz_questions` store immutable question/answer snapshots, source metadata, completion time and server-computed score. Both use own-row RLS for reads and revoke direct browser writes. The authenticated-only `create_quiz_session` and `submit_quiz_answer` RPCs use `auth.uid()`, empty `search_path`, source ownership validation and row locking. `completed_at` is retained for future streak and statistics work.
+`quiz_sessions` and `quiz_questions` store immutable question/answer snapshots, source metadata, completion time and server-computed score. Both use own-row RLS for reads and revoke direct browser writes. The authenticated-only `create_quiz_session` and `submit_quiz_answer` RPCs use `auth.uid()`, empty `search_path`, source ownership validation and row locking. On final-answer completion, the answer RPC atomically writes or increments the caller's immutable daily activity row.
 
 ## Derived statistics
 
-`get_learning_statistics()` is a read-only `SECURITY INVOKER` RPC. It derives all totals, local active days, streaks, the fixed 30-day series and recent history from completed owned quiz sessions. It accepts no browser-controlled user, timezone or range and falls back to `Asia/Ho_Chi_Minh` when a profile timezone is invalid.
+`daily_learning_records` stores one immutable local date per user/day, its timezone at completion,
+and daily completed-quiz/question totals. It has own-row read RLS; direct client writes are revoked.
+Existing completed sessions are snapshotted once during the migration using the then-saved timezone.
+
+`get_learning_statistics()` is a read-only `SECURITY INVOKER` RPC. It derives quiz totals and recent
+history from completed owned sessions, but derives active days, streaks and the fixed 30-day series
+from immutable owned `daily_learning_records`. It accepts no browser-controlled user, timezone or
+range and falls back to `Asia/Ho_Chi_Minh` when a profile timezone is invalid.

@@ -40,11 +40,11 @@ test.describe("Study mode", () => {
 
     await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).check();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
-    await expect(page.getByText("Tổng 2 thẻ duy nhất")).toBeVisible();
+    await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
 
     await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).uncheck();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).uncheck();
-    await expect(page.getByText("Tổng 0 thẻ duy nhất")).toBeVisible();
+    await expect(page.getByText("0 nguồn · 0 thẻ")).toBeVisible();
     await expect(page.getByRole("button", { name: /Bắt đầu học/ })).toBeDisabled();
 
     await context.close();
@@ -57,7 +57,7 @@ test.describe("Study mode", () => {
     await page.goto("/study");
     await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).check();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
-    await expect(page.getByText("Tổng 2 thẻ duy nhất")).toBeVisible();
+    await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
 
     await expect(page).toHaveURL(/\/study\/session\?sets=/);
@@ -155,7 +155,7 @@ test.describe("Study mode", () => {
     await page.goto("/study");
     await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).check();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
-    await expect(page.getByText("Tổng 2 thẻ duy nhất")).toBeVisible();
+    await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
     await expect(page).toHaveURL(/\/study\/session/);
 
@@ -188,7 +188,7 @@ test.describe("Study mode", () => {
     await expect(page).toHaveURL(/\/study$/);
     await page.goto(`/study/session?collections=${collectionId}`);
     await expect(page).toHaveURL(/\/study$/);
-    await expect(page.getByText("Chưa có bộ flashcard.")).toBeVisible();
+    await expect(page.getByText("Chưa có thẻ flashcard để học.")).toBeVisible();
   });
 });
 

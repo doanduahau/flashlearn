@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SectionTabs } from "@/components/shared/section-tabs";
-import { QuizSetup, type QuizSource } from "@/features/quiz/components/quiz-setup";
+import { QuizSetup } from "@/features/quiz/components/quiz-setup";
+import { loadSourcePage, sourceType } from "@/features/source-selection/server/load-source-page";
+import { parsePage, type RouteSearchParams } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Kiểm tra" };
@@ -15,8 +17,9 @@ function quizTab(value: string | string[] | undefined): QuizTab {
 
 export default async function QuizPage({
   searchParams,
-}: Readonly<{ searchParams: Promise<{ tab?: string | string[] }> }>) {
-  const tab = quizTab((await searchParams).tab);
+}: Readonly<{ searchParams: Promise<RouteSearchParams> }>) {
+  const raw = await searchParams;
+  const tab = quizTab(raw.tab);
   const supabase = await createClient();
 
   return (
@@ -36,7 +39,7 @@ export default async function QuizPage({
       {tab === "history" ? (
         <QuizHistory supabase={supabase} />
       ) : (
-        <QuizCreator supabase={supabase} />
+        <QuizCreator supabase={supabase} searchParams={raw} />
       )}
     </main>
   );
@@ -44,35 +47,27 @@ export default async function QuizPage({
 
 async function QuizCreator({
   supabase,
-}: Readonly<{ supabase: Awaited<ReturnType<typeof createClient>> }>) {
-  const [setsResult, collectionsResult, totalResult] = await Promise.all([
-    supabase
-      .from("flashcard_sets")
-      .select("id, name, flashcards(count)")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("special_collections")
-      .select("id, name, special_collection_items(count)")
-      .order("created_at", { ascending: false }),
+  searchParams,
+}: Readonly<{
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  searchParams: RouteSearchParams;
+}>) {
+  const query = typeof searchParams.q === "string" ? searchParams.q : "";
+  const [sourcePage, totalResult] = await Promise.all([
+    loadSourcePage(supabase, {
+      page: parsePage(searchParams.page),
+      query,
+      type: sourceType(searchParams.sourceType),
+    }),
     supabase.from("flashcards").select("id", { count: "exact", head: true }),
   ]);
-  const sets: QuizSource[] = (setsResult.data ?? []).map((set) => ({
-    id: set.id,
-    name: set.name,
-    cardCount: set.flashcards[0]?.count ?? 0,
-  }));
-  const collections: QuizSource[] = (collectionsResult.data ?? []).map((collection) => ({
-    id: collection.id,
-    name: collection.name,
-    cardCount: collection.special_collection_items[0]?.count ?? 0,
-  }));
 
   return (
     <section className="mt-6">
       <p className="text-text-secondary">
         Chọn nguồn, số câu và cách tạo đề. Thẻ trùng chỉ xuất hiện một lần.
       </p>
-      <QuizSetup sets={sets} collections={collections} totalCards={totalResult.count ?? 0} />
+      <QuizSetup sourcePage={sourcePage} totalCards={totalResult.count ?? 0} />
     </section>
   );
 }

@@ -16,7 +16,7 @@ test("quiz answers stay on the current question until the learner explicitly adv
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
 
   await page.goto("/quiz");
-  await expect(page.getByText(/Có 10 thẻ trong phạm vi/)).toBeVisible();
+  await expect(page.getByText("Có 10 thẻ hợp lệ trong phạm vi.")).toBeVisible();
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
   await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
 

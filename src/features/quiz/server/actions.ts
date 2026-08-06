@@ -1,6 +1,11 @@
 "use server";
 
-import { answerSchema, quizStartSchema } from "@/features/quiz/schemas/quiz-schema";
+import {
+  answerSchema,
+  quizSourceSchema,
+  quizStartSchema,
+} from "@/features/quiz/schemas/quiz-schema";
+import { collectStudyCardIds } from "@/features/study/server/load-study-cards";
 import { createClient } from "@/lib/supabase/server";
 
 type Result =
@@ -26,6 +31,22 @@ export async function startQuiz(input: unknown): Promise<Result> {
     p_question_count: parsed.data.questionCount,
   });
   return error || !data ? { ok: false, error: generic } : { ok: true, sessionId: data };
+}
+
+export async function getQuizCardCount(
+  input: unknown,
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  const parsed = quizSourceSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? generic };
+  const supabase = await createClient();
+  if (!(await signedIn(supabase))) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+
+  const ids = await collectStudyCardIds(supabase, {
+    all: false,
+    setIds: parsed.data.setIds,
+    collectionIds: parsed.data.collectionIds,
+  });
+  return { ok: true, count: ids.length };
 }
 
 export async function submitQuizAnswer(input: unknown): Promise<Result> {

@@ -9,6 +9,20 @@ export type QuizMode = (typeof quizModes)[number];
 
 const idList = z.array(z.uuid()).max(QUIZ_MAX_SOURCES);
 
+export const quizSourceSchema = z
+  .object({
+    setIds: idList.default([]),
+    collectionIds: idList.default([]),
+  })
+  .superRefine((value, context) => {
+    if (value.setIds.length + value.collectionIds.length > QUIZ_MAX_SOURCES) {
+      context.addIssue({
+        code: "custom",
+        message: `Chỉ được chọn tối đa ${QUIZ_MAX_SOURCES} nguồn.`,
+      });
+    }
+  });
+
 export const quizStartSchema = z
   .object({
     mode: z.enum(quizModes),

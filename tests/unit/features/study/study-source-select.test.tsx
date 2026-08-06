@@ -42,7 +42,7 @@ describe("StudySourceSelect", () => {
     const allButton = screen.getByRole("button", { name: /Tất cả thẻ/ });
     expect(allButton).toHaveAttribute("aria-pressed", "true");
     expect(allButton).toHaveTextContent("4 thẻ");
-    expect(screen.getByText("Tổng 4 thẻ duy nhất")).toBeInTheDocument();
+    expect(screen.getByText("0 nguồn · 4 thẻ")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeEnabled();
   });
 
@@ -68,10 +68,10 @@ describe("StudySourceSelect", () => {
     const user = userEvent.setup();
     render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    expect(screen.getByText("Đang tính số thẻ…")).toBeInTheDocument();
+    expect(screen.getByText("Đang tính thẻ…")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeDisabled();
     resolveCount?.({ ok: true, count: 2 });
-    await waitFor(() => expect(screen.getByText("Tổng 2 thẻ duy nhất")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
   });
 
   it("fetches a deduplicated count when a set is selected", async () => {
@@ -84,7 +84,7 @@ describe("StudySourceSelect", () => {
         collectionIds: [],
       }),
     );
-    await waitFor(() => expect(screen.getByText("Tổng 2 thẻ duy nhất")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
   });
 
   it("combines sets and collections into a unique count", async () => {
@@ -108,9 +108,9 @@ describe("StudySourceSelect", () => {
     const user = userEvent.setup();
     render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    await waitFor(() => expect(screen.getByText("Tổng 2 thẻ duy nhất")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    await waitFor(() => expect(screen.getByText("Tổng 0 thẻ duy nhất")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("0 nguồn · 0 thẻ")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeDisabled();
   });
 
@@ -118,7 +118,7 @@ describe("StudySourceSelect", () => {
     const user = userEvent.setup();
     render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    await waitFor(() => expect(screen.getByText("Tổng 2 thẻ duy nhất")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /Bắt đầu học/ }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(`/study/session?sets=${SET_A_ID}`));
   });
@@ -130,7 +130,7 @@ describe("StudySourceSelect", () => {
     const user = userEvent.setup();
     render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    await waitFor(() => expect(screen.getByText("Tổng 2 thẻ duy nhất")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /Bắt đầu học/ }));
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("Chưa có thẻ nào trong phạm vi đã chọn."),
@@ -154,10 +154,10 @@ describe("StudySourceSelect", () => {
 
   it("renders an empty state with an import link when there are no sources", () => {
     render(<StudySourceSelect sets={[]} collections={[]} totalCards={0} />);
-    expect(screen.getByText("Chưa có bộ flashcard.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Import tệp đầu tiên/ })).toHaveAttribute(
+    expect(screen.getByText("Chưa có thẻ flashcard để học.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Nhập tệp đầu tiên/ })).toHaveAttribute(
       "href",
-      "/import",
+      "/dashboard?create=import",
     );
   });
 });

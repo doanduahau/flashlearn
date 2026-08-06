@@ -20,9 +20,9 @@
 | `/sets?tab=special`           | Bộ flashcard: special-collection list (independent search, pagination and empty state)                                   |
 | `/sets/[setId]`               | Set detail: rename/delete set, add/edit/delete cards, card search and pagination, per-card special-collection membership |
 | `/collections/[collectionId]` | Special collection detail: rename/delete collection, card list with original set name and remove-membership              |
-| `/study`                      | Choose study scope (all cards or specific sets/collections)                                                              |
+| `/study`                      | Choose study scope with server-paginated source search/filter (`q`, `sourceType`, `page`) and persistent selections      |
 | `/study/session`              | Flashcard study session (deterministic source-query route, optional `seed`)                                              |
-| `/quiz?tab=create`            | Kiểm tra: quiz setup, source selection, mode, unique count and question count                                            |
+| `/quiz?tab=create`            | Kiểm tra: quiz setup with server-paginated source search/filter, fixed feasible counts and mode selection                |
 | `/quiz?tab=history`           | Kiểm tra: current-user completed quiz history                                                                            |
 | `/quiz/[attemptId]`           | Take a quiz                                                                                                              |
 | `/quiz/[attemptId]/result`    | Quiz result                                                                                                              |

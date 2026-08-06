@@ -12,6 +12,7 @@ export const SET_NAME_MAX_LENGTH = 120;
 export const CARD_TEXT_MAX_LENGTH = 50_000;
 export const SET_CARDS_PAGE_SIZE = 20;
 export const LIBRARY_PAGE_SIZE = 12;
+export const SOURCE_PAGE_SIZE = 12;
 
 export const COLLECTION_NAME_MAX_LENGTH = 60;
 export const COLLECTION_CARDS_PAGE_SIZE = 20;

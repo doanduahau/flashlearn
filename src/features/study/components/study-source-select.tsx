@@ -1,25 +1,21 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { SourceBrowser } from "@/features/source-selection/components/source-browser";
+import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { getStudyCardCount } from "@/features/study/server/actions";
 import { cn } from "@/lib/utils";
 
 const COUNT_DEBOUNCE_MS = 250;
 
-export interface StudySourceOption {
-  id: string;
-  name: string;
-  cardCount: number;
-}
-
-interface SourceParams {
+type SourceParams = {
   setIds: string[];
   collectionIds: string[];
-}
+};
 
 function sameSources(a: SourceParams, b: SourceParams): boolean {
   return (
@@ -31,18 +27,19 @@ function sameSources(a: SourceParams, b: SourceParams): boolean {
 }
 
 export function StudySourceSelect({
+  sourcePage,
   sets,
   collections,
   totalCards,
 }: Readonly<{
-  sets: StudySourceOption[];
-  collections: StudySourceOption[];
+  sourcePage?: SourcePage;
+  sets?: { id: string; name: string; cardCount: number }[];
+  collections?: { id: string; name: string; cardCount: number }[];
   totalCards: number;
 }>) {
   const router = useRouter();
   const [mode, setMode] = useState<"all" | "custom">("all");
-  const [selectedSets, setSelectedSets] = useState<Set<string>>(() => new Set());
-  const [selectedCollections, setSelectedCollections] = useState<Set<string>>(() => new Set());
+  const [selected, setSelected] = useState<Map<string, SourceOption>>(() => new Map());
   const [customCount, setCustomCount] = useState<{
     count: number;
     computedFor: SourceParams;
@@ -50,68 +47,63 @@ export function StudySourceSelect({
   const [actionError, setActionError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, startTransition] = useTransition();
+  const resolvedSourcePage: SourcePage = sourcePage ?? {
+    sources: [
+      ...(sets ?? []).map((source) => ({ ...source, kind: "regular" as const })),
+      ...(collections ?? []).map((source) => ({ ...source, kind: "special" as const })),
+    ],
+    page: 1,
+    totalPages: 1,
+    query: "",
+    type: "all",
+  };
+
+  const selectedSources = useMemo(() => [...selected.values()], [selected]);
+  const currentSources = useMemo<SourceParams>(
+    () => ({
+      setIds: selectedSources
+        .filter((source) => source.kind === "regular")
+        .map((source) => source.id),
+      collectionIds: selectedSources
+        .filter((source) => source.kind === "special")
+        .map((source) => source.id),
+    }),
+    [selectedSources],
+  );
 
   useEffect(() => {
     if (mode !== "custom") return;
-    const sources: SourceParams = {
-      setIds: [...selectedSets],
-      collectionIds: [...selectedCollections],
-    };
     let cancelled = false;
     const timer = setTimeout(() => {
       void (async () => {
-        const result = await getStudyCardCount(sources);
+        const result = await getStudyCardCount(currentSources);
         if (cancelled) return;
-        if (result.ok) {
-          setCustomCount({ count: result.count, computedFor: sources });
-        } else {
-          setActionError(result.error);
-        }
+        if (result.ok) setCustomCount({ count: result.count, computedFor: currentSources });
+        else setActionError(result.error);
       })();
     }, COUNT_DEBOUNCE_MS);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [mode, selectedSets, selectedCollections]);
+  }, [currentSources, mode]);
 
-  const currentSources: SourceParams = {
-    setIds: [...selectedSets],
-    collectionIds: [...selectedCollections],
-  };
   const isCounting =
     mode === "custom" &&
     (customCount === null || !sameSources(customCount.computedFor, currentSources));
-  const showCounting = isCounting && actionError === null;
+  const availableCards = mode === "all" ? totalCards : (customCount?.count ?? 0);
   const canStart =
-    mode === "all"
-      ? totalCards >= 1
-      : actionError === null && !isCounting && (customCount?.count ?? 0) >= 1;
+    mode === "all" ? totalCards > 0 : actionError === null && !isCounting && availableCards > 0;
 
-  function toggleSet(id: string): void {
+  function toggleSource(source: SourceOption): void {
     setMode("custom");
     setActionError(null);
-    setSelectedSets((previous) => {
-      const next = new Set(previous);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
-  function toggleCollection(id: string): void {
-    setMode("custom");
-    setActionError(null);
-    setSelectedCollections((previous) => {
-      const next = new Set(previous);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+    setError(null);
+    setSelected((previous) => {
+      const next = new Map(previous);
+      const key = `${source.kind}:${source.id}`;
+      if (next.has(key)) next.delete(key);
+      else next.set(key, source);
       return next;
     });
   }
@@ -119,7 +111,7 @@ export function StudySourceSelect({
   function start(): void {
     setError(null);
     if (mode === "all") {
-      if (totalCards < 1) {
+      if (!totalCards) {
         setError("Chưa có thẻ nào để học.");
         return;
       }
@@ -132,41 +124,28 @@ export function StudySourceSelect({
         setActionError(result.error);
         return;
       }
-      if (result.count < 1) {
+      if (!result.count) {
         setError("Chưa có thẻ nào trong phạm vi đã chọn.");
         return;
       }
       const query = new URLSearchParams();
-      if (selectedSets.size) query.set("sets", [...selectedSets].join(","));
-      if (selectedCollections.size) query.set("collections", [...selectedCollections].join(","));
+      if (currentSources.setIds.length) query.set("sets", currentSources.setIds.join(","));
+      if (currentSources.collectionIds.length)
+        query.set("collections", currentSources.collectionIds.join(","));
       router.push(`/study/session?${query.toString()}`);
     });
   }
 
-  if (sets.length === 0 && collections.length === 0) {
-    return (
-      <div className="mt-6 rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-8 text-center">
-        <p className="font-medium">Chưa có bộ flashcard.</p>
-        <p className="mt-1 text-sm text-text-secondary">
-          <Link className="underline" href="/import">
-            Import tệp đầu tiên
-          </Link>{" "}
-          để bắt đầu học.
-        </p>
-      </div>
-    );
-  }
-
-  const sourceOptionClass = (active: boolean) =>
-    cn(
-      "flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-colors",
-      active
-        ? "border-primary bg-primary-soft"
-        : "border-border-soft bg-surface hover:bg-surface-subtle",
-    );
-
   return (
-    <div className="mt-6 space-y-6">
+    <div className="mt-6 space-y-6 pb-28 md:pb-0">
+      {!totalCards ? (
+        <div className="rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-6 text-center">
+          <p className="font-medium">Chưa có thẻ flashcard để học.</p>
+          <Link className="mt-2 inline-block underline" href="/dashboard?create=import">
+            Nhập tệp đầu tiên
+          </Link>
+        </div>
+      ) : null}
       <button
         type="button"
         aria-pressed={mode === "all"}
@@ -174,68 +153,22 @@ export function StudySourceSelect({
           setMode("all");
           setError(null);
         }}
-        className={sourceOptionClass(mode === "all")}
+        className={cn(
+          "flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-colors",
+          mode === "all"
+            ? "border-primary bg-primary-soft"
+            : "border-border-soft bg-surface hover:bg-surface-subtle",
+        )}
       >
         <span className="font-semibold">Tất cả thẻ</span>
-        <span className="text-sm text-text-secondary">{totalCards} thẻ</span>
+        <span className="shrink-0 text-sm text-text-secondary">{totalCards} thẻ</span>
       </button>
-
-      {sets.length ? (
-        <section aria-label="Bộ flashcard">
-          <h2 className="font-semibold">Bộ flashcard</h2>
-          <ul className="mt-2 space-y-2">
-            {sets.map((set) => (
-              <li key={set.id}>
-                <label className="flex items-center gap-3 rounded-2xl border border-border-soft bg-surface p-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedSets.has(set.id)}
-                    onChange={() => toggleSet(set.id)}
-                  />
-                  <span className="min-w-0 flex-1 font-medium">{set.name}</span>
-                  <span className="shrink-0 text-sm text-text-secondary">{set.cardCount} thẻ</span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {collections.length ? (
-        <section aria-label="Bộ đặc biệt">
-          <h2 className="font-semibold">Bộ đặc biệt</h2>
-          <ul className="mt-2 space-y-2">
-            {collections.map((collection) => (
-              <li key={collection.id}>
-                <label className="flex items-center gap-3 rounded-2xl border border-border-soft bg-surface p-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedCollections.has(collection.id)}
-                    onChange={() => toggleCollection(collection.id)}
-                  />
-                  <span className="min-w-0 flex-1 font-medium">{collection.name}</span>
-                  <span className="shrink-0 text-sm text-text-secondary">
-                    {collection.cardCount} thẻ
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface p-4">
-        <p className="font-medium">
-          {mode === "all"
-            ? `Tổng ${totalCards} thẻ duy nhất`
-            : showCounting
-              ? "Đang tính số thẻ…"
-              : `Tổng ${customCount?.count ?? 0} thẻ duy nhất`}
-        </p>
-        <Button type="button" onClick={start} disabled={isStarting || !canStart}>
-          {isStarting ? "Đang mở phiên…" : "Bắt đầu học"}
-        </Button>
-      </div>
+      <SourceBrowser
+        path="/study"
+        sourcePage={resolvedSourcePage}
+        selected={selectedSources}
+        onToggle={toggleSource}
+      />
       {actionError ? (
         <p role="alert" className="text-danger">
           {actionError}
@@ -246,6 +179,48 @@ export function StudySourceSelect({
           {error}
         </p>
       ) : null}
+      <StudyActionBar
+        selectedCount={mode === "all" ? 0 : selectedSources.length}
+        availableCards={availableCards}
+        counting={isCounting}
+        pending={isStarting}
+        canStart={canStart}
+        onStart={start}
+      />
+    </div>
+  );
+}
+
+function StudyActionBar({
+  selectedCount,
+  availableCards,
+  counting,
+  pending,
+  canStart,
+  onStart,
+}: Readonly<{
+  selectedCount: number;
+  availableCards: number;
+  counting: boolean;
+  pending: boolean;
+  canStart: boolean;
+  onStart: () => void;
+}>) {
+  return (
+    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-y border-border-soft bg-surface/95 p-3 shadow-[0_-8px_24px_rgba(39,93,70,0.08)] backdrop-blur md:sticky md:bottom-4 md:rounded-2xl md:border">
+      <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 md:max-w-none">
+        <p aria-live="polite" className="min-w-0 text-sm font-medium">
+          {counting ? "Đang tính thẻ…" : `${selectedCount} nguồn · ${availableCards} thẻ`}
+        </p>
+        <Button
+          type="button"
+          className="min-h-11 shrink-0"
+          onClick={onStart}
+          disabled={pending || !canStart}
+        >
+          {pending ? "Đang mở phiên…" : "Bắt đầu học"}
+        </Button>
+      </div>
     </div>
   );
 }

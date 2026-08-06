@@ -1,0 +1,191 @@
+"use client";
+
+import { Search, X } from "lucide-react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
+import type {
+  SourceOption,
+  SourcePage,
+  SourceType,
+} from "@/features/source-selection/types/source-types";
+import { cn } from "@/lib/utils";
+
+const filterOptions: { value: SourceType; label: string }[] = [
+  { value: "all", label: "Tất cả" },
+  { value: "regular", label: "Bộ thường" },
+  { value: "special", label: "Bộ đặc biệt" },
+];
+
+export function SourceBrowser({
+  path,
+  sourcePage,
+  selected,
+  onToggle,
+}: Readonly<{
+  path: string;
+  sourcePage: SourcePage;
+  selected: SourceOption[];
+  onToggle: (source: SourceOption) => void;
+}>) {
+  const router = useRouter();
+  const [query, setQuery] = useState(sourcePage.query);
+  const [isNavigating, startTransition] = useTransition();
+  const selectedKeys = new Set(selected.map((source) => `${source.kind}:${source.id}`));
+
+  function navigate(changes: Record<string, string | undefined>): void {
+    const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
+    params.delete("page");
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    if (changes.page) params.set("page", changes.page);
+    const search = params.toString();
+    startTransition(() => router.replace(search ? `${path}?${search}` : path));
+  }
+
+  function submitSearch(): void {
+    navigate({ q: query.trim() || undefined });
+  }
+
+  return (
+    <section className="space-y-4" aria-labelledby="source-browser-heading">
+      <div>
+        <h2 id="source-browser-heading" className="text-xl font-bold">
+          Chọn nguồn
+        </h2>
+        <p className="mt-1 text-sm text-text-secondary">
+          Lựa chọn của bạn vẫn được giữ khi tìm kiếm hoặc chuyển trang.
+        </p>
+      </div>
+      <form
+        className="flex gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitSearch();
+        }}
+      >
+        <label className="sr-only" htmlFor="source-search">
+          Tìm nguồn theo tên
+        </label>
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-secondary" />
+          <input
+            id="source-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Tìm bộ theo tên"
+            className="h-11 w-full rounded-xl border border-border-soft bg-surface py-2 pl-9 pr-3 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          />
+        </div>
+        <Button type="submit" variant="outline" disabled={isNavigating}>
+          Tìm
+        </Button>
+      </form>
+      <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Lọc loại nguồn" role="group">
+        {filterOptions.map((filter) => (
+          <Button
+            type="button"
+            size="sm"
+            key={filter.value}
+            variant={sourcePage.type === filter.value ? "soft" : "outline"}
+            aria-pressed={sourcePage.type === filter.value}
+            onClick={() => navigate({ sourceType: filter.value, q: sourcePage.query || undefined })}
+            disabled={isNavigating}
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+      {selected.length ? (
+        <div
+          aria-label="Nguồn đã chọn"
+          className="flex flex-wrap gap-2 rounded-2xl bg-primary-soft p-3"
+        >
+          {selected.map((source) => (
+            <Button
+              type="button"
+              key={`${source.kind}:${source.id}`}
+              size="sm"
+              variant="outline"
+              onClick={() => onToggle(source)}
+              title={`Bỏ chọn ${source.name}`}
+              aria-label={`Bỏ chọn ${source.name}`}
+            >
+              <span className="max-w-36 truncate">{source.name}</span>
+              <X aria-hidden="true" />
+            </Button>
+          ))}
+        </div>
+      ) : null}
+      {isNavigating ? <SourceSkeleton /> : null}
+      {sourcePage.sources.length ? (
+        <ul className={cn("grid gap-2", isNavigating && "opacity-50")} aria-live="polite">
+          {sourcePage.sources.map((source) => {
+            const selectedSource = selectedKeys.has(`${source.kind}:${source.id}`);
+            return (
+              <li key={`${source.kind}:${source.id}`}>
+                <label className="flex min-h-12 items-center gap-3 rounded-2xl border border-border-soft bg-surface p-3 hover:bg-surface-subtle">
+                  <input
+                    type="checkbox"
+                    checked={selectedSource}
+                    onChange={() => onToggle(source)}
+                    aria-label={`${source.name}, ${source.kind === "regular" ? "Bộ thường" : "Bộ đặc biệt"}`}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{source.name}</span>
+                    <span className="text-xs text-text-secondary">
+                      {source.kind === "regular" ? "Bộ thường" : "Bộ đặc biệt"}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-sm text-text-secondary">
+                    {source.cardCount} thẻ
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      ) : isNavigating ? null : (
+        <p className="rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-5 text-center text-text-secondary">
+          Không tìm thấy nguồn phù hợp.
+        </p>
+      )}
+      {sourcePage.totalPages > 1 ? (
+        <nav className="flex items-center justify-between gap-3" aria-label="Phân trang nguồn">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={sourcePage.page === 1 || isNavigating}
+            onClick={() => navigate({ page: String(sourcePage.page - 1) })}
+          >
+            Trước
+          </Button>
+          <span className="text-sm text-text-secondary">
+            Trang {sourcePage.page} / {sourcePage.totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={sourcePage.page === sourcePage.totalPages || isNavigating}
+            onClick={() => navigate({ page: String(sourcePage.page + 1) })}
+          >
+            Sau
+          </Button>
+        </nav>
+      ) : null}
+    </section>
+  );
+}
+
+function SourceSkeleton() {
+  return (
+    <div aria-label="Đang tải nguồn" className="grid gap-2" role="status">
+      {[0, 1, 2].map((index) => (
+        <div key={index} className="h-16 animate-pulse rounded-2xl bg-surface-subtle" />
+      ))}
+    </div>
+  );
+}

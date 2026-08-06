@@ -4,8 +4,17 @@ import Link from "next/link";
 import { AppNavigation } from "@/components/layout/app-navigation";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
 import { CurrentUser } from "@/features/auth/components/current-user";
+import { StreakIndicator } from "@/features/statistics/components/streak-indicator";
 
-export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
+export function AppShell({
+  children,
+  streak = 0,
+  completedToday = false,
+}: Readonly<{
+  children: React.ReactNode;
+  streak?: number;
+  completedToday?: boolean;
+}>) {
   return (
     <div className="min-h-dvh">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col gap-6 border-r border-border-soft bg-surface p-6 md:flex">
@@ -16,11 +25,14 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
           <span>FlashLearn</span>
         </Link>
         <AppNavigation variant="sidebar" />
-        <div className="mt-auto flex items-center gap-1 border-t border-border-soft pt-4">
-          <div className="min-w-0 flex-1">
-            <CurrentUser />
+        <div className="mt-auto flex flex-col gap-3 border-t border-border-soft pt-4">
+          <StreakIndicator streak={streak} completedToday={completedToday} />
+          <div className="flex items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <CurrentUser />
+            </div>
+            <SignOutButton />
           </div>
-          <SignOutButton />
         </div>
       </aside>
 
@@ -33,7 +45,8 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
             <Leaf className="size-5 text-primary" aria-hidden="true" />
             FlashLearn
           </Link>
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <StreakIndicator streak={streak} completedToday={completedToday} />
             <CurrentUser />
             <SignOutButton />
           </div>

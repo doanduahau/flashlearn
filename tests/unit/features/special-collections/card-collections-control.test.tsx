@@ -241,4 +241,48 @@ describe("CardCollectionsControl", () => {
     await user.click(screen.getByRole("button", { name: /hủy/i }));
     await waitFor(() => expect(trigger).toHaveFocus());
   });
+
+  it("keeps the popup within the viewport with an internal scroll region", async () => {
+    const manyCollections = Array.from({ length: 20 }, (_, index) => ({
+      id: `${index.toString().padStart(8, "0")}-0000-4000-8000-000000000000`,
+      name: `Bộ số ${index + 1}`,
+    }));
+    const user = userEvent.setup();
+    render(
+      <CardCollectionsControl
+        cardId={CARD_ID}
+        setId={SET_ID}
+        collections={manyCollections}
+        memberships={[]}
+        variant="icon"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" }));
+
+    const panel = screen.getByTestId("card-collections-panel");
+    expect(panel.className).toContain("overflow-y-auto");
+    expect(panel.className).toContain("max-h-");
+    expect(screen.getByRole("button", { name: /^lưu$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /hủy/i })).toBeInTheDocument();
+  });
+
+  it("closes the popup on Escape and restores focus to the trigger", async () => {
+    const user = userEvent.setup();
+    render(
+      <CardCollectionsControl
+        cardId={CARD_ID}
+        setId={SET_ID}
+        collections={COLLECTIONS}
+        memberships={[]}
+        variant="icon"
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
+    await user.click(trigger);
+    expect(screen.getByTestId("card-collections-panel")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByTestId("card-collections-panel")).not.toBeInTheDocument();
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
 });

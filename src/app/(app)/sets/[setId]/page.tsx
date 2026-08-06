@@ -139,8 +139,8 @@ export default async function SetDetailPage({
                 key={card.id}
                 className="rounded-2xl border border-border-soft bg-surface p-4 sm:p-5"
               >
-                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                  <div className="min-w-0 flex-1 max-w-full">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="min-w-0 max-w-full flex-1">
                     <p className="text-sm font-medium text-text-secondary">#{card.position + 1}</p>
                     <p className="mt-1 max-w-full whitespace-pre-wrap break-words font-semibold [overflow-wrap:anywhere]">
                       {card.front}
@@ -149,14 +149,7 @@ export default async function SetDetailPage({
                       {card.back}
                     </p>
                   </div>
-                  <div className="flex min-h-11 shrink-0 flex-wrap items-center gap-1 self-end sm:self-auto">
-                    <CardCollectionsControl
-                      cardId={card.id}
-                      setId={set.id}
-                      collections={collections}
-                      memberships={membershipsByCard[card.id] ?? []}
-                      variant="responsive"
-                    />
+                  <div className="flex shrink-0 items-center gap-1">
                     <EditCardForm
                       setId={set.id}
                       cardId={card.id}
@@ -164,6 +157,13 @@ export default async function SetDetailPage({
                       initialBack={card.back}
                     />
                     <DeleteCardButton setId={set.id} cardId={card.id} />
+                    <CardCollectionsControl
+                      cardId={card.id}
+                      setId={set.id}
+                      collections={collections}
+                      memberships={membershipsByCard[card.id] ?? []}
+                      variant="icon"
+                    />
                   </div>
                 </div>
               </li>

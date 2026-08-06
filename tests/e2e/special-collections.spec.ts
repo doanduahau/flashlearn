@@ -111,6 +111,34 @@ test.describe("Special collections", () => {
     expect(response?.status()).toBe(404);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("404");
   });
+
+  test("add-to-collection popup stays within the mobile viewport", async ({ browser }) => {
+    const context = await browser.newContext({
+      storageState: AUTH_STATE,
+      viewport: { width: 390, height: 844 },
+    });
+    const page = await context.newPage();
+
+    await page.goto(`/sets/${setId}`);
+    const trigger = page.getByRole("button", { name: "Thêm vào bộ đặc biệt" }).first();
+    await trigger.click();
+
+    const panel = page.getByTestId("card-collections-panel");
+    await expect(panel).toBeVisible();
+
+    const box = await panel.boundingBox();
+    expect(box).toBeTruthy();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    expect(box!.y).toBeGreaterThanOrEqual(0);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(844);
+
+    await panel.getByRole("button", { name: /Hủy/i }).click();
+    await expect(panel).toBeHidden();
+    await expect(trigger).toBeFocused();
+
+    await context.close();
+  });
 });
 
 function collectionIdFromHref(href: string | null): string {
@@ -136,21 +164,19 @@ async function addCardToCollections(
   collectionNames: string[],
 ): Promise<void> {
   const row = page.locator("li").filter({ hasText: cardFront }).last();
-  const trigger = row.getByRole("button", { name: "Bộ đặc biệt (0)" });
+  const trigger = row.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
   await trigger.click();
   for (const name of collectionNames) {
     await row.getByRole("checkbox", { name: new RegExp(name, "i") }).check();
   }
   await row.getByRole("button", { name: /^Lưu$/i }).click();
-  await expect(
-    row.getByRole("button", { name: `Bộ đặc biệt (${collectionNames.length})` }),
-  ).toBeVisible();
+  await expect(trigger).toBeVisible();
 
-  await row.getByRole("button", { name: `Bộ đặc biệt (${collectionNames.length})` }).click();
-  await row.getByRole("button", { name: /^Lưu$/i }).click();
-  await expect(
-    row.getByRole("button", { name: `Bộ đặc biệt (${collectionNames.length})` }),
-  ).toBeVisible();
+  await trigger.click();
+  for (const name of collectionNames) {
+    await expect(row.getByRole("checkbox", { name: new RegExp(name, "i") })).toBeChecked();
+  }
+  await row.getByRole("button", { name: /Hủy/i }).click();
 }
 
 async function removeCardFromCollection(page: Page): Promise<void> {

@@ -19,7 +19,7 @@ export interface NavItem {
 }
 
 export const mainNavItems: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: Home },
+  { label: "T\u1ed5ng quan", href: "/dashboard", icon: Home },
   { label: "Import", href: "/import", icon: Upload },
   { label: "Bộ flashcard", href: "/sets", icon: Layers },
   { label: "Bộ đặc biệt", href: "/collections", icon: FolderHeart },
@@ -34,7 +34,7 @@ export const secondaryNavItems: NavItem[] = [
 ];
 
 export const mobilePrimaryNavItems: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: Home },
+  { label: "T\u1ed5ng quan", href: "/dashboard", icon: Home },
   { label: "B\u1ed9 flashcard", href: "/sets", icon: Layers },
   { label: "H\u1ecdc", href: "/study", icon: GraduationCap },
   { label: "Ki\u1ec3m tra", href: "/quiz", icon: ListChecks },

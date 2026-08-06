@@ -6,7 +6,7 @@ export default async function DashboardPage() {
   const stats = await loadLearningStatistics(await createClient());
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-8">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+      <h1 className="text-3xl font-bold">Tổng quan</h1>
       {stats ? (
         <section className="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Tóm tắt học tập">
           <StreakSummary streak={stats.current_streak} completedToday={stats.completed_today} />

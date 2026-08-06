@@ -65,4 +65,16 @@ test.describe("Responsive flashcard management and navigation", () => {
     await overflowImport.click();
     await expect(page).toHaveURL(/\/import$/);
   });
+
+  test("shows the streak in the mobile header on every authenticated page", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signUpAndConfirm(page, uniqueEmail("streak"));
+
+    await page.goto("/dashboard");
+    const mobileHeader = page.locator("header");
+    const streak = mobileHeader.getByLabel(/Chuỗi \d+ ngày/);
+    await expect(streak).toBeVisible();
+    await expect(streak).toHaveText("0");
+    await expect(streak).toHaveAttribute("aria-label", /hôm nay chưa hoàn thành/);
+  });
 });

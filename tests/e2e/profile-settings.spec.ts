@@ -43,7 +43,7 @@ test.describe("Profile settings", () => {
     await expect(page.getByLabel("Múi giờ")).toHaveValue(A_TIMEZONE);
 
     await page.goto("/dashboard");
-    await expect(page.getByText(A_DISPLAY_NAME)).toBeVisible();
+    await expect(page.getByRole("complementary").getByText(A_DISPLAY_NAME)).toBeVisible();
 
     await page.goto("/statistics");
     await expect(page.getByText(new RegExp(`Theo múi giờ ${A_TIMEZONE}`))).toBeVisible();

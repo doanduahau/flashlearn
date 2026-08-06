@@ -59,13 +59,13 @@ export function EditCardForm({
         ref={triggerRef}
         type="button"
         variant="ghost"
-        className="size-11 p-0 sm:h-10 sm:w-auto sm:px-4"
+        size="icon"
+        className="shrink-0"
         onClick={() => setIsOpen(true)}
         aria-label="Sửa thẻ"
         title="Sửa thẻ"
       >
         <Pencil aria-hidden="true" />
-        <span className="hidden sm:inline">Sửa</span>
       </Button>
       {isOpen ? (
         <DialogOverlay title="Sửa flashcard" onClose={isPending ? () => undefined : close}>

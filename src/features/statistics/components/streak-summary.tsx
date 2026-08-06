@@ -1,21 +1,20 @@
 import { Flame } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { streakLabel } from "@/features/statistics/utils/streak-label";
 
 export function StreakSummary({
   streak,
   completedToday,
   compact = false,
 }: Readonly<{ streak: number; completedToday: boolean; compact?: boolean }>) {
-  const status = completedToday ? "hôm nay đã hoàn thành" : "hôm nay chưa hoàn thành";
-
   return (
     <div
       className={cn(
         "flex items-center gap-3 rounded-2xl border border-border-soft bg-surface p-4",
         compact && "p-3",
       )}
-      aria-label={`Chuỗi ${streak} ngày, ${status}`}
+      aria-label={streakLabel(streak, completedToday)}
     >
       <span
         className={cn(

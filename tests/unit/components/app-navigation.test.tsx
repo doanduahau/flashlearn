@@ -16,6 +16,12 @@ import { AppNavigation } from "@/components/layout/app-navigation";
 afterEach(cleanup);
 
 describe("AppNavigation", () => {
+  it("labels the dashboard destination as Tổng quan", () => {
+    render(<AppNavigation variant="sidebar" />);
+
+    expect(screen.getByRole("link", { name: "Tổng quan" })).toHaveAttribute("href", "/dashboard");
+  });
+
   it("renders exactly five mobile primary slots and marks overflow routes through More", () => {
     render(<AppNavigation variant="bottom" />);
 

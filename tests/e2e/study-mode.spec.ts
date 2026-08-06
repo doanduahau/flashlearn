@@ -216,8 +216,12 @@ async function createCollection(page: Page, name: string): Promise<string> {
 
 async function addCardToCollection(page: Page, cardFront: string, collectionName: string) {
   const row = page.locator("li").filter({ hasText: cardFront }).last();
-  await row.getByRole("button", { name: "Bộ đặc biệt (0)" }).click();
+  const trigger = row.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
+  await trigger.click();
   await row.getByRole("checkbox", { name: new RegExp(collectionName, "i") }).check();
   await row.getByRole("button", { name: /^Lưu$/i }).click();
-  await expect(row.getByRole("button", { name: "Bộ đặc biệt (1)" })).toBeVisible();
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  await expect(row.getByRole("checkbox", { name: new RegExp(collectionName, "i") })).toBeChecked();
+  await row.getByRole("button", { name: /Hủy/i }).click();
 }

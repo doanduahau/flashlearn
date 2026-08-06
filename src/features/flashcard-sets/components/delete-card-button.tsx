@@ -40,13 +40,13 @@ export function DeleteCardButton({ setId, cardId }: Readonly<{ setId: string; ca
         ref={triggerRef}
         type="button"
         variant="ghost"
-        className="size-11 p-0 text-destructive sm:h-10 sm:w-auto sm:px-4"
+        size="icon"
+        className="shrink-0 text-destructive"
         onClick={() => setIsConfirming(true)}
         aria-label="Xóa thẻ"
         title="Xóa thẻ"
       >
         <Trash2 aria-hidden="true" />
-        <span className="hidden sm:inline">Xóa thẻ</span>
       </Button>
       {error && !isConfirming ? (
         <p role="alert" className="text-danger">

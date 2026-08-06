@@ -36,4 +36,18 @@ describe("AppShell", () => {
       expect(link).toHaveAttribute("href", "/dashboard");
     });
   });
+
+  it("shows the streak indicator in the sidebar and the mobile header", () => {
+    render(
+      <AppShell streak={5} completedToday>
+        <div>Page content</div>
+      </AppShell>,
+    );
+
+    const indicators = screen.getAllByLabelText("Chuỗi 5 ngày, hôm nay đã hoàn thành");
+    expect(indicators).toHaveLength(2);
+    indicators.forEach((indicator) => {
+      expect(indicator).toHaveTextContent("5");
+    });
+  });
 });

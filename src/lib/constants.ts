@@ -18,4 +18,7 @@ export const COLLECTION_MAX_MEMBERSHIP_IDS = 50;
 
 export const MIN_QUIZ_QUESTIONS = 10;
 
+export const STUDY_MAX_SOURCES = 50;
+export const STUDY_MAX_CARDS = 1_000;
+
 export const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";

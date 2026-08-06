@@ -21,8 +21,8 @@
 | `/sets/[setId]`               | Set detail: rename/delete set, add/edit/delete cards, card search and pagination, per-card special-collection membership |
 | `/collections`                | List of special collections (create + search + card counts)                                                              |
 | `/collections/[collectionId]` | Special collection detail: rename/delete collection, card list with original set name and remove-membership              |
-| `/study`                      | Choose study scope                                                                                                       |
-| `/study/[sessionId]`          | Flashcard study session                                                                                                  |
+| `/study`                      | Choose study scope (all cards or specific sets/collections)                                                              |
+| `/study/session`              | Flashcard study session (deterministic source-query route, optional `seed`)                                              |
 | `/quiz`                       | Quiz setup                                                                                                               |
 | `/quiz/[attemptId]`           | Take a quiz                                                                                                              |
 | `/quiz/[attemptId]/result`    | Quiz result                                                                                                              |

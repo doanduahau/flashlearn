@@ -50,6 +50,35 @@ content. `/collections` lists collections with card counts and a create form;
   surface as the same generic message. Invalid collection ids are rejected before the
   membership sync mutates any rows.
 
+## Study mode
+
+Study mode lets a user review flashcards from a chosen scope without leaving any trace,
+so refreshes are predictable and the session is derived entirely from query state.
+
+- **Source selection** (`/study`) lists regular sets and special collections with card
+  counts and the exact total of the user's flashcards. `/study` is a Server Component
+  that counts each source with `.select(..., { count: "exact", head: true })` and passes
+  the data to `StudySourceSelect`, which keeps selection in client state and fetches a
+  debounced unique-card count per selection via `getStudyCardCount`.
+- **Deterministic session route.** `/study/session` is a query-parameter route
+  (`?all=1`, `?sets=…&collections=…`, optional `seed=…`) instead of a persisted session.
+  On every request the server re-derives the same card set and order, so a refresh or a
+  reopened tab returns the same position. Deterministic order is `set_id`, then
+  `position`, then `id`; an on-page shuffle toggle only adds/removes a `seed` query
+  parameter (`router.replace`), preserving the current index.
+- **Data loading is server-boundary.** `loadStudySession` parses the query params with a
+  strict Zod schema (max 50 sources, valid UUIDs, 32-bit seed), derives identity from
+  `supabase.auth.getClaims()`, fetches set/collection rows under RLS only, deduplicates by
+  flashcard id (first occurrence wins), sorts deterministically and caps the session at
+  `STUDY_MAX_CARDS` (1,000) with a visible truncation notice. No service-role key, no
+  per-card queries.
+- **Membership in session.** The per-card collection control reuses the same
+  `updateCardCollections` server action and `set_card_collections` RPC as
+  `/sets/[setId]`, so the hardened write boundary is shared rather than duplicated.
+- **No study history.** The MVP does not persist study sessions, so there is nothing to
+  leak or reset; scoring, streaks and statistics remain quiz-scoped. See `docs/STUDY.md`
+  for the full session behavior (flip, navigation, keyboard, shuffle).
+
 ## Scope
 
 This document describes the architecture decisions that underpin the FlashLearn
@@ -59,9 +88,9 @@ application. The application is a Next.js App Router app backed by Supabase; see
 The foundation covers data ownership (profiles, flashcard sets, flashcards,
 special collections and their membership table), authentication (email/password
 sign-up, sign-in, email confirmation, sign-out, route protection), imports,
-regular set/card management (rename, delete, add/edit/delete cards) and special
-collection management (create, rename, delete, membership sync). Study mode,
-quiz, streak and analytics are implemented in later phases.
+regular set/card management (rename, delete, add/edit/delete cards), special
+collection management (create, rename, delete, membership sync) and flashcard
+study mode. Quiz, streak and analytics are implemented in later phases.
 
 ## Principles applied
 
@@ -180,6 +209,14 @@ a rollback path.
 - E2E tests for special collections (create, duplicate-name rejection, membership add
   and idempotency, per-collection remove, rename, delete, cross-user 404 isolation) are
   in `tests/e2e/special-collections.spec.ts`.
+- Unit tests for study schemas, source merging/deduplication and seeded shuffle are in
+  `tests/unit/features/study/`.
+- Component tests for the source selector (debounced unique count, errors, empty state)
+  and the study session (flip, navigation, keyboard, shuffle, membership) are in
+  `tests/unit/features/study/`.
+- E2E tests for study mode (deduplicated count, deterministic refresh, shuffle across
+  reload, in-session membership, cross-user source isolation) are in
+  `tests/e2e/study-mode.spec.ts`.
 
 ## Future phases
 

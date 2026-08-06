@@ -14,6 +14,10 @@ Bộ đặc biệt gom thẻ từ nhiều bộ flashcard thông thường mà kh
 
 Biến bất kỳ file Excel hai cột nào thành bộ flashcard và bài kiểm tra thông minh.
 
+## Chế độ học (Study mode)
+
+Trang `/study` cho phép chọn phạm vi học: tất cả thẻ, hoặc một tổ hợp bộ flashcard và bộ đặc biệt. Hệ thống tính số thẻ duy nhất (gộp các nguồn, loại trùng theo flashcard) trước khi bắt đầu. Phiên học tại `/study/session` hiển thị mặt trước, lật để xem mặt sau, có thẻ trước/tiếp theo, trộn thứ tự và bộ điều khiển thêm/bớt thẻ khỏi bộ đặc biệt ngay trong phiên. Hỗ trợ bàn phím (Space/Enter lật, mũi tên chuyển thẻ). Phiên được suy ra hoàn toàn từ query — tải lại trang không mất vị trí. Chi tiết xem `docs/STUDY.md`.
+
 Học ngoại ngữ, lập trình, công thức, luật, y khoa, câu hỏi phỏng vấn — bất kỳ nội dung hỏi–đáp nào
 biểu diễn được bằng hai cột.
 

@@ -16,8 +16,10 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
           <span>FlashLearn</span>
         </Link>
         <AppNavigation variant="sidebar" />
-        <div className="mt-auto">
-          <CurrentUser />
+        <div className="mt-auto flex items-center gap-1 border-t border-border-soft pt-4">
+          <div className="min-w-0 flex-1">
+            <CurrentUser />
+          </div>
           <SignOutButton />
         </div>
       </aside>
@@ -31,7 +33,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
             <Leaf className="size-5 text-primary" aria-hidden="true" />
             FlashLearn
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <CurrentUser />
             <SignOutButton />
           </div>

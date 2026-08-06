@@ -56,6 +56,19 @@ describe("CardCollectionsControl", () => {
     expect(screen.getByRole("button", { name: /bộ đặc biệt \(1\)/i })).toBeInTheDocument();
   });
 
+  it("shows a custom label on the trigger when provided", () => {
+    render(
+      <CardCollectionsControl
+        cardId={CARD_ID}
+        setId={SET_ID}
+        collections={COLLECTIONS}
+        memberships={[COLLECTION_A]}
+        label="Thêm vào bộ đặc biệt"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" })).toBeInTheDocument();
+  });
+
   it("pre-checks collections the card already belongs to", async () => {
     const user = userEvent.setup();
     render(

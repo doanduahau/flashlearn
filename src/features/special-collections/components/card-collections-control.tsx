@@ -20,12 +20,14 @@ export function CardCollectionsControl({
   collections,
   memberships,
   variant = "text",
+  label,
 }: Readonly<{
   cardId: string;
   setId: string;
   collections: CardCollectionOption[];
   memberships: string[];
   variant?: "text" | "icon";
+  label?: string;
 }>) {
   const router = useRouter();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -117,7 +119,11 @@ export function CardCollectionsControl({
         title={isIcon ? "Thêm vào bộ đặc biệt" : undefined}
         disabled={isPending}
       >
-        {isIcon ? <FolderPlus aria-hidden="true" /> : `Bộ đặc biệt (${memberships.length})`}
+        {isIcon ? (
+          <FolderPlus aria-hidden="true" />
+        ) : (
+          (label ?? `Bộ đặc biệt (${memberships.length})`)
+        )}
       </Button>
       {error && !isIcon ? (
         <p role="alert" className="text-danger">

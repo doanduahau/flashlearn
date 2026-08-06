@@ -26,6 +26,7 @@ export default async function QuizSessionPage({
   if (!question) redirect(`/quiz/${sessionId}/result`);
   return (
     <QuizSession
+      key={question.id}
       sessionId={sessionId}
       total={session.actual_question_count}
       question={{ ...question, choices: question.choices as string[] }}

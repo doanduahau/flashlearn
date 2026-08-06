@@ -1,5 +1,5 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { submitQuizAnswer } from "@/features/quiz/server/actions";
@@ -17,6 +17,11 @@ export function QuizSession({
   const [feedback, setFeedback] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, transition] = useTransition();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
   const submit = () => {
     if (selected === null) {
       setError("Hãy chọn một đáp án.");
@@ -40,7 +45,9 @@ export function QuizSession({
       <p className="text-sm text-text-secondary">
         Câu {question.position + 1} / {total}
       </p>
-      <h1 className="mt-3 whitespace-pre-wrap text-2xl font-bold">{question.prompt}</h1>
+      <h1 ref={headingRef} tabIndex={-1} className="mt-3 whitespace-pre-wrap text-2xl font-bold">
+        {question.prompt}
+      </h1>
       <fieldset className="mt-6 space-y-3" aria-label="Các đáp án">
         {question.choices.map((choice, index) => (
           <label

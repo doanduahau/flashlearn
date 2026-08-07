@@ -1,3 +1,5 @@
+"use client";
+
 import { Flame } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -19,9 +21,20 @@ export function CalendarDayCell({
   day,
   today,
   timezone,
-}: Readonly<{ day: CalendarDay; today: string; timezone: string }>) {
+  isCoarse,
+  isOpen,
+  onTap,
+}: Readonly<{
+  day: CalendarDay;
+  today: string;
+  timezone: string;
+  isCoarse: boolean;
+  isOpen: boolean;
+  onTap: () => void;
+}>) {
   const isToday = day.date === today;
   const accuracy = dayAccuracy(day.detail);
+  const shown = isCoarse && isOpen;
   const stateLabel = day.future
     ? "ngày trong tương lai"
     : day.active
@@ -33,7 +46,9 @@ export function CalendarDayCell({
   return (
     <button
       type="button"
+      onClick={onTap}
       aria-haspopup="dialog"
+      aria-expanded={isCoarse ? shown : undefined}
       aria-label={`${monthDayLabel(day.date, timezone)}, ${stateLabel}`}
       disabled={day.future || !day.active}
       className={cn(
@@ -63,7 +78,14 @@ export function CalendarDayCell({
         <span
           role="dialog"
           aria-label="Chi tiết hoạt động"
-          className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-52 -translate-x-1/2 rounded-2xl border border-border-soft bg-surface p-3 text-left shadow-md invisible opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+          className={cn(
+            "pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-52 -translate-x-1/2 rounded-2xl border border-border-soft bg-surface p-3 text-left shadow-md transition-opacity duration-150",
+            isCoarse
+              ? shown
+                ? "visible opacity-100"
+                : "invisible opacity-0"
+              : "invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100",
+          )}
         >
           <span className="block text-sm font-bold">{monthDayLabel(day.date, timezone)}</span>
           <span className="mt-1.5 block text-xs text-text-secondary">

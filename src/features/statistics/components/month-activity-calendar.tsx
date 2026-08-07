@@ -1,15 +1,13 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
-import { CalendarDayCell } from "@/features/statistics/components/calendar-day-cell";
+import { ActivityCalendarGrid } from "@/features/statistics/components/activity-calendar-grid";
 import {
   addMonths,
   calendarDays,
   monthLabel,
   type DailyActivityDetail,
 } from "@/features/statistics/utils/month-activity";
-
-const weekdays = ["Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7", "CN"];
 
 export function MonthActivityCalendar({
   month,
@@ -87,17 +85,7 @@ export function MonthActivityCalendar({
       >
         {monthLabel(month, timezone)}
       </p>
-      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs sm:gap-2">
-        {weekdays.map((weekday) => (
-          <span key={weekday} className="py-1 font-medium text-text-secondary">
-            {weekday}
-          </span>
-        ))}
-        {days.map((day, index) => {
-          if (day.day === null) return <span key={`blank-${index}`} aria-hidden="true" />;
-          return <CalendarDayCell key={day.date} day={day} today={today} timezone={timezone} />;
-        })}
-      </div>
+      <ActivityCalendarGrid days={days} today={today} timezone={timezone} />
     </section>
   );
 }

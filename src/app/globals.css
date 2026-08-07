@@ -89,6 +89,7 @@
   --shadow-soft-card: 0 8px 24px rgba(39, 93, 70, 0.08);
 
   --animate-card-in: card-in 0.18s ease-out;
+  --animate-fade-in: fadeIn 0.12s ease-out;
 }
 
 @keyframes card-in {
@@ -99,6 +100,15 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 

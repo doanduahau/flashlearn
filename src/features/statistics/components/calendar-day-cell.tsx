@@ -5,11 +5,6 @@ import { Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { monthDayLabel, type CalendarDay } from "@/features/statistics/utils/month-activity";
 
-function dayAccuracy(detail: CalendarDay["detail"]): number | null {
-  if (!detail || detail.questions === 0) return null;
-  return Math.round((detail.correct / detail.questions) * 100);
-}
-
 const quizLevelClasses: Record<CalendarDay["quizLevel"], string> = {
   0: "border-border-soft bg-surface",
   1: "border-primary-soft bg-primary-soft",
@@ -24,6 +19,10 @@ export function CalendarDayCell({
   isCoarse,
   isOpen,
   onTap,
+  onDesktopMouseEnter,
+  onDesktopMouseLeave,
+  onDesktopFocus,
+  onDesktopBlur,
 }: Readonly<{
   day: CalendarDay;
   today: string;
@@ -31,9 +30,12 @@ export function CalendarDayCell({
   isCoarse: boolean;
   isOpen: boolean;
   onTap: () => void;
+  onDesktopMouseEnter: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onDesktopMouseLeave: () => void;
+  onDesktopFocus: (event: React.FocusEvent<HTMLButtonElement>) => void;
+  onDesktopBlur: () => void;
 }>) {
   const isToday = day.date === today;
-  const accuracy = dayAccuracy(day.detail);
   const shown = isCoarse && isOpen;
   const stateLabel = day.future
     ? "ngày trong tương lai"
@@ -51,8 +53,12 @@ export function CalendarDayCell({
       aria-expanded={isCoarse ? shown : undefined}
       aria-label={`${monthDayLabel(day.date, timezone)}, ${stateLabel}`}
       disabled={day.future || !day.active}
+      onMouseEnter={isCoarse ? undefined : onDesktopMouseEnter}
+      onMouseLeave={isCoarse ? undefined : onDesktopMouseLeave}
+      onFocus={isCoarse ? undefined : onDesktopFocus}
+      onBlur={isCoarse ? undefined : onDesktopBlur}
       className={cn(
-        "group relative flex min-h-11 flex-col items-center justify-center rounded-xl border text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+        "relative flex min-h-11 flex-col items-center justify-center rounded-xl border text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
         isToday
           ? "border-primary ring-1 ring-primary/60"
           : day.future
@@ -74,17 +80,16 @@ export function CalendarDayCell({
         </span>
       ) : null}
 
-      {day.detail ? (
+      {/* Mobile coarse-pointer tap detail — rendered inline so it opens within the cell
+          context (clipping/stacking is acceptable since the mobile sheet shows below the
+          cell and other cells are not overlapping it on small viewports). */}
+      {isCoarse && day.detail ? (
         <span
           role="dialog"
           aria-label="Chi tiết hoạt động"
           className={cn(
             "pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-52 -translate-x-1/2 rounded-2xl border border-border-soft bg-surface p-3 text-left shadow-md transition-opacity duration-150",
-            isCoarse
-              ? shown
-                ? "visible opacity-100"
-                : "invisible opacity-0"
-              : "invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100",
+            shown ? "visible opacity-100" : "invisible opacity-0",
           )}
         >
           <span className="block text-sm font-bold">{monthDayLabel(day.date, timezone)}</span>
@@ -92,7 +97,8 @@ export function CalendarDayCell({
             {day.detail.quizCount} bài kiểm tra · {day.detail.questions} câu
           </span>
           <span className="block text-xs text-text-secondary">
-            {day.detail.correct} câu đúng · Độ chính xác {accuracy ?? 0}%
+            {day.detail.correct} câu đúng · Độ chính xác{" "}
+            {Math.round((day.detail.correct / day.detail.questions) * 100)}%
           </span>
         </span>
       ) : null}

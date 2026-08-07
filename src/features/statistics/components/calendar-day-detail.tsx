@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils";
@@ -64,12 +64,21 @@ export function CalendarDayDetail({
   timezone: string;
   anchorRect: DOMRect;
 }>) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
   const accuracy = dayAccuracy(day.detail);
 
   // Position is purely derived from anchorRect — no state required.
-  const position = useMemo(() => computePosition(anchorRect), [anchorRect]);
+  const position = useMemo(
+    () => (mounted ? computePosition(anchorRect) : { top: 0, left: 0 }),
+    [anchorRect, mounted],
+  );
 
-  if (!day.detail) return null;
+  if (!mounted || !day.detail) return null;
 
   return createPortal(
     <div

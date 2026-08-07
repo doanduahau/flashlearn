@@ -15,6 +15,11 @@ export const deleteSetSchema = z.object({
   setId: z.uuid("Mã bộ flashcard không hợp lệ."),
 });
 
+export const moveSetSchema = z.object({
+  setId: z.uuid("Mã bộ flashcard không hợp lệ."),
+  direction: z.enum(["up", "down"]),
+});
+
 const cardFieldsSchema = z.object({
   front: z
     .string()

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { renameSetSchema } from "@/features/flashcard-sets/schemas/set-schema";
+import { moveSetSchema, renameSetSchema } from "@/features/flashcard-sets/schemas/set-schema";
 
 const SET_ID = "11111111-1111-4111-8111-111111111111";
 
@@ -43,5 +43,14 @@ describe("renameSetSchema", () => {
     expect(renameSetSchema.safeParse(null).success).toBe(false);
     expect(renameSetSchema.safeParse("plain string").success).toBe(false);
     expect(renameSetSchema.safeParse({ setId: SET_ID }).success).toBe(false);
+  });
+});
+
+describe("moveSetSchema", () => {
+  it("accepts only a valid set id and adjacent move direction", () => {
+    expect(moveSetSchema.safeParse({ setId: SET_ID, direction: "up" }).success).toBe(true);
+    expect(moveSetSchema.safeParse({ setId: SET_ID, direction: "down" }).success).toBe(true);
+    expect(moveSetSchema.safeParse({ setId: SET_ID, direction: "sideways" }).success).toBe(false);
+    expect(moveSetSchema.safeParse({ setId: "not-a-uuid", direction: "up" }).success).toBe(false);
   });
 });

@@ -73,6 +73,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          sort_order: number
           source_filename: string | null
           updated_at: string
           user_id: string
@@ -82,6 +83,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          sort_order?: number
           source_filename?: string | null
           updated_at?: string
           user_id: string
@@ -91,6 +93,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          sort_order?: number
           source_filename?: string | null
           updated_at?: string
           user_id?: string
@@ -369,6 +372,10 @@ export type Database = {
           imported_count: number
           set_id: string
         }[]
+      }
+      move_flashcard_set: {
+        Args: { p_direction: string; p_set_id: string }
+        Returns: undefined
       }
       set_card_collections: {
         Args: { p_card_id: string; p_collection_ids: string[] }

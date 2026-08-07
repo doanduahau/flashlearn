@@ -7,6 +7,7 @@ import {
   createCardSchema,
   deleteCardSchema,
   deleteSetSchema,
+  moveSetSchema,
   renameSetSchema,
   updateCardSchema,
 } from "@/features/flashcard-sets/schemas/set-schema";
@@ -67,6 +68,27 @@ export async function deleteSet(input: unknown): Promise<MutationResult> {
   if (!data?.length) return { ok: false, error: "Không tìm thấy bộ flashcard." };
 
   revalidatePath("/sets");
+  return { ok: true };
+}
+
+export async function moveSet(input: unknown): Promise<MutationResult> {
+  const parsed = moveSetSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstIssueMessage(parsed.error) };
+
+  const supabase = await createClient();
+  if (!(await hasAuthenticatedSession(supabase)))
+    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+
+  const { error } = await supabase.rpc("move_flashcard_set", {
+    p_set_id: parsed.data.setId,
+    p_direction: parsed.data.direction,
+  });
+
+  if (error) return { ok: false, error: mapMutationError(error) };
+
+  revalidatePath("/sets");
+  revalidatePath("/study");
+  revalidatePath("/quiz");
   return { ok: true };
 }
 

@@ -59,6 +59,7 @@ public INSERT policy, so users cannot create a profile for another Auth user.
 | `name`            | `text`        | —                   | non-blank; max 120 chars                |
 | `description`     | `text`        | —                   | max 500 chars                           |
 | `source_filename` | `text`        | —                   | max 255 chars                           |
+| `sort_order`      | `bigint`      | server assigned     | User-owned custom set order             |
 | `created_at`      | `timestamptz` | `now()`             |                                         |
 | `updated_at`      | `timestamptz` | `now()`             | refreshed by trigger                    |
 
@@ -169,14 +170,15 @@ the scoped `update_profile` RPC.
 
 ## Indexes
 
-| Index                                    | Table                      | Purpose                       |
-| ---------------------------------------- | -------------------------- | ----------------------------- |
-| `idx_flashcard_sets_user_created`        | `flashcard_sets`           | list sets by recency per user |
-| `idx_flashcards_set_position`            | `flashcards`               | order cards within a set      |
-| `idx_flashcards_user`                    | `flashcards`               | cards by user                 |
-| `idx_special_collections_user`           | `special_collections`      | collections by user           |
-| `idx_special_collection_items_flashcard` | `special_collection_items` | memberships by flashcard      |
-| `idx_special_collections_user_name`      | `special_collections`      | unique name per user (lower)  |
+| Index                                    | Table                      | Purpose                        |
+| ---------------------------------------- | -------------------------- | ------------------------------ |
+| `idx_flashcard_sets_user_created`        | `flashcard_sets`           | list sets by recency per user  |
+| `idx_flashcard_sets_user_sort_order`     | `flashcard_sets`           | deterministic custom set order |
+| `idx_flashcards_set_position`            | `flashcards`               | order cards within a set       |
+| `idx_flashcards_user`                    | `flashcards`               | cards by user                  |
+| `idx_special_collections_user`           | `special_collections`      | collections by user            |
+| `idx_special_collection_items_flashcard` | `special_collection_items` | memberships by flashcard       |
+| `idx_special_collections_user_name`      | `special_collections`      | unique name per user (lower)   |
 
 ## Commands
 
@@ -232,6 +234,7 @@ empty-set creation is deferred. The following mutations are supported:
 | ----------- | ---------------------------------------- | --------------------------------------------------- |
 | Rename set  | `UPDATE flashcard_sets` via RLS          | Name trimmed by the shared Zod schema               |
 | Delete set  | `DELETE flashcard_sets` via RLS          | Cascades to its flashcards and their memberships    |
+| Reorder set | `public.move_flashcard_set(uuid, text)`  | Atomically swaps with the adjacent owned set        |
 | Add card    | `public.add_flashcard(uuid, text, text)` | Positions assigned at the database boundary         |
 | Edit card   | `UPDATE flashcards` via RLS              | Front/back only; position never changes             |
 | Delete card | `DELETE flashcards` via RLS              | Position gaps are acceptable; relative order stable |
@@ -257,6 +260,15 @@ empty-set creation is deferred. The following mutations are supported:
   error for a missing set and a foreign set.
 - `anon` is denied table privileges and the `add_flashcard` EXECUTE grant.
 - Card content is never logged.
+
+### Regular set ordering
+
+- `flashcard_sets.sort_order` is the persisted per-user rank. Regular-set queries
+  order by `(sort_order, id)`, including search and pagination, for deterministic results.
+- `move_flashcard_set(set_id, direction)` derives ownership from `auth.uid()` and swaps
+  only the selected set with its adjacent neighbor under a per-user advisory lock.
+- Direct rank updates remain denied by the existing column-level grant. New imports are
+  placed at the front; deletion leaves harmless rank gaps and does not renumber unrelated rows.
 
 ### Deferred work
 

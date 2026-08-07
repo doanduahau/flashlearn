@@ -90,6 +90,49 @@ test.describe("Study mode", () => {
     await context.close();
   });
 
+  test("swipe navigation on the card advances and goes back", async ({ browser }) => {
+    const context = await browser.newContext({
+      storageState: AUTH_STATE,
+      viewport: { width: 390, height: 844 },
+    });
+    const page = await context.newPage();
+
+    await page.goto("/study");
+    await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).check();
+    await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
+    await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
+    await page.getByRole("button", { name: /Bắt đầu học/ }).click();
+    await expect(page).toHaveURL(/\/study\/session/);
+
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+
+    const card = page.getByTestId("study-card");
+    const box = await card.boundingBox();
+    expect(box).not.toBeNull();
+
+    await page.mouse.move(box!.x + box!.width * 0.6, box!.y + box!.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(box!.x + box!.width * 0.2, box!.y + box!.height * 0.5, { steps: 8 });
+    await page.mouse.up();
+    await expect(page.getByText("2 / 2")).toBeVisible();
+
+    await page.mouse.move(box!.x + box!.width * 0.2, box!.y + box!.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(box!.x + box!.width * 0.6, box!.y + box!.height * 0.5, { steps: 8 });
+    await page.mouse.up();
+    await expect(page.getByText("1 / 2")).toBeVisible();
+
+    await page.getByRole("button", { name: /Nhấn để lật/ }).click();
+    await expect(page.getByRole("button", { name: /Thẻ tiếp theo/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Thẻ trước/ })).toBeVisible();
+
+    await context.close();
+  });
+
   test("all-cards session keeps its order across refresh", async ({ browser }) => {
     const context = await browser.newContext({ storageState: AUTH_STATE });
     const page = await context.newPage();

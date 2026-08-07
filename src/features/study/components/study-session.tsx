@@ -1,15 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
 import type { StudyCard, StudyCollectionOption } from "@/features/study/types/study-types";
 import { STUDY_MAX_CARDS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+
+const SWIPE_THRESHOLD = 56;
+const SWIPE_RATIO = 1.2;
+const CLICK_SLOP = 8;
+const INTERACTIVE_SELECTOR =
+  'a, button, input, textarea, select, [role="button"], [contenteditable="true"]';
 
 export function StudySession({
   cards,
@@ -30,6 +36,9 @@ export function StudySession({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
+  const gestureRef = useRef<{ startX: number; startY: number; active: boolean } | null>(null);
+  const didMoveRef = useRef(false);
+
   const total = cards.length;
   const card = cards[currentIndex] ?? cards[0];
   const isFirst = currentIndex === 0;
@@ -48,13 +57,7 @@ export function StudySession({
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        typeof target.closest === "function" &&
-        target.closest(
-          'a, button, input, textarea, select, [role="button"], [contenteditable="true"]',
-        )
-      ) {
+      if (target && typeof target.closest === "function" && target.closest(INTERACTIVE_SELECTOR)) {
         return;
       }
       if (event.key === " " || event.key === "Enter") {
@@ -80,6 +83,61 @@ export function StudySession({
       url.searchParams.set("seed", String(Math.floor(Math.random() * 4294967296)));
     }
     router.replace(`${url.pathname}${url.search}`, { scroll: false });
+  }
+
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>): void {
+    const target = event.target as HTMLElement | null;
+    if (
+      event.button !== 0 ||
+      (target && typeof target.closest === "function" && target.closest(INTERACTIVE_SELECTOR))
+    ) {
+      gestureRef.current = null;
+      didMoveRef.current = false;
+      return;
+    }
+    gestureRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      active: true,
+    };
+    didMoveRef.current = false;
+  }
+
+  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>): void {
+    const gesture = gestureRef.current;
+    if (!gesture?.active) return;
+    const dx = Math.abs(event.clientX - gesture.startX);
+    const dy = Math.abs(event.clientY - gesture.startY);
+    if (dx > CLICK_SLOP || dy > CLICK_SLOP) {
+      didMoveRef.current = true;
+    }
+  }
+
+  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>): void {
+    const gesture = gestureRef.current;
+    gestureRef.current = null;
+    if (!gesture?.active) return;
+    const dx = event.clientX - gesture.startX;
+    const dy = event.clientY - gesture.startY;
+    if (Math.abs(dx) < SWIPE_THRESHOLD) return;
+    if (Math.abs(dx) <= Math.abs(dy) * SWIPE_RATIO) return;
+    if (dx < 0) {
+      goNext();
+    } else {
+      goPrevious();
+    }
+  }
+
+  function handlePointerCancel(): void {
+    gestureRef.current = null;
+  }
+
+  function handleCardClick(): void {
+    if (didMoveRef.current) {
+      didMoveRef.current = false;
+      return;
+    }
+    setIsFlipped((flipped) => !flipped);
   }
 
   const progress = ((currentIndex + 1) / total) * 100;
@@ -123,30 +181,40 @@ export function StudySession({
       </div>
 
       <div
-        className="relative mx-auto mt-6 w-full max-w-xl cursor-pointer select-none [perspective:1200px]"
-        onClick={() => setIsFlipped((flipped) => !flipped)}
+        data-testid="study-card"
+        className="relative mx-auto mt-6 w-full max-w-xl [touch-action:pan-y]"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       >
         <div
-          className={cn(
-            "relative transition-transform duration-300 [transform-style:preserve-3d] motion-reduce:transition-none",
-            isFlipped && "[transform:rotateY(180deg)]",
-          )}
+          key={card.id}
+          className="animate-card-in cursor-pointer select-none [perspective:1200px] motion-reduce:animate-none"
+          onClick={handleCardClick}
         >
           <div
-            aria-hidden={isFlipped}
-            className="flex min-h-72 w-full items-center justify-center rounded-3xl border border-border-soft bg-surface p-8 [backface-visibility:hidden]"
+            className={cn(
+              "relative transition-transform duration-300 [transform-style:preserve-3d] motion-reduce:transition-none",
+              isFlipped && "[transform:rotateY(180deg)]",
+            )}
           >
-            <p className="max-h-[55vh] overflow-y-auto whitespace-pre-wrap break-words text-center text-xl font-semibold leading-relaxed">
-              {card.front}
-            </p>
-          </div>
-          <div
-            aria-hidden={!isFlipped}
-            className="absolute inset-0 flex w-full items-center justify-center rounded-3xl border border-border-soft bg-primary-soft p-8 [backface-visibility:hidden] [transform:rotateY(180deg)]"
-          >
-            <p className="max-h-[55vh] overflow-y-auto whitespace-pre-wrap break-words text-center text-xl font-semibold leading-relaxed">
-              {card.back}
-            </p>
+            <div
+              aria-hidden={isFlipped}
+              className="flex min-h-72 w-full items-center justify-center rounded-3xl border border-border-soft bg-surface px-16 py-8 [backface-visibility:hidden]"
+            >
+              <p className="max-h-[55vh] overflow-y-auto whitespace-pre-wrap break-words text-center text-xl font-semibold leading-relaxed">
+                {card.front}
+              </p>
+            </div>
+            <div
+              aria-hidden={!isFlipped}
+              className="absolute inset-0 flex w-full items-center justify-center rounded-3xl border border-border-soft bg-primary-soft px-16 py-8 [backface-visibility:hidden] [transform:rotateY(180deg)]"
+            >
+              <p className="max-h-[55vh] overflow-y-auto whitespace-pre-wrap break-words text-center text-xl font-semibold leading-relaxed">
+                {card.back}
+              </p>
+            </div>
           </div>
         </div>
         <div className="absolute right-4 top-4 z-10">
@@ -159,21 +227,34 @@ export function StudySession({
             variant="icon"
           />
         </div>
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <Button
+        <button
           type="button"
-          variant="outline"
-          className="size-11 p-0 sm:h-10 sm:w-auto sm:px-4"
-          onClick={goPrevious}
+          className="absolute left-3 top-1/2 z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/60 text-text-primary shadow-soft-card backdrop-blur-sm transition-colors duration-150 hover:bg-surface/85 focus-visible:bg-surface/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40"
+          onClick={(event) => {
+            event.stopPropagation();
+            goPrevious();
+          }}
           disabled={isFirst}
           aria-label="Thẻ trước"
           title="Thẻ trước"
         >
-          <ArrowLeft aria-hidden="true" />
-          <span className="hidden sm:inline">Thẻ trước</span>
-        </Button>
+          <ChevronLeft aria-hidden="true" className="size-[22px]" />
+        </button>
+        <button
+          type="button"
+          className="absolute right-3 top-1/2 z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/60 text-text-primary shadow-soft-card backdrop-blur-sm transition-colors duration-150 hover:bg-surface/85 focus-visible:bg-surface/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          onClick={(event) => {
+            event.stopPropagation();
+            goNext();
+          }}
+          aria-label="Thẻ tiếp theo"
+          title="Thẻ tiếp theo"
+        >
+          <ChevronRight aria-hidden="true" className="size-[22px]" />
+        </button>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <Button
           type="button"
           variant="soft"
@@ -186,18 +267,7 @@ export function StudySession({
           <Button type="button" onClick={() => router.push("/study")}>
             Hoàn thành
           </Button>
-        ) : (
-          <Button
-            type="button"
-            className="size-11 p-0 sm:h-10 sm:w-auto sm:px-4"
-            onClick={goNext}
-            aria-label="Thẻ tiếp theo"
-            title="Thẻ tiếp theo"
-          >
-            <ArrowRight aria-hidden="true" />
-            <span className="hidden sm:inline">Thẻ tiếp theo</span>
-          </Button>
-        )}
+        ) : null}
       </div>
 
       <div className="mt-6 rounded-2xl border border-border-soft bg-surface p-4">

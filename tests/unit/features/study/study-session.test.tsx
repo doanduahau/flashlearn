@@ -160,6 +160,92 @@ describe("StudySession", () => {
     );
   });
 
+  it("does not navigate when opening the collection control", async () => {
+    const user = userEvent.setup();
+    renderSession();
+    await user.click(screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" }));
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+  });
+
+  it("keeps the overlay controls available after flipping", async () => {
+    const user = userEvent.setup();
+    renderSession();
+    await user.click(screen.getByRole("button", { name: /Nhấn để lật/ }));
+    expect(screen.getByRole("button", { name: /Thẻ trước/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Thẻ tiếp theo/ })).toBeInTheDocument();
+  });
+
+  it("overlays the navigation controls on the card edges with a touch target", () => {
+    renderSession();
+    const prev = screen.getByRole("button", { name: /Thẻ trước/ });
+    const next = screen.getByRole("button", { name: /Thẻ tiếp theo/ });
+    expect(prev.className).toContain("absolute");
+    expect(prev.className).toContain("size-11");
+    expect(next.className).toContain("absolute");
+    expect(next.className).toContain("size-11");
+    expect(screen.getByText("Mặt trước 1").closest("div")?.className).toContain("px-16");
+  });
+
+  it("swipes left on the card to advance to the next card", () => {
+    renderSession();
+    const card = screen.getByTestId("study-card");
+    fireEvent.pointerDown(card, { clientX: 200, clientY: 120, button: 0 });
+    fireEvent.pointerMove(card, { clientX: 120, clientY: 120 });
+    fireEvent.pointerUp(card, { clientX: 120, clientY: 120 });
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+  });
+
+  it("swipes right on the card to go back to the previous card", () => {
+    renderSession();
+    const card = screen.getByTestId("study-card");
+    fireEvent.pointerDown(card, { clientX: 120, clientY: 120, button: 0 });
+    fireEvent.pointerMove(card, { clientX: 200, clientY: 120 });
+    fireEvent.pointerUp(card, { clientX: 200, clientY: 120 });
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+    expect(screen.getByRole("button", { name: /Thẻ trước/ })).toBeDisabled();
+  });
+
+  it("does not navigate on a vertical gesture", () => {
+    renderSession();
+    const card = screen.getByTestId("study-card");
+    fireEvent.pointerDown(card, { clientX: 200, clientY: 120, button: 0 });
+    fireEvent.pointerMove(card, { clientX: 205, clientY: 340 });
+    fireEvent.pointerUp(card, { clientX: 205, clientY: 340 });
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  });
+
+  it("does not navigate on a small movement", () => {
+    renderSession();
+    const card = screen.getByTestId("study-card");
+    fireEvent.pointerDown(card, { clientX: 200, clientY: 120, button: 0 });
+    fireEvent.pointerMove(card, { clientX: 180, clientY: 120 });
+    fireEvent.pointerUp(card, { clientX: 180, clientY: 120 });
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  });
+
+  it("does not navigate when a swipe starts on an interactive control", () => {
+    renderSession();
+    const trigger = screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
+    fireEvent.pointerDown(trigger, { clientX: 300, clientY: 60, button: 0 });
+    fireEvent.pointerMove(trigger, { clientX: 200, clientY: 60 });
+    fireEvent.pointerUp(trigger, { clientX: 200, clientY: 60 });
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  });
+
+  it("does not flip the card after a swipe gesture", () => {
+    renderSession();
+    const card = screen.getByTestId("study-card");
+    fireEvent.pointerDown(card, { clientX: 200, clientY: 120, button: 0 });
+    fireEvent.pointerMove(card, { clientX: 120, clientY: 120 });
+    fireEvent.pointerUp(card, { clientX: 120, clientY: 120 });
+    expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
   it("shows a notice when the session is truncated", () => {
     renderSession({ truncated: true });
     expect(screen.getByText(/Phiên giới hạn ở 1000 thẻ/)).toBeInTheDocument();

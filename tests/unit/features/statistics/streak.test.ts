@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { computeStreaks } from "@/features/statistics/utils/streak";
+import { computeStreakRun, computeStreaks } from "@/features/statistics/utils/streak";
 
 describe("computeStreaks", () => {
   it("counts the current streak through today when today is active", () => {
@@ -58,5 +58,28 @@ describe("computeStreaks", () => {
       longest: 0,
       completedToday: false,
     });
+  });
+
+  it("returns every consecutive current-run date newest to oldest", () => {
+    const dates = ["2026-07-28", "2026-08-04", "2026-08-05", "2026-08-06"];
+    expect(computeStreakRun(dates, "2026-08-06")).toEqual([
+      "2026-08-06",
+      "2026-08-05",
+      "2026-08-04",
+    ]);
+  });
+
+  it("starts the run at yesterday when today is not active", () => {
+    const dates = ["2026-08-04", "2026-08-05", "2026-08-06"];
+    expect(computeStreakRun(dates, "2026-08-07")).toEqual([
+      "2026-08-06",
+      "2026-08-05",
+      "2026-08-04",
+    ]);
+  });
+
+  it("returns an empty run with no activity or a broken streak", () => {
+    expect(computeStreakRun([], "2026-08-06")).toEqual([]);
+    expect(computeStreakRun(["2026-08-04", "2026-08-06"], "2026-08-06")).toEqual(["2026-08-06"]);
   });
 });

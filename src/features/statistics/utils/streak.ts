@@ -43,6 +43,23 @@ export function computeStreaks(activeDates: Iterable<string>, today: string): St
   return { current, longest, completedToday };
 }
 
+/**
+ * Returns every immutable local date that belongs to the current consecutive
+ * streak run, walked back from today (or yesterday when today is not active).
+ * These are the days on which a streak flame should appear.
+ */
+export function computeStreakRun(activeDates: Iterable<string>, today: string): string[] {
+  const active = new Set(activeDates);
+  const cursor = active.has(today) ? today : dayStep(today, -1);
+  const run: string[] = [];
+  let key = cursor;
+  while (active.has(key)) {
+    run.push(key);
+    key = dayStep(key, -1);
+  }
+  return run;
+}
+
 const dayMS = 86_400_000;
 
 function dayStep(base: string, delta: number): string {

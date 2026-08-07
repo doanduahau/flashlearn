@@ -1,7 +1,4 @@
-"use client";
-
 import { Flame } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { monthDayLabel, type CalendarDay } from "@/features/statistics/utils/month-activity";
@@ -23,44 +20,24 @@ export function CalendarDayCell({
   today,
   timezone,
 }: Readonly<{ day: CalendarDay; today: string; timezone: string }>) {
-  const [open, setOpen] = useState(false);
-  const cellRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handlePointer(event: MouseEvent): void {
-      if (cellRef.current && !cellRef.current.contains(event.target as Node)) setOpen(false);
-    }
-    function handleEscape(event: KeyboardEvent): void {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", handlePointer);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handlePointer);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [open]);
-
   const isToday = day.date === today;
   const accuracy = dayAccuracy(day.detail);
-  const status = day.future
+  const stateLabel = day.future
     ? "ngày trong tương lai"
     : day.active
-      ? "có hoạt động"
+      ? day.flame
+        ? "có hoạt động, thuộc chuỗi học tập"
+        : "có hoạt động"
       : "không có hoạt động";
 
   return (
     <button
-      ref={cellRef}
       type="button"
-      onClick={() => setOpen((value) => !value)}
-      aria-expanded={open}
       aria-haspopup="dialog"
-      aria-label={`${monthDayLabel(day.date, timezone)}, ${status}`}
+      aria-label={`${monthDayLabel(day.date, timezone)}, ${stateLabel}`}
       disabled={day.future || !day.active}
       className={cn(
-        "relative flex min-h-11 flex-col items-center justify-center rounded-xl border text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+        "group relative flex min-h-11 flex-col items-center justify-center rounded-xl border text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
         isToday
           ? "border-primary ring-1 ring-primary/60"
           : day.future
@@ -74,7 +51,7 @@ export function CalendarDayCell({
       </span>
       {day.active ? (
         <span className="flex h-3.5 items-center justify-center">
-          {isToday ? (
+          {day.flame ? (
             <Flame className="size-3.5 fill-warning text-warning" aria-hidden="true" />
           ) : (
             <span className="size-1.5 rounded-full bg-primary/50" aria-hidden="true" />
@@ -82,20 +59,20 @@ export function CalendarDayCell({
         </span>
       ) : null}
 
-      {open && day.detail ? (
-        <div
+      {day.detail ? (
+        <span
           role="dialog"
           aria-label="Chi tiết hoạt động"
-          className="absolute left-1/2 top-full z-20 mt-2 w-52 -translate-x-1/2 rounded-2xl border border-border-soft bg-surface p-3 text-left shadow-md"
+          className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-52 -translate-x-1/2 rounded-2xl border border-border-soft bg-surface p-3 text-left shadow-md invisible opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
         >
-          <p className="text-sm font-bold">{monthDayLabel(day.date, timezone)}</p>
-          <p className="mt-1.5 text-xs text-text-secondary">
+          <span className="block text-sm font-bold">{monthDayLabel(day.date, timezone)}</span>
+          <span className="mt-1.5 block text-xs text-text-secondary">
             {day.detail.quizCount} bài kiểm tra · {day.detail.questions} câu
-          </p>
-          <p className="text-xs text-text-secondary">
+          </span>
+          <span className="block text-xs text-text-secondary">
             {day.detail.correct} câu đúng · Độ chính xác {accuracy ?? 0}%
-          </p>
-        </div>
+          </span>
+        </span>
       ) : null}
     </button>
   );

@@ -12,6 +12,7 @@ export type CalendarDay = {
   future: boolean;
   detail: DailyActivityDetail | null;
   quizLevel: 0 | 1 | 2 | 3;
+  flame: boolean;
 };
 
 const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
@@ -92,11 +93,13 @@ export function calendarDays(
   month: string,
   details: Map<string, DailyActivityDetail>,
   today: string,
+  flameDates: Iterable<string> = [],
 ): CalendarDay[] {
   const [year, value] = month.split("-").map(Number);
   const first = new Date(Date.UTC(year, value - 1, 1));
   const leading = (first.getUTCDay() + 6) % 7;
   const daysInMonth = new Date(Date.UTC(year, value, 0)).getUTCDate();
+  const flameSet = new Set(flameDates);
   const blanks = Array.from({ length: leading }, () => ({
     date: "",
     day: null,
@@ -104,6 +107,7 @@ export function calendarDays(
     future: false,
     detail: null,
     quizLevel: 0 as const,
+    flame: false,
   }));
   const days = Array.from({ length: daysInMonth }, (_, index) => {
     const day = index + 1;
@@ -117,6 +121,7 @@ export function calendarDays(
       future,
       detail,
       quizLevel: activityLevel(detail?.quizCount ?? 0),
+      flame: flameSet.has(date),
     };
   });
   return [...blanks, ...days];

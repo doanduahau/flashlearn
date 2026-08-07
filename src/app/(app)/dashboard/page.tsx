@@ -9,6 +9,7 @@ import {
   accuracy,
   loadActivityDetail,
   loadMonthlyActivity,
+  loadMonthlyStreakDates,
 } from "@/features/statistics/server/load-statistics";
 import {
   dateInTimezone,
@@ -36,9 +37,10 @@ export default async function DashboardPage({
   const today = dateInTimezone(new Date(), timezone);
   const currentMonth = monthInTimezone(new Date(), timezone);
 
-  const [todayDetail, monthActivity] = await Promise.all([
+  const [todayDetail, monthActivity, streakDates] = await Promise.all([
     loadActivityDetail(supabase, today),
     loadMonthlyActivity(supabase, currentMonth),
+    loadMonthlyStreakDates(supabase, timezone, currentMonth),
   ]);
 
   const completedToday = todayDetail !== null;
@@ -107,6 +109,7 @@ export default async function DashboardPage({
             currentMonth={currentMonth}
             timezone={timezone}
             details={monthActivity}
+            streakDates={streakDates}
             today={today}
             variant="compact"
           />

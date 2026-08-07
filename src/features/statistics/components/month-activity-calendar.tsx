@@ -16,6 +16,7 @@ export function MonthActivityCalendar({
   currentMonth,
   timezone,
   details,
+  streakDates,
   today,
   baseHref = "/profile?tab=statistics",
   variant = "full",
@@ -24,12 +25,13 @@ export function MonthActivityCalendar({
   currentMonth: string;
   timezone: string;
   details: DailyActivityDetail[];
+  streakDates: string[];
   today: string;
   baseHref?: string;
   variant?: "full" | "compact";
 }>) {
   const detailMap = new Map(details.map((item) => [item.date, item]));
-  const days = calendarDays(month, detailMap, today);
+  const days = calendarDays(month, detailMap, today, streakDates);
   const nextMonth = addMonths(month, 1);
   const previousMonth = addMonths(month, -1);
   const monthHref = (targetMonth: string): string =>

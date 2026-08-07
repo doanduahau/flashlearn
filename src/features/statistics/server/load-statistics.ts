@@ -6,7 +6,7 @@ import {
   isValidTimezone,
   type DailyActivityDetail,
 } from "@/features/statistics/utils/month-activity";
-import { computeStreaks } from "@/features/statistics/utils/streak";
+import { computeStreakRun, computeStreaks } from "@/features/statistics/utils/streak";
 
 export type { DailyActivityDetail } from "@/features/statistics/utils/month-activity";
 
@@ -149,6 +149,21 @@ export async function loadActivityDetail(
 }
 
 const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
+
+export async function loadMonthlyStreakDates(
+  supabase: SupabaseClient<Database>,
+  timezone: string,
+  month: string,
+): Promise<string[]> {
+  const datesResult = await supabase.from("daily_learning_records").select("local_date");
+  if (datesResult.error || !datesResult.data) return [];
+  const today = dateInTimezone(new Date(), timezone);
+  const run = computeStreakRun(
+    datesResult.data.map((record) => record.local_date),
+    today,
+  );
+  return run.filter((date) => date.startsWith(`${month}-`));
+}
 
 export async function loadStreakSummary(
   supabase: SupabaseClient<Database>,

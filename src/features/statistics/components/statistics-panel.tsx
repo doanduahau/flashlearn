@@ -5,6 +5,7 @@ import {
   accuracy,
   loadLearningStatistics,
   loadMonthlyActivity,
+  loadMonthlyStreakDates,
   modeLabel,
 } from "@/features/statistics/server/load-statistics";
 import {
@@ -37,7 +38,10 @@ export async function StatisticsPanel({
   const requestedMonth = typeof requestedMonthValue === "string" ? requestedMonthValue : "";
   const month =
     isValidMonth(requestedMonth) && requestedMonth <= currentMonth ? requestedMonth : currentMonth;
-  const monthActivity = await loadMonthlyActivity(supabase, month);
+  const [monthActivity, streakDates] = await Promise.all([
+    loadMonthlyActivity(supabase, month),
+    loadMonthlyStreakDates(supabase, stats.timezone, month),
+  ]);
   const today = dateInTimezone(new Date(), stats.timezone);
   const cards = [
     ["Chuỗi hiện tại", `${stats.current_streak} ngày`],
@@ -70,6 +74,7 @@ export async function StatisticsPanel({
           currentMonth={currentMonth}
           timezone={stats.timezone}
           details={monthActivity}
+          streakDates={streakDates}
           today={today}
           variant="full"
           baseHref="/profile?tab=statistics"

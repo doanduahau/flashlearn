@@ -47,6 +47,46 @@ describe("monthly activity calendar", () => {
     expect(activityLevel(5)).toBe(3);
   });
 
+  it("flags every consecutive streak-day with a flame", () => {
+    const days = calendarDays(
+      "2026-08",
+      new Map([
+        ["2026-08-06", detail("2026-08-06", 1)],
+        ["2026-08-07", detail("2026-08-07", 3)],
+      ]),
+      "2026-08-07",
+      ["2026-08-07", "2026-08-06"],
+    );
+
+    expect(days.find((item) => item.date === "2026-08-06")?.flame).toBe(true);
+    expect(days.find((item) => item.date === "2026-08-07")?.flame).toBe(true);
+  });
+
+  it("keeps heat for an activity day that is not part of the streak", () => {
+    const days = calendarDays(
+      "2026-08",
+      new Map([["2026-08-03", detail("2026-08-03", 4)]]),
+      "2026-08-31",
+      ["2026-08-06"],
+    );
+
+    const day = days.find((item) => item.date === "2026-08-03");
+    expect(day?.active).toBe(true);
+    expect(day?.quizLevel).toBe(3);
+    expect(day?.flame).toBe(false);
+  });
+
+  it("does not flame a day that is not in the current streak run", () => {
+    const days = calendarDays(
+      "2026-08",
+      new Map([["2026-08-06", detail("2026-08-06", 1)]]),
+      "2026-08-07",
+      ["2026-08-07"],
+    );
+
+    expect(days.find((item) => item.date === "2026-08-06")?.flame).toBe(false);
+  });
+
   it("uses the supplied profile timezone rather than the browser timezone", () => {
     const instant = new Date("2026-08-01T00:30:00.000Z");
 

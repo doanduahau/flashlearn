@@ -134,6 +134,14 @@ export function ManualSetForm() {
     });
   }
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return createPortal(
     <div
       className="fixed inset-0 z-[70] flex items-end justify-center bg-text-primary/30 sm:items-center sm:p-4"

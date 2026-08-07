@@ -26,6 +26,9 @@ test.describe("Responsive flashcard management and navigation", () => {
     await fields.nth(1).fill("Mặt sau dài nhưng vẫn phải dễ đọc");
     await page.getByRole("button", { name: /Thêm thẻ/i }).click();
 
+    // Wait for the new card to be appended (there are 2 fixtures + 1 new = 3)
+    await expect(page.locator("ol > li")).toHaveCount(3);
+
     const card = page.locator("ol > li").last();
     const before = await card.boundingBox();
     expect(before?.width).toBeGreaterThan(300);

@@ -69,8 +69,9 @@ export async function StatisticsPanel({
           month={month}
           currentMonth={currentMonth}
           timezone={stats.timezone}
-          activeDates={monthActivity}
+          details={monthActivity}
           today={today}
+          variant="full"
           baseHref="/profile?tab=statistics"
         />
       ) : (

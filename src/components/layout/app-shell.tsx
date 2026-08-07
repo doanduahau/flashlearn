@@ -27,7 +27,7 @@ export function AppShell({
         <AppNavigation variant="sidebar" />
         <div className="mt-auto flex flex-col gap-3 border-t border-border-soft pt-4">
           <Link
-            href="/profile"
+            href="/profile?tab=statistics"
             className="w-fit self-center rounded-full focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <StreakIndicator
@@ -56,7 +56,7 @@ export function AppShell({
           </Link>
           <div className="flex min-w-0 items-center gap-2">
             <Link
-              href="/profile"
+              href="/profile?tab=statistics"
               className="shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <StreakIndicator streak={streak} completedToday={completedToday} />

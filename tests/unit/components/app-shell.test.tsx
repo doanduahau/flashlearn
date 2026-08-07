@@ -50,4 +50,19 @@ describe("AppShell", () => {
       expect(indicator).toHaveTextContent("5");
     });
   });
+
+  it("links every streak indicator to the statistics tab", () => {
+    render(
+      <AppShell streak={2} completedToday={false}>
+        <div>Page content</div>
+      </AppShell>,
+    );
+
+    const indicators = screen.getAllByLabelText("Chuỗi 2 ngày, hôm nay chưa hoàn thành");
+    expect(indicators).toHaveLength(2);
+    indicators.forEach((indicator) => {
+      const link = indicator.closest("a");
+      expect(link).toHaveAttribute("href", "/profile?tab=statistics");
+    });
+  });
 });

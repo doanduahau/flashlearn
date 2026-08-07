@@ -1,8 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/types";
-import { addMonths } from "@/features/statistics/utils/month-activity";
+import {
+  addMonths,
+  dateInTimezone,
+  isValidTimezone,
+  type DailyActivityDetail,
+} from "@/features/statistics/utils/month-activity";
+import { computeStreaks } from "@/features/statistics/utils/streak";
+
+export type { DailyActivityDetail } from "@/features/statistics/utils/month-activity";
 
 export type DailyActivity = { date: string; active: boolean };
+export type StreakSummary = {
+  timezone: string;
+  currentStreak: number;
+  longestStreak: number;
+  completedToday: boolean;
+};
 export type ModeBreakdown = {
   mode: string;
   quiz_count: number;
@@ -99,16 +113,63 @@ export async function loadLearningStatistics(
 export async function loadMonthlyActivity(
   supabase: SupabaseClient<Database>,
   month: string,
-): Promise<string[] | null> {
+): Promise<DailyActivityDetail[] | null> {
   const start = `${month}-01`;
   const end = `${addMonths(month, 1)}-01`;
   const { data, error } = await supabase
     .from("daily_learning_records")
-    .select("local_date")
+    .select("local_date, completed_quiz_count, questions_answered, correct_answers")
     .gte("local_date", start)
     .lt("local_date", end);
   if (error) return null;
-  return Array.from(new Set((data ?? []).map((record) => record.local_date)));
+  return (data ?? []).map((record) => ({
+    date: record.local_date,
+    quizCount: record.completed_quiz_count,
+    questions: record.questions_answered,
+    correct: record.correct_answers,
+  }));
+}
+
+export async function loadActivityDetail(
+  supabase: SupabaseClient<Database>,
+  date: string,
+): Promise<DailyActivityDetail | null> {
+  const { data, error } = await supabase
+    .from("daily_learning_records")
+    .select("local_date, completed_quiz_count, questions_answered, correct_answers")
+    .eq("local_date", date)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    date: data.local_date,
+    quizCount: data.completed_quiz_count,
+    questions: data.questions_answered,
+    correct: data.correct_answers,
+  };
+}
+
+const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
+
+export async function loadStreakSummary(
+  supabase: SupabaseClient<Database>,
+): Promise<StreakSummary | null> {
+  const [profileResult, datesResult] = await Promise.all([
+    supabase.from("profiles").select("timezone").maybeSingle(),
+    supabase.from("daily_learning_records").select("local_date"),
+  ]);
+  if (datesResult.error) return null;
+
+  let timezone = profileResult.data?.timezone ?? DEFAULT_TIMEZONE;
+  if (!isValidTimezone(timezone)) timezone = DEFAULT_TIMEZONE;
+  const today = dateInTimezone(new Date(), timezone);
+  const streaks = computeStreaks(datesResult.data?.map((record) => record.local_date) ?? [], today);
+
+  return {
+    timezone,
+    currentStreak: streaks.current,
+    longestStreak: streaks.longest,
+    completedToday: streaks.completedToday,
+  };
 }
 export function accuracy(correct: number, answers: number): number {
   return answers === 0 ? 0 : Math.round((correct / answers) * 100);

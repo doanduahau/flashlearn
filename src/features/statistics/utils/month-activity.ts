@@ -1,8 +1,17 @@
+export type DailyActivityDetail = {
+  date: string;
+  quizCount: number;
+  questions: number;
+  correct: number;
+};
+
 export type CalendarDay = {
   date: string;
   day: number | null;
   active: boolean;
   future: boolean;
+  detail: DailyActivityDetail | null;
+  quizLevel: 0 | 1 | 2 | 3;
 };
 
 const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
@@ -41,6 +50,15 @@ export function isValidMonth(value: string): boolean {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }
 
+export function isValidTimezone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value }).format();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function monthLabel(month: string, timezone: string): string {
   const [year, value] = month.split("-").map(Number);
   return new Intl.DateTimeFormat("vi-VN", {
@@ -50,9 +68,29 @@ export function monthLabel(month: string, timezone: string): string {
   }).format(new Date(Date.UTC(year, value - 1, 15, 12)));
 }
 
+export function monthDayLabel(date: string, timezone: string): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: timezone,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(`${date}T12:00:00Z`));
+}
+
+/**
+ * Heat intensity for the number of completed quizzes on a day.
+ * 0 = no activity, 1 = one quiz, 2 = two/three, 3 = four or more.
+ */
+export function activityLevel(quizCount: number): 0 | 1 | 2 | 3 {
+  if (quizCount <= 0) return 0;
+  if (quizCount === 1) return 1;
+  if (quizCount <= 3) return 2;
+  return 3;
+}
+
 export function calendarDays(
   month: string,
-  activeDates: Set<string>,
+  details: Map<string, DailyActivityDetail>,
   today: string,
 ): CalendarDay[] {
   const [year, value] = month.split("-").map(Number);
@@ -64,11 +102,22 @@ export function calendarDays(
     day: null,
     active: false,
     future: false,
+    detail: null,
+    quizLevel: 0 as const,
   }));
   const days = Array.from({ length: daysInMonth }, (_, index) => {
     const day = index + 1;
     const date = `${month}-${String(day).padStart(2, "0")}`;
-    return { date, day, active: activeDates.has(date), future: date > today };
+    const detail = details.get(date) ?? null;
+    const future = date > today;
+    return {
+      date,
+      day,
+      active: detail !== null,
+      future,
+      detail,
+      quizLevel: activityLevel(detail?.quizCount ?? 0),
+    };
   });
   return [...blanks, ...days];
 }

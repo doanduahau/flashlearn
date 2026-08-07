@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pageHref, parsePage } from "@/lib/pagination";
+import { pageHref, parsePage, updateSearchParamHref } from "@/lib/pagination";
 
 describe("pagination helpers", () => {
   it("parses only positive whole-number pages", () => {
@@ -25,5 +25,21 @@ describe("pagination helpers", () => {
     const next = new URL(pageHref({ ...params, page: "1" }, 2), "http://flashlearn.test");
     expect(next.searchParams.get("page")).toBe("2");
     expect(next.searchParams.get("q")).toBe("thẻ");
+  });
+
+  it("updates a tab without losing other URL state", () => {
+    const href = updateSearchParamHref(
+      "/sets",
+      { q: "thẻ", sourceType: "regular", page: "2", tab: "regular" },
+      "tab",
+      "special",
+    );
+    const url = new URL(href, "http://flashlearn.test");
+
+    expect(url.pathname).toBe("/sets");
+    expect(url.searchParams.get("tab")).toBe("special");
+    expect(url.searchParams.get("q")).toBe("thẻ");
+    expect(url.searchParams.get("sourceType")).toBe("regular");
+    expect(url.searchParams.get("page")).toBe("2");
   });
 });

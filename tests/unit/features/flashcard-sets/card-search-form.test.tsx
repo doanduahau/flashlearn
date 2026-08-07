@@ -30,6 +30,7 @@ describe("CardSearchForm", () => {
 
     expect(router.replace).toHaveBeenCalledWith(
       "/sets/set-id?sort=position&filter=active&tab=regular&q=m%E1%BB%9Bi",
+      { scroll: false },
     );
   });
 });

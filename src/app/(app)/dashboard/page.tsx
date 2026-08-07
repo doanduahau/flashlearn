@@ -51,13 +51,13 @@ export default async function DashboardPage({
         {!mode ? (
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <Button asChild className="min-h-11">
-              <Link href="/dashboard?create=import">
+              <Link href="/dashboard?create=import" scroll={false}>
                 <FileUp aria-hidden="true" />
                 Nhập từ tệp
               </Link>
             </Button>
             <Button asChild variant="outline" className="min-h-11">
-              <Link href="/dashboard?create=manual">
+              <Link href="/dashboard?create=manual" scroll={false}>
                 <SquarePen aria-hidden="true" />
                 Tạo bộ thủ công
               </Link>
@@ -71,7 +71,7 @@ export default async function DashboardPage({
           >
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-semibold">Nhập từ tệp</h3>
-              <Link className="text-sm underline" href="/dashboard">
+              <Link className="text-sm underline" href="/dashboard" scroll={false}>
                 Đóng
               </Link>
             </div>

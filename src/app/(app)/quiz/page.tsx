@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { SectionTabs } from "@/components/shared/section-tabs";
 import { QuizSetup } from "@/features/quiz/components/quiz-setup";
 import { loadSourcePage, sourceType } from "@/features/source-selection/server/load-source-page";
-import { parsePage, type RouteSearchParams } from "@/lib/pagination";
+import { parsePage, type RouteSearchParams, updateSearchParamHref } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Kiểm tra" };
@@ -20,7 +21,6 @@ export default async function QuizPage({
 }: Readonly<{ searchParams: Promise<RouteSearchParams> }>) {
   const raw = await searchParams;
   const tab = quizTab(raw.tab);
-  const supabase = await createClient();
 
   return (
     <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
@@ -32,26 +32,29 @@ export default async function QuizPage({
         label="Nội dung kiểm tra"
         current={tab}
         items={[
-          { value: "create", label: "Tạo bài", href: "/quiz?tab=create" },
-          { value: "history", label: "Lịch sử", href: "/quiz?tab=history" },
+          {
+            value: "create",
+            label: "Tạo bài",
+            href: updateSearchParamHref("/quiz", raw, "tab", "create"),
+          },
+          {
+            value: "history",
+            label: "Lịch sử",
+            href: updateSearchParamHref("/quiz", raw, "tab", "history"),
+          },
         ]}
-      />
-      {tab === "history" ? (
-        <QuizHistory supabase={supabase} />
-      ) : (
-        <QuizCreator supabase={supabase} searchParams={raw} />
-      )}
+        pendingContent={<QuizTabLoading />}
+      >
+        <Suspense fallback={<QuizTabLoading />}>
+          {tab === "history" ? <QuizHistory /> : <QuizCreator searchParams={raw} />}
+        </Suspense>
+      </SectionTabs>
     </main>
   );
 }
 
-async function QuizCreator({
-  supabase,
-  searchParams,
-}: Readonly<{
-  supabase: Awaited<ReturnType<typeof createClient>>;
-  searchParams: RouteSearchParams;
-}>) {
+async function QuizCreator({ searchParams }: Readonly<{ searchParams: RouteSearchParams }>) {
+  const supabase = await createClient();
   const query = typeof searchParams.q === "string" ? searchParams.q : "";
   const [sourcePage, totalResult] = await Promise.all([
     loadSourcePage(supabase, {
@@ -72,9 +75,8 @@ async function QuizCreator({
   );
 }
 
-async function QuizHistory({
-  supabase,
-}: Readonly<{ supabase: Awaited<ReturnType<typeof createClient>> }>) {
+async function QuizHistory() {
+  const supabase = await createClient();
   const { data: sessions, error } = await supabase
     .from("quiz_sessions")
     .select("id, mode, actual_question_count, correct_answer_count, completed_at")
@@ -107,6 +109,16 @@ async function QuizHistory({
       ) : (
         <p className="mt-4 text-text-secondary">Bạn chưa hoàn thành bài kiểm tra nào.</p>
       )}
+    </section>
+  );
+}
+
+function QuizTabLoading() {
+  return (
+    <section aria-label="Đang tải nội dung kiểm tra" className="mt-6 space-y-4" role="status">
+      <div className="h-5 w-4/5 animate-pulse rounded-lg bg-surface-subtle" />
+      <div className="h-16 animate-pulse rounded-2xl bg-surface-subtle" />
+      <div className="h-16 animate-pulse rounded-2xl bg-surface-subtle" />
     </section>
   );
 }

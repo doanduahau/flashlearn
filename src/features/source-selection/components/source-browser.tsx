@@ -31,8 +31,10 @@ export function SourceBrowser({
 }>) {
   const router = useRouter();
   const [query, setQuery] = useState(sourcePage.query);
+  const [pendingType, setPendingType] = useState<SourceType | null>(null);
   const [isNavigating, startTransition] = useTransition();
   const selectedKeys = new Set(selected.map((source) => `${source.kind}:${source.id}`));
+  const activeType = isNavigating && pendingType ? pendingType : sourcePage.type;
 
   function navigate(changes: Record<string, string | undefined>): void {
     const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
@@ -43,7 +45,8 @@ export function SourceBrowser({
     }
     if (changes.page) params.set("page", changes.page);
     const search = params.toString();
-    startTransition(() => router.replace(search ? `${path}?${search}` : path));
+    if (changes.sourceType) setPendingType(changes.sourceType as SourceType);
+    startTransition(() => router.replace(search ? `${path}?${search}` : path, { scroll: false }));
   }
 
   function submitSearch(): void {
@@ -90,8 +93,8 @@ export function SourceBrowser({
             type="button"
             size="sm"
             key={filter.value}
-            variant={sourcePage.type === filter.value ? "soft" : "outline"}
-            aria-pressed={sourcePage.type === filter.value}
+            variant={activeType === filter.value ? "soft" : "outline"}
+            aria-pressed={activeType === filter.value}
             onClick={() => navigate({ sourceType: filter.value, q: sourcePage.query || undefined })}
             disabled={isNavigating}
           >

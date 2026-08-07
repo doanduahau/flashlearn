@@ -46,13 +46,15 @@ describe("SourceBrowser", () => {
 
     await user.type(screen.getByLabelText("Tìm nguồn theo tên"), "React");
     await user.click(screen.getByRole("button", { name: "Tìm" }));
-    expect(mocks.replace).toHaveBeenLastCalledWith("/study?q=React");
+    expect(mocks.replace).toHaveBeenLastCalledWith("/study?q=React", { scroll: false });
 
     await user.click(screen.getByRole("button", { name: "Bộ đặc biệt" }));
-    expect(mocks.replace).toHaveBeenLastCalledWith("/study?sourceType=special");
+    expect(mocks.replace).toHaveBeenLastCalledWith("/study?sourceType=special", {
+      scroll: false,
+    });
 
     await user.click(screen.getByRole("button", { name: "Sau" }));
-    expect(mocks.replace).toHaveBeenLastCalledWith("/study?page=2");
+    expect(mocks.replace).toHaveBeenLastCalledWith("/study?page=2", { scroll: false });
   });
 
   it("keeps a selected source from a large first page when a later page loads", async () => {

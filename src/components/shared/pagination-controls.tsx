@@ -20,7 +20,7 @@ export function PaginationControls({
   return (
     <nav aria-label="Phân trang" className="mt-6 flex items-center justify-center gap-3">
       {hasPrevious ? (
-        <Link href={pageHref(page - 1)} className={enabledControlClassName}>
+        <Link href={pageHref(page - 1)} scroll={false} className={enabledControlClassName}>
           Trước
         </Link>
       ) : (
@@ -32,7 +32,7 @@ export function PaginationControls({
         Trang {page} / {totalPages}
       </span>
       {hasNext ? (
-        <Link href={pageHref(page + 1)} className={enabledControlClassName}>
+        <Link href={pageHref(page + 1)} scroll={false} className={enabledControlClassName}>
           Sau
         </Link>
       ) : (

@@ -40,6 +40,7 @@ export function MonthActivityCalendar({
         <div className="flex items-center gap-1">
           <Link
             href={monthHref(previousMonth)}
+            scroll={false}
             aria-label="Tháng trước"
             title="Tháng trước"
             className="inline-flex size-11 items-center justify-center rounded-xl border border-border-soft bg-surface hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-ring"
@@ -56,6 +57,7 @@ export function MonthActivityCalendar({
           ) : (
             <Link
               href={monthHref(nextMonth)}
+              scroll={false}
               aria-label="Tháng sau"
               title="Tháng sau"
               className="inline-flex size-11 items-center justify-center rounded-xl border border-border-soft bg-surface hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-ring"

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { PaginationControls } from "@/components/shared/pagination-controls";
 import { SectionTabs } from "@/components/shared/section-tabs";
@@ -11,7 +12,12 @@ import {
 } from "@/features/special-collections/components/collections-list";
 import { CreateCollectionForm } from "@/features/special-collections/components/create-collection-form";
 import { LIBRARY_PAGE_SIZE } from "@/lib/constants";
-import { pageHref, parsePage, type RouteSearchParams } from "@/lib/pagination";
+import {
+  pageHref,
+  parsePage,
+  type RouteSearchParams,
+  updateSearchParamHref,
+} from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Bộ flashcard" };
@@ -27,15 +33,46 @@ export default async function SetsPage({
 }: Readonly<{ searchParams: Promise<RouteSearchParams> }>) {
   const raw = await searchParams;
   const tab = tabOf(raw.tab);
-  const query = sanitizeSearchQuery(typeof raw.q === "string" ? raw.q : "");
-  const requestedPage = parsePage(raw.page);
-  const supabase = await createClient();
-
   const tabs = [
-    { value: "regular", label: "Bộ thường", href: "/sets?tab=regular" },
-    { value: "special", label: "Bộ đặc biệt", href: "/sets?tab=special" },
+    {
+      value: "regular",
+      label: "Bộ thường",
+      href: updateSearchParamHref("/sets", raw, "tab", "regular"),
+    },
+    {
+      value: "special",
+      label: "Bộ đặc biệt",
+      href: updateSearchParamHref("/sets", raw, "tab", "special"),
+    },
   ];
 
+  return (
+    <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
+      <h1 className="text-3xl font-bold">Bộ flashcard</h1>
+      <SectionTabs
+        label="Loại bộ flashcard"
+        current={tab}
+        items={tabs}
+        pendingContent={<SetsTabLoading />}
+      >
+        <Suspense fallback={<SetsTabLoading />}>
+          <SetsTabContent tab={tab} searchParams={raw} />
+        </Suspense>
+      </SectionTabs>
+    </main>
+  );
+}
+
+async function SetsTabContent({
+  tab,
+  searchParams,
+}: Readonly<{
+  tab: LibraryTab;
+  searchParams: RouteSearchParams;
+}>) {
+  const query = sanitizeSearchQuery(typeof searchParams.q === "string" ? searchParams.q : "");
+  const requestedPage = parsePage(searchParams.page);
+  const supabase = await createClient();
   const title = tab === "regular" ? "Bộ thường" : "Bộ đặc biệt";
   const searchLabel = tab === "regular" ? "Tìm bộ thường" : "Tìm bộ đặc biệt";
   const placeholder = tab === "regular" ? "Tên bộ flashcard" : "Tên bộ đặc biệt";
@@ -62,20 +99,20 @@ export default async function SetsPage({
     }));
 
     return (
-      <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
-        <h1 className="text-3xl font-bold">Bộ flashcard</h1>
-        <SectionTabs label="Loại bộ flashcard" current={tab} items={tabs} />
-        <h2 className="mt-6 text-xl font-bold">{title}</h2>
+      <section className="mt-6" aria-labelledby="sets-tab-heading">
+        <h2 id="sets-tab-heading" className="text-xl font-bold">
+          {title}
+        </h2>
         <LibrarySearchForm defaultValue={query} label={searchLabel} placeholder={placeholder} />
         <SetsList sets={sets} hasSearch={Boolean(query)} />
         {totalPages > 1 ? (
           <PaginationControls
             page={page}
             totalPages={totalPages}
-            pageHref={(target) => pageHref(raw, target)}
+            pageHref={(target) => pageHref(searchParams, target)}
           />
         ) : null}
-      </main>
+      </section>
     );
   }
 
@@ -102,10 +139,10 @@ export default async function SetsPage({
   }));
 
   return (
-    <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
-      <h1 className="text-3xl font-bold">Bộ flashcard</h1>
-      <SectionTabs label="Loại bộ flashcard" current={tab} items={tabs} />
-      <h2 className="mt-6 text-xl font-bold">{title}</h2>
+    <section className="mt-6" aria-labelledby="sets-tab-heading">
+      <h2 id="sets-tab-heading" className="text-xl font-bold">
+        {title}
+      </h2>
       <p className="mt-2 text-text-secondary">
         Gom thẻ từ nhiều bộ flashcard thành bộ học theo chủ đề.
       </p>
@@ -124,9 +161,19 @@ export default async function SetsPage({
         <PaginationControls
           page={page}
           totalPages={totalPages}
-          pageHref={(target) => pageHref(raw, target)}
+          pageHref={(target) => pageHref(searchParams, target)}
         />
       ) : null}
-    </main>
+    </section>
+  );
+}
+
+function SetsTabLoading() {
+  return (
+    <section aria-label="Đang tải nội dung bộ flashcard" className="mt-6 space-y-4" role="status">
+      <div className="h-7 w-40 animate-pulse rounded-lg bg-surface-subtle" />
+      <div className="h-11 max-w-sm animate-pulse rounded-xl bg-surface-subtle" />
+      <div className="h-28 animate-pulse rounded-2xl bg-surface-subtle" />
+    </section>
   );
 }

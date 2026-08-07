@@ -19,7 +19,7 @@ export function CardSearchForm({ defaultValue }: Readonly<{ defaultValue: string
     if (query) params.set("q", query);
     else params.delete("q");
     const search = params.toString();
-    router.replace(search ? `${pathname}?${search}` : pathname);
+    router.replace(search ? `${pathname}?${search}` : pathname, { scroll: false });
   }
 
   return (

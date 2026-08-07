@@ -23,3 +23,25 @@ export function pageHref(searchParams: RouteSearchParams, targetPage: number): s
   params.set("page", String(Math.max(1, targetPage)));
   return `?${params.toString()}`;
 }
+
+export function updateSearchParamHref(
+  pathname: string,
+  searchParams: RouteSearchParams,
+  key: string,
+  value: string,
+): string {
+  const params = new URLSearchParams();
+
+  for (const [currentKey, currentValue] of Object.entries(searchParams)) {
+    if (currentKey === key || currentValue === undefined) continue;
+
+    if (Array.isArray(currentValue)) {
+      for (const item of currentValue) params.append(currentKey, item);
+    } else {
+      params.append(currentKey, currentValue);
+    }
+  }
+
+  params.set(key, value);
+  return `${pathname}?${params.toString()}`;
+}

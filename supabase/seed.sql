@@ -9,7 +9,7 @@
 --
 --   1. Start the local stack:            npm run supabase:start
 --   2. Reset the database:               npm run db:reset
---   3. Open the Studio UI:               http://localhost:54323
+--   3. Open the Studio UI:               http://localhost:64323
 --   4. In Studio -> Authentication, create a user (or sign up from the app).
 --      The handle_new_user trigger automatically creates that user's profile
 --      with the display_name copied from their raw user metadata.

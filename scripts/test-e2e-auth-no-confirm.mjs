@@ -3,6 +3,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 
+import { resolveLocalSupabaseEnv } from "./lib/local-supabase-env.mjs";
+
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const configPath = resolve(repositoryRoot, "supabase/config.toml");
 const npmCliPath = process.env.npm_execpath;
@@ -11,11 +13,12 @@ if (!npmCliPath) {
   throw new Error("npm_execpath is required to run the local Supabase test workflow.");
 }
 
-function runNpm(args, { showOutput = false } = {}) {
+function runNpm(args, { showOutput = false, env = process.env } = {}) {
   return new Promise((resolveCommand, rejectCommand) => {
     const child = spawn(process.execPath, [npmCliPath, ...args], {
       cwd: repositoryRoot,
       stdio: showOutput ? "inherit" : "ignore",
+      env,
     });
 
     child.once("error", () => rejectCommand(new Error(`Could not run npm ${args.join(" ")}.`)));
@@ -51,6 +54,17 @@ let primaryError;
 try {
   await writeFile(configPath, disableConfirmations(originalConfig), "utf8");
   await restartAndReset();
+  const { supabaseUrl, publishableKey, mailpitUrl } = await resolveLocalSupabaseEnv(
+    npmCliPath,
+    repositoryRoot,
+  );
+  const localEnv = {
+    ...process.env,
+    NEXT_PUBLIC_APP_URL: "http://127.0.0.1:3000",
+    NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
+    MAILPIT_URL: mailpitUrl,
+  };
   await runNpm(
     [
       "exec",
@@ -62,6 +76,7 @@ try {
     ],
     {
       showOutput: true,
+      env: localEnv,
     },
   );
 } catch (error) {

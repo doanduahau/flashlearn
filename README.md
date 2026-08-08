@@ -91,8 +91,8 @@ npm run db:test           # chạy pgTAP test (supabase/tests/*.sql)
 npm run db:types          # sinh lại src/lib/supabase/types.ts
 ```
 
-- Studio UI: <http://localhost:54323>
-- Postgres local: `localhost:54322` (postgres/postgres)
+- Studio UI: <http://localhost:64323>
+- Postgres local: `localhost:64322` (postgres/postgres)
 - Tạo user trong Studio → Authentication (hoặc đăng ký từ app); trigger
   `handle_new_user` tự tạo `profiles` tương ứng.
 - Chi tiết schema, constraints, RLS và grants xem `docs/DATABASE.md`.

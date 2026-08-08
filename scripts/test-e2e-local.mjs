@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 
+import { resolveLocalSupabaseEnv } from "./lib/local-supabase-env.mjs";
+
 const npmCliPath = process.env.npm_execpath;
 if (!npmCliPath) throw new Error("npm_execpath is required for the local E2E runner.");
 
@@ -22,23 +24,14 @@ function runNpm(args, env) {
   });
 }
 
-const status = JSON.parse(
-  await runNpm(["exec", "--", "supabase", "status", "-o", "json"], process.env),
-);
-const supabaseUrl = status.API_URL;
-const key = status.PUBLISHABLE_KEY ?? status.ANON_KEY;
-const hostname = new URL(supabaseUrl).hostname;
-if (!key || !["localhost", "127.0.0.1", "::1"].includes(hostname)) {
-  throw new Error(
-    "E2E safety guard: local Supabase URL and publishable key are required; refusing non-local tests.",
-  );
-}
+const { supabaseUrl, publishableKey, mailpitUrl } = await resolveLocalSupabaseEnv(npmCliPath);
 
 const localEnv = {
   ...process.env,
   NEXT_PUBLIC_APP_URL: "http://127.0.0.1:3000",
   NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: key,
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
+  MAILPIT_URL: mailpitUrl,
 };
 await runNpm(["run", "build"], localEnv);
 const child = spawn(

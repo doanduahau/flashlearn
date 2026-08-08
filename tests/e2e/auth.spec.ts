@@ -1,8 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { mailpitUrl } from "./support/local-endpoints";
+
 const TEST_PASSWORD = "TestPassword123!";
 const EMAIL_DOMAIN = "test.flashlearn.dev";
-const MAILPIT_URL = "http://127.0.0.1:54324";
 const APP_ORIGIN = "http://127.0.0.1:3000";
 
 function uniqueEmail(): string {
@@ -20,7 +21,7 @@ async function submitSignUp(page: Page, email: string): Promise<void> {
 
 async function openConfirmationLink(page: Page, email: string): Promise<string> {
   const mailPage = await page.context().newPage();
-  await mailPage.goto(MAILPIT_URL);
+  await mailPage.goto(mailpitUrl());
 
   const searchBox = mailPage.locator('input[placeholder="Search mailbox"]');
   await expect(searchBox).toBeVisible();

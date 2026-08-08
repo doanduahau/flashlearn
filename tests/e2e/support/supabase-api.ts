@@ -1,26 +1,19 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { expect, type BrowserContext } from "@playwright/test";
 
-function readEnv(name: string): string {
-  const content = readFileSync(join(process.cwd(), ".env.local"), "utf8");
-  for (const line of content.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq === -1) continue;
-    if (trimmed.slice(0, eq).trim() === name) return trimmed.slice(eq + 1).trim();
-  }
-  throw new Error(`Missing ${name} in .env.local`);
-}
+import { requireLocalEndpoint } from "./local-endpoints";
 
 export function supabaseApiUrl(): string {
-  return readEnv("NEXT_PUBLIC_SUPABASE_URL");
+  return requireLocalEndpoint("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);
 }
 
 function supabaseAnonKey(): string {
-  return readEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!key) {
+    throw new Error(
+      'Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY; run E2E through "npm run test:e2e".',
+    );
+  }
+  return key;
 }
 
 async function authTokenCookie(context: BrowserContext): Promise<string> {

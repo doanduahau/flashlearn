@@ -23,7 +23,7 @@ describe("deployment constraints", () => {
     .join("\n");
 
   it("does not depend on Mailpit in production code", () => {
-    const mailpitPatterns = ["mailpit", "localhost:8025", "localhost:54324"];
+    const mailpitPatterns = ["mailpit", "localhost:8025", "localhost:64324"];
     for (const pattern of mailpitPatterns) {
       const lowerContent = allContent.toLowerCase();
       const isInDocs = pattern.includes("54324");

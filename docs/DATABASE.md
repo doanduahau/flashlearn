@@ -193,7 +193,7 @@ npm run db:test           # run pgTAP database tests (supabase/tests/*.sql)
 npm run db:types          # regenerate src/lib/supabase/types.ts
 ```
 
-Studio UI: <http://localhost:54323>. Local Postgres: `localhost:54322` (postgres/postgres).
+Studio UI: <http://localhost:64323>. Local Postgres: `localhost:64322` (postgres/postgres).
 
 ## Database tests
 

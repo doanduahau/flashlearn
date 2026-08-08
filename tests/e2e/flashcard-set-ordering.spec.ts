@@ -37,7 +37,7 @@ test("regular set order persists on mobile and remains usable on desktop", async
 });
 
 async function createManualSet(page: Page, name: string): Promise<void> {
-  await page.goto("/dashboard?create=manual");
+  await page.goto("/sets?create=manual");
   const dialog = page.getByRole("dialog", { name: "Tạo bộ thủ công" });
   await dialog.getByLabel("Tên bộ flashcard").fill(name);
   await dialog.getByLabel("Mặt trước").fill(`${name} front`);

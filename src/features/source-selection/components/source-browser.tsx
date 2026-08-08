@@ -59,9 +59,6 @@ export function SourceBrowser({
         <h2 id="source-browser-heading" className="text-xl font-bold">
           Chọn nguồn
         </h2>
-        <p className="mt-1 text-sm text-text-secondary">
-          Lựa chọn của bạn vẫn được giữ khi tìm kiếm hoặc chuyển trang.
-        </p>
       </div>
       <form
         className="flex gap-2"

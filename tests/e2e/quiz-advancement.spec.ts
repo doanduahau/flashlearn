@@ -4,9 +4,7 @@ import { signUpAndConfirm, uniqueEmail } from "./support/auth-helpers";
 
 const QUIZ_CSV = "tests/fixtures/quiz-cards.csv";
 
-test("quiz answers stay on the current question until the learner explicitly advances", async ({
-  page,
-}) => {
+test("correct answers auto-advance while wrong answers wait for the learner", async ({ page }) => {
   await signUpAndConfirm(page, uniqueEmail("quiz_advance"));
 
   await page.goto("/import");
@@ -20,43 +18,42 @@ test("quiz answers stay on the current question until the learner explicitly adv
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
   await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
 
-  const firstQuestion = page.getByRole("heading", { level: 1 });
-  const firstPrompt = await firstQuestion.textContent();
-  const firstOption = page.getByRole("radio").first();
-  await firstOption.check();
-  await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
+  const heading = page.getByRole("heading", { level: 1 });
+  const labels = page.locator("fieldset label");
 
-  await expect(page.getByRole("status")).toHaveText(/^(Chính xác|Chưa chính xác)\.$/);
-  await expect(firstQuestion).toHaveText(firstPrompt ?? "");
-  await expect(page.getByRole("button", { name: "Câu tiếp theo" })).toBeVisible();
-  const answerCount = await page.getByRole("radio").count();
+  // Q1 answered correctly → advances without any further action
+  const firstPrompt = (await heading.textContent()) ?? "";
+  const firstAnswer = firstPrompt.replace("prompt", "answer");
+  await labels.filter({ hasText: firstAnswer }).getByRole("radio").check();
+  await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
+  await expect(page.getByRole("status")).toHaveText("Chính xác.");
+  await expect(heading).not.toHaveText(firstPrompt);
+  await expect(heading).toBeFocused();
+  await expect(page.getByRole("status")).toHaveCount(0);
+
+  // Q2 answered wrong → stays on the same question with a continue action
+  const secondPrompt = (await heading.textContent()) ?? "";
+  const secondAnswer = secondPrompt.replace("prompt", "answer");
+  const answerCount = await labels.count();
   expect(answerCount).toBeGreaterThanOrEqual(2);
   expect(answerCount).toBeLessThanOrEqual(4);
-  expect(
-    await page
-      .getByRole("radio")
-      .evaluateAll((radios) => radios.every((radio) => (radio as HTMLInputElement).disabled)),
-  ).toBe(true);
-
-  await page.waitForTimeout(250);
-  await expect(firstQuestion).toHaveText(firstPrompt ?? "");
+  let selectedWrong = false;
+  for (let index = 0; index < answerCount; index += 1) {
+    const text = (await labels.nth(index).textContent())?.trim() ?? "";
+    if (text !== secondAnswer) {
+      await labels.nth(index).getByRole("radio").check();
+      selectedWrong = true;
+      break;
+    }
+  }
+  expect(selectedWrong).toBe(true);
+  await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
+  await expect(page.getByRole("status")).toHaveText("Chưa chính xác.");
+  await expect(heading).toHaveText(secondPrompt);
+  await expect(page.getByRole("button", { name: "Câu tiếp theo" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Xác nhận đáp án" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Câu tiếp theo" }).click();
-  await expect(firstQuestion).not.toHaveText(firstPrompt ?? "");
-  await expect(firstQuestion).toBeFocused();
-  expect(
-    await page
-      .getByRole("radio")
-      .evaluateAll((radios) =>
-        radios.every(
-          (radio) => !(radio as HTMLInputElement).checked && !(radio as HTMLInputElement).disabled,
-        ),
-      ),
-  ).toBe(true);
+  await expect(heading).not.toHaveText(secondPrompt);
   await expect(page.getByRole("status")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Câu tiếp theo" })).toHaveCount(0);
-
-  await page.getByRole("radio").first().check();
-  await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
-  await expect(page.getByRole("status")).toHaveText(/^(Chính xác|Chưa chính xác)\.$/);
 });

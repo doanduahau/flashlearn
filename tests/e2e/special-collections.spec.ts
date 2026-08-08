@@ -147,14 +147,16 @@ function collectionIdFromHref(href: string | null): string {
 
 async function createCollection(page: Page, name: string): Promise<void> {
   await page.goto("/collections");
+  await page.getByRole("button", { name: /Tạo bộ đặc biệt/ }).click();
   await page.getByLabel("Tên bộ").fill(name);
-  await page.getByRole("button", { name: /Tạo bộ/ }).click();
+  await page.getByRole("button", { name: /^Tạo bộ$/ }).click();
   await expect(page.getByRole("link", { name: new RegExp(name, "i") })).toBeVisible();
 }
 
 async function duplicateNameRejected(page: Page, name: string): Promise<void> {
+  await page.getByRole("button", { name: /Tạo bộ đặc biệt/ }).click();
   await page.getByLabel("Tên bộ").fill(name);
-  await page.getByRole("button", { name: /Tạo bộ/ }).click();
+  await page.getByRole("button", { name: /^Tạo bộ$/ }).click();
   await expect(page.getByText("Tên đã tồn tại.")).toBeVisible();
 }
 

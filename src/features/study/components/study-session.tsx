@@ -201,17 +201,17 @@ export function StudySession({
           >
             <div
               aria-hidden={isFlipped}
-              className="flex min-h-72 w-full items-center justify-center rounded-3xl border border-border-soft bg-surface px-16 py-8 [backface-visibility:hidden]"
+              className="flex min-h-72 w-full items-center justify-center rounded-3xl border border-border-soft bg-surface px-6 py-6 [backface-visibility:hidden] sm:px-16 sm:py-8"
             >
-              <p className="max-h-[55vh] overflow-y-auto whitespace-pre-wrap break-words text-center text-xl font-semibold leading-relaxed">
+              <p className="max-h-[55vh] overflow-y-auto break-words whitespace-pre-wrap text-center text-lg font-semibold leading-relaxed sm:text-xl">
                 {card.front}
               </p>
             </div>
             <div
               aria-hidden={!isFlipped}
-              className="absolute inset-0 flex w-full items-center justify-center rounded-3xl border border-border-soft bg-primary-soft px-16 py-8 [backface-visibility:hidden] [transform:rotateY(180deg)]"
+              className="absolute inset-0 flex w-full items-center justify-center rounded-3xl border border-border-soft bg-primary-soft px-6 py-6 [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-16 sm:py-8"
             >
-              <p className="max-h-[55vh] overflow-y-auto whitespace-pre-wrap break-words text-center text-xl font-semibold leading-relaxed">
+              <p className="max-h-[55vh] overflow-y-auto break-words whitespace-pre-wrap text-center text-lg font-semibold leading-relaxed sm:text-xl">
                 {card.back}
               </p>
             </div>

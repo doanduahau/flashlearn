@@ -25,9 +25,7 @@ export default async function StudyPage({
   return (
     <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
       <h1 className="text-3xl font-bold">Học</h1>
-      <p className="mt-2 text-text-secondary">
-        Chọn phạm vi học, lật thẻ và ôn luyện. Thẻ trùng giữa các nguồn chỉ tính một lần.
-      </p>
+      <p className="mt-2 text-text-secondary">Chọn phạm vi học, lật thẻ và ôn luyện.</p>
       <StudySourceSelect sourcePage={sourcePage} totalCards={totalResult.count ?? 0} />
     </main>
   );

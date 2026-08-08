@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { pageHref, parsePage, updateSearchParamHref } from "@/lib/pagination";
+import {
+  pageHref,
+  parsePage,
+  removeSearchParamHref,
+  updateSearchParamHref,
+} from "@/lib/pagination";
 
 describe("pagination helpers", () => {
   it("parses only positive whole-number pages", () => {
@@ -41,5 +46,25 @@ describe("pagination helpers", () => {
     expect(url.searchParams.get("q")).toBe("thẻ");
     expect(url.searchParams.get("sourceType")).toBe("regular");
     expect(url.searchParams.get("page")).toBe("2");
+  });
+
+  it("removes a search param while keeping the remaining URL state", () => {
+    const href = removeSearchParamHref(
+      "/sets",
+      { create: "import", q: "thẻ", tab: "special", page: "2" },
+      "create",
+    );
+    const url = new URL(href, "http://flashlearn.test");
+
+    expect(url.pathname).toBe("/sets");
+    expect(url.searchParams.get("create")).toBeNull();
+    expect(url.searchParams.get("q")).toBe("thẻ");
+    expect(url.searchParams.get("tab")).toBe("special");
+    expect(url.searchParams.get("page")).toBe("2");
+  });
+
+  it("removes the last search param and falls back to the bare pathname", () => {
+    const href = removeSearchParamHref("/sets", { create: "manual" }, "create");
+    expect(href).toBe("/sets");
   });
 });

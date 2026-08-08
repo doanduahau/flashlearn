@@ -15,14 +15,16 @@
 
 | Route                         | Description                                                                                                              |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `/dashboard`                  | Tổng quan: dashboard plus explicit import/manual-set creation actions                                                    |
-| `/sets?tab=regular`           | Bộ flashcard: regular-set list (search, pagination and card counts)                                                      |
-| `/sets?tab=special`           | Bộ flashcard: special-collection list (independent search, pagination and empty state)                                   |
+| `/dashboard`                  | Tổng quan: compact daily summary and monthly activity calendar                                                           |
+| `/sets?tab=regular`           | Bộ flashcard: create-set actions plus regular-set list (search, pagination and card counts)                              |
+| `/sets?tab=special`           | Bộ flashcard: create-set actions plus special-collection list (search, pagination and empty state)                       |
+| `/sets?create=import`         | Bộ flashcard with the Excel/CSV import wizard expanded                                                                   |
+| `/sets?create=manual`         | Bộ flashcard with the manual set-creation sheet opened                                                                   |
 | `/sets/[setId]`               | Set detail: rename/delete set, add/edit/delete cards, card search and pagination, per-card special-collection membership |
 | `/collections/[collectionId]` | Special collection detail: rename/delete collection, card list with original set name and remove-membership              |
 | `/study`                      | Choose study scope with server-paginated source search/filter (`q`, `sourceType`, `page`) and persistent selections      |
 | `/study/session`              | Flashcard study session (deterministic source-query route, optional `seed`)                                              |
-| `/quiz?tab=create`            | Kiểm tra: quiz setup with server-paginated source search/filter, fixed feasible counts and mode selection                |
+| `/quiz?tab=create`            | Kiểm tra: quiz setup with server-paginated source search/filter, dynamic feasible counts and mode selection              |
 | `/quiz?tab=history`           | Kiểm tra: current-user completed quiz history                                                                            |
 | `/quiz/[attemptId]`           | Take a quiz                                                                                                              |
 | `/quiz/[attemptId]/result`    | Quiz result                                                                                                              |
@@ -32,13 +34,13 @@
 
 ## Compatibility Redirects
 
-| Legacy route   | Redirect destination       |
-| -------------- | -------------------------- |
-| `/import`      | `/dashboard?create=import` |
-| `/collections` | `/sets?tab=special`        |
-| `/history`     | `/quiz?tab=history`        |
-| `/statistics`  | `/profile?tab=statistics`  |
-| `/settings`    | `/profile?tab=settings`    |
+| Legacy route   | Redirect destination      |
+| -------------- | ------------------------- |
+| `/import`      | `/sets?create=import`     |
+| `/collections` | `/sets?tab=special`       |
+| `/history`     | `/quiz?tab=history`       |
+| `/statistics`  | `/profile?tab=statistics` |
+| `/settings`    | `/profile?tab=settings`   |
 
 ## Route Protection
 

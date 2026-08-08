@@ -37,7 +37,7 @@ export function ManualSetForm() {
       setConfirmClose(true);
       return;
     }
-    router.push("/dashboard");
+    router.push("/sets");
   }
 
   useEffect(() => {
@@ -312,11 +312,7 @@ export function ManualSetForm() {
                 <Button type="button" variant="outline" onClick={() => setConfirmClose(false)}>
                   Ở lại
                 </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => router.push("/dashboard")}
-                >
+                <Button type="button" variant="destructive" onClick={() => router.push("/sets")}>
                   Rời đi
                 </Button>
               </div>

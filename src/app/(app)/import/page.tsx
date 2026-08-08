@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function ImportPage() {
-  redirect("/dashboard?create=import");
+  redirect("/sets?create=import");
 }

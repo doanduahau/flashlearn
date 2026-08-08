@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
-import { QUIZ_MIN_QUESTIONS, type QuizMode } from "@/features/quiz/schemas/quiz-schema";
+import {
+  QUIZ_MAX_QUESTIONS,
+  QUIZ_MIN_QUESTIONS,
+  type QuizMode,
+} from "@/features/quiz/schemas/quiz-schema";
 import { getQuizCardCount, startQuiz } from "@/features/quiz/server/actions";
 
 const COUNT_DEBOUNCE_MS = 250;
@@ -104,7 +108,14 @@ export function QuizSetup({
     !all && (customCount === null || !sameSources(customCount.computedFor, currentSources));
   const eligible = all ? totalCards : (customCount?.count ?? 0);
   const availableCounts = questionCounts.filter((value) => value <= eligible);
-  const effectiveCount = availableCounts.includes(count) ? count : (availableCounts[0] ?? 0);
+  const allCountOption =
+    eligible >= QUIZ_MIN_QUESTIONS &&
+    eligible <= QUIZ_MAX_QUESTIONS &&
+    !questionCounts.includes(eligible);
+  const effectiveCount =
+    availableCounts.includes(count) || (allCountOption && count === eligible)
+      ? count
+      : (availableCounts[0] ?? 0);
 
   function toggleSource(source: SourceOption): void {
     setAll(false);
@@ -196,18 +207,31 @@ export function QuizSetup({
               Tất cả ({eligible})
             </Button>
           ) : (
-            questionCounts.map((value) => (
-              <Button
-                type="button"
-                key={value}
-                variant={effectiveCount === value ? "soft" : "outline"}
-                disabled={value > eligible || counting}
-                aria-pressed={effectiveCount === value}
-                onClick={() => setCount(value)}
-              >
-                {value}
-              </Button>
-            ))
+            <>
+              {questionCounts.map((value) => (
+                <Button
+                  type="button"
+                  key={value}
+                  variant={effectiveCount === value ? "soft" : "outline"}
+                  disabled={value > eligible || counting}
+                  aria-pressed={effectiveCount === value}
+                  onClick={() => setCount(value)}
+                >
+                  {value}
+                </Button>
+              ))}
+              {allCountOption ? (
+                <Button
+                  type="button"
+                  variant={effectiveCount === eligible ? "soft" : "outline"}
+                  disabled={counting}
+                  aria-pressed={effectiveCount === eligible}
+                  onClick={() => setCount(eligible)}
+                >
+                  Tất cả ({eligible})
+                </Button>
+              ) : null}
+            </>
           )}
         </div>
       </section>

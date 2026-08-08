@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ListOrdered } from "lucide-react";
+import { FileUp, ListOrdered, SquarePen } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -10,15 +10,18 @@ import { LibrarySearchForm } from "@/features/flashcard-sets/components/library-
 import { SetReorderList } from "@/features/flashcard-sets/components/set-reorder-list";
 import { SetsList, type SetSummary } from "@/features/flashcard-sets/components/sets-list";
 import { sanitizeSearchQuery } from "@/features/flashcard-sets/utils/search";
+import { ManualSetForm } from "@/features/flashcard-sets/components/manual-set-form";
+import { ImportWizard } from "@/features/imports/components/import-wizard";
 import {
   CollectionsList,
   type CollectionSummary,
 } from "@/features/special-collections/components/collections-list";
-import { CreateCollectionForm } from "@/features/special-collections/components/create-collection-form";
+import { CreateCollectionToggle } from "@/features/special-collections/components/create-collection-toggle";
 import { LIBRARY_PAGE_SIZE } from "@/lib/constants";
 import {
   pageHref,
   parsePage,
+  removeSearchParamHref,
   type RouteSearchParams,
   updateSearchParamHref,
 } from "@/lib/pagination";
@@ -27,9 +30,14 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Bộ flashcard" };
 
 type LibraryTab = "regular" | "special";
+type CreateMode = "import" | "manual" | null;
 
 function tabOf(value: string | string[] | undefined): LibraryTab {
   return value === "special" ? "special" : "regular";
+}
+
+function createModeOf(value: string | string[] | undefined): CreateMode {
+  return value === "import" || value === "manual" ? value : null;
 }
 
 export default async function SetsPage({
@@ -53,6 +61,7 @@ export default async function SetsPage({
   return (
     <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
       <h1 className="text-3xl font-bold">Bộ flashcard</h1>
+      <CreateSetBlock mode={createModeOf(raw.create)} searchParams={raw} />
       <SectionTabs
         label="Loại bộ flashcard"
         current={tab}
@@ -67,6 +76,55 @@ export default async function SetsPage({
   );
 }
 
+function CreateSetBlock({
+  mode,
+  searchParams,
+}: Readonly<{ mode: CreateMode; searchParams: RouteSearchParams }>) {
+  const importHref = updateSearchParamHref("/sets", searchParams, "create", "import");
+  const manualHref = updateSearchParamHref("/sets", searchParams, "create", "manual");
+  const closeHref = removeSearchParamHref("/sets", searchParams, "create");
+
+  return (
+    <section
+      aria-label="Tạo bộ flashcard"
+      className="mt-6 rounded-2xl border border-border-soft bg-surface-subtle p-4 sm:p-5"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-bold">Tạo bộ flashcard</h2>
+        {mode === null ? (
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" className="min-h-11">
+              <Link href={importHref} scroll={false}>
+                <FileUp aria-hidden="true" />
+                Nhập từ tệp
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="min-h-11">
+              <Link href={manualHref} scroll={false}>
+                <SquarePen aria-hidden="true" />
+                Tạo bộ thủ công
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <Link className="text-sm underline" href={closeHref} scroll={false}>
+            Đóng
+          </Link>
+        )}
+      </div>
+      {mode === "import" ? (
+        <section
+          aria-label="Nhập từ tệp"
+          className="mt-4 rounded-2xl border border-border-soft bg-surface p-5"
+        >
+          <ImportWizard />
+        </section>
+      ) : null}
+      {mode === "manual" ? <ManualSetForm /> : null}
+    </section>
+  );
+}
+
 async function SetsTabContent({
   tab,
   searchParams,
@@ -78,7 +136,6 @@ async function SetsTabContent({
   const requestedPage = parsePage(searchParams.page);
   const isReordering = searchParams.reorder === "1";
   const supabase = await createClient();
-  const title = tab === "regular" ? "Bộ thường" : "Bộ đặc biệt";
   const searchLabel = tab === "regular" ? "Tìm bộ thường" : "Tìm bộ đặc biệt";
   const placeholder = tab === "regular" ? "Tên bộ flashcard" : "Tên bộ đặc biệt";
 
@@ -130,12 +187,10 @@ async function SetsTabContent({
     }));
 
     return (
-      <section className="mt-6" aria-labelledby="sets-tab-heading">
-        <h2 id="sets-tab-heading" className="text-xl font-bold">
-          {title}
-        </h2>
-        <div className="mt-4">
-          <Button asChild variant="outline" className="min-h-11">
+      <section className="mt-6" aria-label="Danh sách bộ thường">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-bold">Bộ thường</h2>
+          <Button asChild variant="outline" size="sm" className="min-h-11">
             <Link
               href={updateSearchParamHref("/sets", searchParams, "reorder", "1")}
               scroll={false}
@@ -181,22 +236,11 @@ async function SetsTabContent({
   }));
 
   return (
-    <section className="mt-6" aria-labelledby="sets-tab-heading">
-      <h2 id="sets-tab-heading" className="text-xl font-bold">
-        {title}
-      </h2>
-      <p className="mt-2 text-text-secondary">
-        Gom thẻ từ nhiều bộ flashcard thành bộ học theo chủ đề.
-      </p>
-      <section
-        aria-label="Tạo bộ đặc biệt"
-        className="mt-5 rounded-2xl border border-border-soft bg-surface p-5"
-      >
-        <h3 className="font-semibold">Tạo bộ đặc biệt</h3>
-        <div className="mt-3 max-w-sm">
-          <CreateCollectionForm />
-        </div>
-      </section>
+    <section className="mt-6" aria-label="Danh sách bộ đặc biệt">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold">Bộ đặc biệt</h2>
+        <CreateCollectionToggle />
+      </div>
       <LibrarySearchForm defaultValue={query} label={searchLabel} placeholder={placeholder} />
       <CollectionsList collections={collections} hasSearch={Boolean(query)} />
       {totalPages > 1 ? (

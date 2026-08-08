@@ -250,8 +250,9 @@ async function importSet(page: Page, name: string): Promise<string> {
 
 async function createCollection(page: Page, name: string): Promise<string> {
   await page.goto("/collections");
+  await page.getByRole("button", { name: /Tạo bộ đặc biệt/ }).click();
   await page.getByLabel("Tên bộ").fill(name);
-  await page.getByRole("button", { name: /Tạo bộ/ }).click();
+  await page.getByRole("button", { name: /^Tạo bộ$/ }).click();
   const link = page.getByRole("link", { name: new RegExp(name, "i") });
   await expect(link).toBeVisible();
   return collectionIdFromHref(await link.getAttribute("href"));

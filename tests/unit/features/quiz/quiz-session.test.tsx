@@ -32,10 +32,42 @@ describe("QuizSession", () => {
     router.refresh.mockReset();
   });
 
-  it("keeps a submitted answer visible until the user explicitly advances", async () => {
-    submitQuizAnswer
-      .mockResolvedValueOnce({ ok: true, correct: true, completed: false })
-      .mockResolvedValueOnce({ ok: true, correct: false, completed: false });
+  it("advances automatically after a correct answer", async () => {
+    submitQuizAnswer.mockResolvedValue({ ok: true, correct: true, completed: false });
+    const user = userEvent.setup();
+    render(<QuizSession sessionId="session" total={2} question={first} />);
+
+    await user.click(screen.getByRole("radio", { name: "One" }));
+    await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
+
+    expect(await screen.findByText("Chính xác.")).toHaveFocus();
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1), { timeout: 2000 });
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("keeps a wrong answer visible until the learner explicitly advances", async () => {
+    submitQuizAnswer.mockResolvedValue({ ok: true, correct: false, completed: false });
+    const user = userEvent.setup();
+    render(<QuizSession sessionId="session" total={2} question={first} />);
+
+    await user.click(screen.getByRole("radio", { name: "One" }));
+    await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
+
+    expect(await screen.findByText("Chưa chính xác.")).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Câu tiếp theo" })).toBeInTheDocument();
+    expect(screen.getAllByRole("radio").every((radio) => radio.hasAttribute("disabled"))).toBe(
+      true,
+    );
+    expect(router.refresh).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Câu tiếp theo" }));
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("renders the next question fresh after advancing", async () => {
+    submitQuizAnswer.mockResolvedValue({ ok: true, correct: false, completed: false });
     const user = userEvent.setup();
     const view = render(
       <QuizSession key={first.id} sessionId="session" total={2} question={first} />,
@@ -43,21 +75,9 @@ describe("QuizSession", () => {
 
     await user.click(screen.getByRole("radio", { name: "One" }));
     await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
-
-    const feedback = await screen.findByText("Chính xác.");
-    expect(feedback).toHaveFocus();
-    expect(screen.getAllByRole("radio").every((radio) => radio.hasAttribute("disabled"))).toBe(
-      true,
-    );
-    expect(screen.getByRole("button", { name: "Câu tiếp theo" })).toBeInTheDocument();
-    expect(router.refresh).not.toHaveBeenCalled();
-    expect(router.push).not.toHaveBeenCalled();
-
     await user.click(screen.getByRole("button", { name: "Câu tiếp theo" }));
-    expect(router.refresh).toHaveBeenCalledTimes(1);
 
     view.rerender(<QuizSession key={second.id} sessionId="session" total={2} question={second} />);
-
     await waitFor(() =>
       expect(screen.getByRole("heading", { name: "Second question" })).toHaveFocus(),
     );
@@ -67,23 +87,8 @@ describe("QuizSession", () => {
     expect(screen.getAllByRole("radio").every((radio) => !radio.hasAttribute("disabled"))).toBe(
       true,
     );
-    expect(screen.queryByText("Chính xác.")).not.toBeInTheDocument();
     expect(screen.queryByText("Chưa chính xác.")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Câu tiếp theo" })).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("radio", { name: "Again one" }));
-    await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
-
-    expect(await screen.findByText("Chưa chính xác.")).toHaveFocus();
-    expect(submitQuizAnswer).toHaveBeenNthCalledWith(1, {
-      questionId: first.id,
-      selectedChoiceIndex: 0,
-    });
-    expect(submitQuizAnswer).toHaveBeenLastCalledWith({
-      questionId: second.id,
-      selectedChoiceIndex: 0,
-    });
-    expect(router.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("does not duplicate a pending submission", async () => {
@@ -108,7 +113,7 @@ describe("QuizSession", () => {
     expect(await screen.findByText("Chính xác.")).toBeInTheDocument();
   });
 
-  it("shows the finish action after the final answer and only opens results when activated", async () => {
+  it("auto-opens results after the final answer", async () => {
     submitQuizAnswer.mockResolvedValue({ ok: true, correct: false, completed: true });
     const user = userEvent.setup();
     render(<QuizSession sessionId="session" total={1} question={first} />);
@@ -117,10 +122,9 @@ describe("QuizSession", () => {
     await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
 
     expect(await screen.findByText("Chưa chính xác.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Xem kết quả" })).toBeInTheDocument();
-    expect(router.push).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole("button", { name: "Xem kết quả" }));
-    expect(router.push).toHaveBeenCalledWith("/quiz/session/result");
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/quiz/session/result"), {
+      timeout: 2000,
+    });
+    expect(router.refresh).not.toHaveBeenCalled();
   });
 });

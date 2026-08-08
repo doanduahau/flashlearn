@@ -45,3 +45,24 @@ export function updateSearchParamHref(
   params.set(key, value);
   return `${pathname}?${params.toString()}`;
 }
+
+export function removeSearchParamHref(
+  pathname: string,
+  searchParams: RouteSearchParams,
+  key: string,
+): string {
+  const params = new URLSearchParams();
+
+  for (const [currentKey, currentValue] of Object.entries(searchParams)) {
+    if (currentKey === key || currentValue === undefined) continue;
+
+    if (Array.isArray(currentValue)) {
+      for (const item of currentValue) params.append(currentKey, item);
+    } else {
+      params.append(currentKey, currentValue);
+    }
+  }
+
+  const search = params.toString();
+  return search ? `${pathname}?${search}` : pathname;
+}

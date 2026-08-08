@@ -7,7 +7,7 @@ test.describe("Manual flashcard set creation", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signUpAndConfirm(page, uniqueEmail("manual_one"));
 
-    await page.goto("/dashboard");
+    await page.goto("/sets");
     await page.getByRole("link", { name: /tạo bộ thủ công/i }).click();
 
     const dialog = page.getByRole("dialog", { name: "Tạo bộ thủ công" });
@@ -28,7 +28,7 @@ test.describe("Manual flashcard set creation", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signUpAndConfirm(page, uniqueEmail("manual_multi"));
 
-    await page.goto("/dashboard");
+    await page.goto("/sets");
     await page.getByRole("link", { name: /tạo bộ thủ công/i }).click();
 
     const dialog = page.getByRole("dialog", { name: "Tạo bộ thủ công" });
@@ -51,7 +51,7 @@ test.describe("Manual flashcard set creation", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signUpAndConfirm(page, uniqueEmail("manual_validation"));
 
-    await page.goto("/dashboard");
+    await page.goto("/sets");
     await page.getByRole("link", { name: /tạo bộ thủ công/i }).click();
 
     const dialog = page.getByRole("dialog", { name: "Tạo bộ thủ công" });
@@ -59,6 +59,6 @@ test.describe("Manual flashcard set creation", () => {
     await expect(dialog.getByText("Nhập tên bộ flashcard.")).toBeVisible();
     await expect(dialog.getByText("Mặt trước không được để trống.")).toBeVisible();
     await expect(dialog.getByText("Mặt sau không được để trống.")).toBeVisible();
-    await expect(page).toHaveURL(/\/dashboard\?create=manual$/);
+    await expect(page).toHaveURL(/\/sets\?create=manual$/);
   });
 });

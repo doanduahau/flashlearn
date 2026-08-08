@@ -32,7 +32,10 @@ async function completeTenQuestionQuiz(page: Page): Promise<void> {
     await page.getByRole("radio").first().check();
     await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
     await expect(page.getByRole("status")).toHaveText(/^(Chính xác|Chưa chính xác)\.$/);
-    await page.getByRole("button", { name: index < 9 ? "Câu tiếp theo" : "Xem kết quả" }).click();
+    const nextButton = page.getByRole("button", { name: /Câu tiếp theo|Xem kết quả/ });
+    if ((await nextButton.count()) > 0) {
+      await nextButton.click();
+    }
   }
   await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+\/result$/);
 }

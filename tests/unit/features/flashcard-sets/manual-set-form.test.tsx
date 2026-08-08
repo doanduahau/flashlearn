@@ -165,7 +165,7 @@ describe("ManualSetForm", () => {
     const user = userEvent.setup();
     render(<ManualSetForm />);
     await user.click(screen.getByRole("button", { name: /đóng/i }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith("/dashboard"));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith("/sets"));
   });
 
   it("confirms before discarding unsaved changes and stays on cancel", async () => {
@@ -187,7 +187,7 @@ describe("ManualSetForm", () => {
     await user.type(frontFields()[0], "chưa lưu");
     await user.click(screen.getByRole("button", { name: /đóng/i }));
     await user.click(screen.getByRole("button", { name: /rời đi/i }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith("/dashboard"));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith("/sets"));
     expect(mocks.importFlashcards).not.toHaveBeenCalled();
   });
 

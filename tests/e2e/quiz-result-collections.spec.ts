@@ -33,8 +33,9 @@ test.describe("Quiz result collections", () => {
     await expect(page.getByText(/10 flashcard/)).toBeVisible();
 
     await page.goto("/collections");
+    await page.getByRole("button", { name: /Tạo bộ đặc biệt/ }).click();
     await page.getByLabel("Tên bộ").fill(COLLECTION_NAME);
-    await page.getByRole("button", { name: /Tạo bộ/ }).click();
+    await page.getByRole("button", { name: /^Tạo bộ$/ }).click();
     await expect(page.getByRole("link", { name: /Khó nhớ/ })).toBeVisible();
 
     await page.goto("/quiz");
@@ -50,6 +51,7 @@ test.describe("Quiz result collections", () => {
     resultUrl = page.url();
 
     await expect(page.getByText("1/10 đúng")).toBeVisible();
+    await expect(page.getByText(/Chuỗi 1 ngày, hôm nay đã hoàn thành/)).toBeVisible();
 
     const correctArticle = page.locator("article").filter({ hasText: correctPrompt });
     await expect(correctArticle.getByRole("button", { name: "Thêm vào bộ đặc biệt" })).toHaveCount(
@@ -176,7 +178,10 @@ async function answerQuestion(page: Page, wantCorrect: boolean): Promise<string>
   expect(selected).toBe(true);
   await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
   await expect(page.getByRole("status")).toHaveText(/^(Chính xác|Chưa chính xác)\.$/);
-  await page.getByRole("button", { name: /Câu tiếp theo|Xem kết quả/ }).click();
+  const nextButton = page.getByRole("button", { name: /Câu tiếp theo|Xem kết quả/ });
+  if ((await nextButton.count()) > 0) {
+    await nextButton.click();
+  }
   return prompt;
 }
 

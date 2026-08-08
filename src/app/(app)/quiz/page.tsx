@@ -25,9 +25,6 @@ export default async function QuizPage({
   return (
     <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
       <h1 className="text-3xl font-bold">Kiểm tra</h1>
-      <p className="mt-2 text-text-secondary">
-        Tạo bài kiểm tra mới hoặc xem lại các bài đã hoàn thành.
-      </p>
       <SectionTabs
         label="Nội dung kiểm tra"
         current={tab}
@@ -67,9 +64,6 @@ async function QuizCreator({ searchParams }: Readonly<{ searchParams: RouteSearc
 
   return (
     <section className="mt-6">
-      <p className="text-text-secondary">
-        Chọn nguồn, số câu và cách tạo đề. Thẻ trùng chỉ xuất hiện một lần.
-      </p>
       <QuizSetup sourcePage={sourcePage} totalCards={totalResult.count ?? 0} />
     </section>
   );

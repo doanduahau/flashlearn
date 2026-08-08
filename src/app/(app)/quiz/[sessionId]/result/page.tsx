@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { Flame } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
+import { loadStreakSummary } from "@/features/statistics/server/load-statistics";
+import { streakLabel } from "@/features/statistics/utils/streak-label";
 import { buildQuizResultCollectionTargets } from "@/features/quiz/utils/result-collection-targets";
 import { createClient } from "@/lib/supabase/server";
 export default async function QuizResultPage({
@@ -10,11 +13,15 @@ export default async function QuizResultPage({
 }) {
   const { sessionId } = await params;
   const supabase = await createClient();
-  const { data: session } = await supabase
-    .from("quiz_sessions")
-    .select("mode, actual_question_count, correct_answer_count, completed_at")
-    .eq("id", sessionId)
-    .maybeSingle();
+  const [sessionResult, streakSummary] = await Promise.all([
+    supabase
+      .from("quiz_sessions")
+      .select("mode, actual_question_count, correct_answer_count, completed_at")
+      .eq("id", sessionId)
+      .maybeSingle(),
+    loadStreakSummary(supabase),
+  ]);
+  const session = sessionResult.data;
   if (!session) notFound();
   if (!session.completed_at) redirect(`/quiz/${sessionId}`);
   const { data: questions } = await supabase
@@ -75,6 +82,26 @@ export default async function QuizResultPage({
       <p className="mt-3 text-xl">
         {session.correct_answer_count}/{session.actual_question_count} đúng ({percentage}%)
       </p>
+      {streakSummary ? (
+        <section
+          aria-label="Chuỗi học tập"
+          className="mt-6 rounded-2xl border border-border-soft bg-primary-soft p-4 sm:p-5"
+        >
+          <div className="flex items-center gap-3">
+            <Flame aria-hidden="true" className="size-6 shrink-0 text-achievement" />
+            <div>
+              <p className="font-semibold">
+                {streakLabel(streakSummary.currentStreak, streakSummary.completedToday)}
+              </p>
+              {streakSummary.completedToday ? (
+                <p className="text-sm text-text-secondary">
+                  Bạn vừa hoàn thành một bài kiểm tra hôm nay. Giữ vững nhé!
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
       <section className="mt-8 space-y-4" aria-label="Xem lại câu trả lời">
         {(questions ?? []).map((q) => {
           const target = targets.get(q.id);

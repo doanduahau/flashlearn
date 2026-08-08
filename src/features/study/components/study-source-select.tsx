@@ -141,7 +141,7 @@ export function StudySourceSelect({
       {!totalCards ? (
         <div className="rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-6 text-center">
           <p className="font-medium">Chưa có thẻ flashcard để học.</p>
-          <Link className="mt-2 inline-block underline" href="/dashboard?create=import">
+          <Link className="mt-2 inline-block underline" href="/sets?create=import">
             Nhập tệp đầu tiên
           </Link>
         </div>

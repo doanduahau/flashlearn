@@ -75,4 +75,37 @@ describe("QuizSetup", () => {
       ),
     );
   });
+
+  it("offers a dynamic all-card count option that reflects the eligible count", async () => {
+    mocks.startQuiz.mockResolvedValue({ ok: true, sessionId: "quiz-2" });
+    const user = userEvent.setup();
+    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} />);
+
+    const allOption = screen.getByRole("button", { name: "Tất cả (25)" });
+    expect(allOption).toBeEnabled();
+    expect(allOption).toHaveAttribute("aria-pressed", "false");
+    await user.click(allOption);
+    expect(allOption).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "Bắt đầu kiểm tra" }));
+    await waitFor(() =>
+      expect(mocks.startQuiz).toHaveBeenCalledWith(expect.objectContaining({ questionCount: 25 })),
+    );
+  });
+
+  it("reflects the server-computed count for selected sources in the all-count option", async () => {
+    mocks.getQuizCardCount.mockResolvedValue({ ok: true, count: 13 });
+    const user = userEvent.setup();
+    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} />);
+
+    await user.click(screen.getByRole("checkbox", { name: /Bộ lớn/ }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Tất cả (13)" })).toBeEnabled());
+    expect(screen.queryByRole("button", { name: "Tất cả (25)" })).not.toBeInTheDocument();
+  });
+
+  it("does not duplicate an existing fixed count option", () => {
+    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={20} />);
+
+    expect(screen.queryByRole("button", { name: "Tất cả (20)" })).not.toBeInTheDocument();
+  });
 });

@@ -3,6 +3,9 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { submitQuizAnswer } from "@/features/quiz/server/actions";
+
+const ADVANCE_DELAY_MS = 800;
+
 export function QuizSession({
   sessionId,
   question,
@@ -21,9 +24,13 @@ export function QuizSession({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const feedbackRef = useRef<HTMLParagraphElement>(null);
   const submittingRef = useRef(false);
+  const advanceTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     headingRef.current?.focus();
+    return () => {
+      if (advanceTimerRef.current !== null) window.clearTimeout(advanceTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -52,6 +59,14 @@ export function QuizSession({
         setError(null);
         setFeedback(result.correct ?? false);
         setCompleted(result.completed ?? false);
+        if (result.completed) {
+          advanceTimerRef.current = window.setTimeout(
+            () => router.push(`/quiz/${sessionId}/result`),
+            ADVANCE_DELAY_MS,
+          );
+        } else if (result.correct) {
+          advanceTimerRef.current = window.setTimeout(() => router.refresh(), ADVANCE_DELAY_MS);
+        }
       } finally {
         submittingRef.current = false;
       }
@@ -68,7 +83,11 @@ export function QuizSession({
       <p className="text-sm text-text-secondary">
         Câu {question.position + 1} / {total}
       </p>
-      <h1 ref={headingRef} tabIndex={-1} className="mt-3 whitespace-pre-wrap text-2xl font-bold">
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="mt-3 max-h-[45vh] overflow-y-auto break-words whitespace-pre-wrap text-xl font-bold sm:text-2xl"
+      >
         {question.prompt}
       </h1>
       <fieldset className="mt-6 space-y-3" aria-label="Các đáp án">
@@ -87,7 +106,7 @@ export function QuizSession({
                 setError(null);
               }}
             />
-            <span className="whitespace-pre-wrap">{choice}</span>
+            <span className="whitespace-pre-wrap break-words">{choice}</span>
           </label>
         ))}
       </fieldset>

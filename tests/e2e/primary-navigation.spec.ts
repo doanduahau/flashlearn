@@ -10,12 +10,12 @@ test.describe("Primary application navigation", () => {
     await page.goto("/dashboard");
     await expect(page.getByLabel(/CSV\/XLSX/i)).toHaveCount(0);
     await page.goto("/sets");
-    await page.getByRole("link", { name: "Nhập từ tệp" }).click();
+    await page.getByRole("link", { name: "Nhập Excel" }).click();
     await expect(page).toHaveURL(/\/sets\?create=import$/);
     await expect(page.getByLabel(/CSV\/XLSX/i)).toBeVisible();
     await page.getByRole("link", { name: "Đóng" }).click();
     await expect(page).toHaveURL(/\/sets$/);
-    await page.getByRole("link", { name: "Tạo bộ thủ công" }).click();
+    await page.getByRole("link", { name: "Thủ công" }).click();
     await expect(page).toHaveURL(/\/sets\?create=manual$/);
     await expect(page.getByLabel("Tên bộ flashcard")).toBeVisible();
     await page.getByRole("dialog").getByRole("button", { name: "Đóng" }).click();

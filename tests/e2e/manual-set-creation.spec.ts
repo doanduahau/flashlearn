@@ -8,7 +8,7 @@ test.describe("Manual flashcard set creation", () => {
     await signUpAndConfirm(page, uniqueEmail("manual_one"));
 
     await page.goto("/sets");
-    await page.getByRole("link", { name: /tạo bộ thủ công/i }).click();
+    await page.getByRole("link", { name: /thủ công/i }).click();
 
     const dialog = page.getByRole("dialog", { name: "Tạo bộ thủ công" });
     await expect(dialog).toBeVisible();
@@ -29,7 +29,7 @@ test.describe("Manual flashcard set creation", () => {
     await signUpAndConfirm(page, uniqueEmail("manual_multi"));
 
     await page.goto("/sets");
-    await page.getByRole("link", { name: /tạo bộ thủ công/i }).click();
+    await page.getByRole("link", { name: /thủ công/i }).click();
 
     const dialog = page.getByRole("dialog", { name: "Tạo bộ thủ công" });
     await dialog.getByLabel("Tên bộ flashcard").fill("Bộ thủ công nhiều thẻ");
@@ -52,7 +52,7 @@ test.describe("Manual flashcard set creation", () => {
     await signUpAndConfirm(page, uniqueEmail("manual_validation"));
 
     await page.goto("/sets");
-    await page.getByRole("link", { name: /tạo bộ thủ công/i }).click();
+    await page.getByRole("link", { name: /thủ công/i }).click();
 
     const dialog = page.getByRole("dialog", { name: "Tạo bộ thủ công" });
     await dialog.getByRole("button", { name: /tạo bộ/i }).click();

@@ -14,7 +14,7 @@ test("correct answers auto-advance while wrong answers wait for the learner", as
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
 
   await page.goto("/quiz");
-  await expect(page.getByText("Có 10 thẻ hợp lệ trong phạm vi.")).toBeVisible();
+  await expect(page.getByText("10 thẻ hợp lệ").filter({ visible: true })).toBeVisible();
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
   await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
 

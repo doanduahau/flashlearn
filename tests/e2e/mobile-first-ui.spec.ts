@@ -82,8 +82,33 @@ test.describe("Mobile-first UI — Sets page", () => {
     await page.goto("/sets");
 
     // Create buttons visible
-    await expect(page.getByRole("link", { name: /Nh\u1eadp Excel/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Th\u1ee7 c\u00f4ng/ })).toBeVisible();
+    const importLink = page.getByRole("link", { name: /Nh\u1eadp Excel/ });
+    const manualLink = page.getByRole("link", { name: /Th\u1ee7 c\u00f4ng/ });
+    await expect(importLink).toBeVisible();
+    await expect(manualLink).toBeVisible();
+
+    // Two create buttons share one row and equal height
+    const importBox = await importLink.boundingBox();
+    const manualBox = await manualLink.boundingBox();
+    expect(importBox).not.toBeNull();
+    expect(manualBox).not.toBeNull();
+    expect(Math.abs((importBox?.y ?? 0) - (manualBox?.y ?? 0))).toBeLessThan(2);
+    expect(Math.abs((importBox?.height ?? 0) - (manualBox?.height ?? 0))).toBeLessThan(2);
+
+    // "Tạo bộ" label is centered above the button pair
+    const createLabel = page.getByText("T\u1ea1o b\u1ed9", { exact: true }).first();
+    await expect(createLabel).toBeVisible();
+    const labelBox = await createLabel.boundingBox();
+    expect(labelBox).not.toBeNull();
+    const pairCenter =
+      (Math.min(importBox?.x ?? 0, manualBox?.x ?? 0) +
+        Math.max(
+          (importBox?.x ?? 0) + (importBox?.width ?? 0),
+          (manualBox?.x ?? 0) + (manualBox?.width ?? 0),
+        )) /
+      2;
+    const labelCenter = (labelBox?.x ?? 0) + (labelBox?.width ?? 0) / 2;
+    expect(Math.abs(labelCenter - pairCenter)).toBeLessThan(2);
 
     // Sets list (tab content) should appear — first set card within reasonable screen area
     const firstCard = page.getByRole("link", { name: /Test Set/ }).first();
@@ -242,6 +267,41 @@ test.describe("Mobile-first UI — Quiz page", () => {
     await expect(startBtn).toBeVisible();
     const box = await startBtn.boundingBox();
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(MOBILE.height);
+  });
+
+  test("quiz action bar is contiguous with bottom nav and summarizes mode/count/cards", async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("quiz_bar"));
+    await seedSetsForQuiz(page);
+
+    await page.goto("/quiz?tab=create");
+
+    const startBtn = page.getByRole("button", { name: /B\u1eaft \u0111\u1ea7u ki\u1ec3m tra/ });
+    await expect(startBtn).toBeVisible();
+
+    // Action bar should sit directly above the bottom nav (no gap, no overlap)
+    const bar = page.locator('div[class*="bottom-[calc"]').first();
+    const nav = page.getByRole("navigation", { name: /\u0110i\u1ec1u h\u01b0\u1edbng ch\u00ednh/ });
+    const barBox = await bar.boundingBox();
+    const navBox = await nav.boundingBox();
+    expect(barBox).not.toBeNull();
+    expect(navBox).not.toBeNull();
+    const barBottom = (barBox?.y ?? 0) + (barBox?.height ?? 0);
+    expect(Math.abs(barBottom - (navBox?.y ?? 0))).toBeLessThanOrEqual(2);
+
+    // Mode name is fully visible (not truncated)
+    await expect(bar.getByText("C\u00e2n b\u1eb1ng", { exact: true })).toBeVisible();
+
+    // Question count and eligible card count are fully visible (not truncated)
+    await expect(bar.getByText("10 c\u00e2u \u00b7 13 th\u1ebb")).toBeVisible();
+
+    // Start button stays above the bottom nav
+    const startBox = await startBtn.boundingBox();
+    expect(startBox).not.toBeNull();
+    const startBottom = (startBox?.y ?? 0) + (startBox?.height ?? 0);
+    expect(startBottom).toBeLessThanOrEqual((navBox?.y ?? 0) + 4);
   });
 
   test("quiz page desktop layout is unchanged", async ({ page }) => {

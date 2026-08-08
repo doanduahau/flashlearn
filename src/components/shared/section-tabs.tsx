@@ -48,7 +48,7 @@ export function SectionTabs({
     <>
       <nav
         aria-label={label}
-        className="mt-5 flex w-full gap-1 overflow-x-auto rounded-2xl bg-surface-subtle p-1"
+        className="mt-2 flex w-full gap-1 overflow-x-auto rounded-2xl bg-surface-subtle p-1 sm:mt-5"
       >
         {items.map((item) => {
           const active = item.value === activeValue;

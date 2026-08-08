@@ -87,40 +87,50 @@ function CreateSetBlock({
   return (
     <section
       aria-label="Tạo bộ flashcard"
-      className="mt-3 rounded-xl border border-border-soft bg-surface-subtle p-2.5 sm:mt-5 sm:rounded-2xl sm:p-4"
+      className="mt-2 rounded-xl border border-border-soft bg-surface-subtle p-2 sm:mt-5 sm:rounded-2xl sm:p-4"
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-text-secondary sm:text-base">Tạo bộ</span>
-        {mode === null ? (
-          <>
-            <Button asChild size="sm" className="min-h-9 sm:min-h-10">
+      {mode === null ? (
+        <div className="flex flex-col items-center gap-1 sm:gap-2">
+          <span className="text-sm font-semibold text-text-secondary sm:text-base">Tạo bộ</span>
+          <div className="flex w-full gap-2 sm:w-auto">
+            <Button asChild size="sm" className="min-h-9 flex-1 sm:min-h-10 sm:flex-none">
               <Link href={importHref} scroll={false}>
                 <FileUp aria-hidden="true" />
                 Nhập Excel
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm" className="min-h-9 sm:min-h-10">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="min-h-9 flex-1 sm:min-h-10 sm:flex-none"
+            >
               <Link href={manualHref} scroll={false}>
                 <SquarePen aria-hidden="true" />
                 Thủ công
               </Link>
             </Button>
-          </>
-        ) : (
-          <Link className="ml-auto text-sm underline" href={closeHref} scroll={false}>
-            Đóng
-          </Link>
-        )}
-      </div>
-      {mode === "import" ? (
-        <section
-          aria-label="Nhập từ tệp"
-          className="mt-3 rounded-xl border border-border-soft bg-surface p-3 sm:rounded-2xl sm:p-5"
-        >
-          <ImportWizard />
-        </section>
-      ) : null}
-      {mode === "manual" ? <ManualSetForm /> : null}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-text-secondary sm:text-base">Tạo bộ</span>
+            <Link className="text-sm underline" href={closeHref} scroll={false}>
+              Đóng
+            </Link>
+          </div>
+          {mode === "import" ? (
+            <section
+              aria-label="Nhập từ tệp"
+              className="mt-3 rounded-xl border border-border-soft bg-surface p-3 sm:rounded-2xl sm:p-5"
+            >
+              <ImportWizard />
+            </section>
+          ) : null}
+          {mode === "manual" ? <ManualSetForm /> : null}
+        </>
+      )}
     </section>
   );
 }

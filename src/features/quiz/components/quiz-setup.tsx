@@ -173,7 +173,7 @@ export function QuizSetup({
   const currentModeName = modes.find((m) => m.id === mode)?.title ?? mode;
 
   return (
-    <div className="mt-3 space-y-3 pb-28 sm:mt-5 sm:space-y-4 md:pb-0">
+    <div className="mt-2 space-y-3 pb-36 sm:mt-5 sm:space-y-4 md:pb-0">
       {/* "Tất cả thẻ" option */}
       <label className="flex min-h-10 gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 sm:min-h-12 sm:p-4">
         <input type="radio" checked={all} onChange={() => setAll(true)} />
@@ -201,7 +201,6 @@ export function QuizSetup({
           setCount={setCount}
           eligible={eligible}
           counting={counting}
-          availableCounts={availableCounts}
           allCountOption={allCountOption}
           countError={countError}
         />
@@ -264,7 +263,6 @@ export function QuizSetup({
             setCount={setCount}
             eligible={eligible}
             counting={counting}
-            availableCounts={availableCounts}
             allCountOption={allCountOption}
             countError={countError}
           />
@@ -289,7 +287,6 @@ function QuizConfigInline({
   setCount,
   eligible,
   counting,
-  availableCounts,
   allCountOption,
   countError,
 }: Readonly<{
@@ -299,7 +296,6 @@ function QuizConfigInline({
   setCount: (n: number) => void;
   eligible: number;
   counting: boolean;
-  availableCounts: number[];
   allCountOption: boolean;
   countError: string | null;
 }>) {
@@ -406,10 +402,10 @@ function QuizActionBar({
   onOpenConfig: () => void;
 }>) {
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-y border-border-soft bg-surface/95 p-2.5 shadow-[0_-8px_24px_rgba(39,93,70,0.08)] backdrop-blur sm:p-3 md:sticky md:bottom-4 md:rounded-2xl md:border">
+    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 mb-0 border-y border-border-soft bg-surface/95 p-2.5 shadow-[0_-8px_24px_rgba(39,93,70,0.08)] backdrop-blur sm:p-3 md:sticky md:bottom-4 md:rounded-2xl md:border">
       <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-2 md:max-w-none">
         {/* Mobile: summary + config icon */}
-        <div className="flex min-w-0 flex-1 items-center gap-2 md:hidden">
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 md:hidden">
           <button
             type="button"
             aria-label="Thiết lập bài kiểm tra"
@@ -417,12 +413,10 @@ function QuizActionBar({
             className="flex shrink-0 items-center gap-1.5 rounded-xl border border-border-soft bg-surface px-2.5 py-1.5 text-xs font-medium hover:bg-surface-subtle"
           >
             <Settings className="size-3.5 shrink-0" aria-hidden="true" />
-            <span className="max-w-20 truncate">{modeName}</span>
-            <span className="text-text-secondary">·</span>
-            <span>{count || 0} câu</span>
+            <span>{modeName}</span>
           </button>
-          <p aria-live="polite" className="min-w-0 truncate text-xs text-text-secondary">
-            {counting ? "Đang tính thẻ…" : `${eligible} thẻ`}
+          <p aria-live="polite" className="min-w-0 max-w-full truncate text-xs text-text-secondary">
+            {counting ? "Đang tính thẻ…" : `${count || 0} câu · ${eligible} thẻ`}
           </p>
         </div>
 

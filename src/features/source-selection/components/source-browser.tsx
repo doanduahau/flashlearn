@@ -54,9 +54,9 @@ export function SourceBrowser({
   }
 
   return (
-    <section className="space-y-4" aria-labelledby="source-browser-heading">
+    <section className="space-y-2 sm:space-y-3" aria-labelledby="source-browser-heading">
       <div>
-        <h2 id="source-browser-heading" className="text-xl font-bold">
+        <h2 id="source-browser-heading" className="text-base font-semibold sm:text-lg">
           Chọn nguồn
         </h2>
       </div>
@@ -127,7 +127,7 @@ export function SourceBrowser({
             const selectedSource = selectedKeys.has(`${source.kind}:${source.id}`);
             return (
               <li key={`${source.kind}:${source.id}`}>
-                <label className="flex min-h-12 items-center gap-3 rounded-2xl border border-border-soft bg-surface p-3 hover:bg-surface-subtle">
+                <label className="flex min-h-10 items-center gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 hover:bg-surface-subtle sm:min-h-12 sm:p-3">
                   <input
                     type="checkbox"
                     checked={selectedSource}
@@ -135,12 +135,14 @@ export function SourceBrowser({
                     aria-label={`${source.name}, ${source.kind === "regular" ? "Bộ thường" : "Bộ đặc biệt"}`}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{source.name}</span>
+                    <span className="block truncate text-sm font-medium sm:text-base">
+                      {source.name}
+                    </span>
                     <span className="text-xs text-text-secondary">
                       {source.kind === "regular" ? "Bộ thường" : "Bộ đặc biệt"}
                     </span>
                   </span>
-                  <span className="shrink-0 text-sm text-text-secondary">
+                  <span className="shrink-0 text-xs text-text-secondary sm:text-sm">
                     {source.cardCount} thẻ
                   </span>
                 </label>

@@ -137,9 +137,9 @@ export function StudySourceSelect({
   }
 
   return (
-    <div className="mt-6 space-y-6 pb-28 md:pb-0">
+    <div className="mt-3 space-y-3 pb-28 sm:mt-5 sm:space-y-5 md:pb-0">
       {!totalCards ? (
-        <div className="rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-6 text-center">
+        <div className="rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-5 text-center">
           <p className="font-medium">Chưa có thẻ flashcard để học.</p>
           <Link className="mt-2 inline-block underline" href="/sets?create=import">
             Nhập tệp đầu tiên
@@ -154,14 +154,14 @@ export function StudySourceSelect({
           setError(null);
         }}
         className={cn(
-          "flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-colors",
+          "flex w-full items-center justify-between gap-3 rounded-2xl border p-2.5 text-left text-sm transition-colors sm:p-4",
           mode === "all"
             ? "border-primary bg-primary-soft"
             : "border-border-soft bg-surface hover:bg-surface-subtle",
         )}
       >
         <span className="font-semibold">Tất cả thẻ</span>
-        <span className="shrink-0 text-sm text-text-secondary">{totalCards} thẻ</span>
+        <span className="shrink-0 text-text-secondary">{totalCards} thẻ</span>
       </button>
       <SourceBrowser
         path="/study"

@@ -23,8 +23,8 @@ export default async function QuizPage({
   const tab = quizTab(raw.tab);
 
   return (
-    <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
-      <h1 className="text-3xl font-bold">Kiểm tra</h1>
+    <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
+      <h1 className="text-2xl font-bold sm:text-3xl">Kiểm tra</h1>
       <SectionTabs
         label="Nội dung kiểm tra"
         current={tab}
@@ -63,7 +63,7 @@ async function QuizCreator({ searchParams }: Readonly<{ searchParams: RouteSearc
   ]);
 
   return (
-    <section className="mt-6">
+    <section className="mt-3 sm:mt-5">
       <QuizSetup sourcePage={sourcePage} totalCards={totalResult.count ?? 0} />
     </section>
   );

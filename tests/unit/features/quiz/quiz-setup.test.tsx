@@ -36,11 +36,12 @@ describe("QuizSetup", () => {
   it("offers only fixed feasible question counts and disables impossible counts", () => {
     render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} />);
 
-    expect(screen.getByText("Có 25 thẻ hợp lệ trong phạm vi.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "10" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "20" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "30" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "50" })).toBeDisabled();
+    // QuizConfigInline renders in both desktop inline and the dialog, so two occurrences
+    expect(screen.getAllByText("25 thẻ hợp lệ")[0]).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "10" })[0]).toBeEnabled();
+    expect(screen.getAllByRole("button", { name: "20" })[0]).toBeEnabled();
+    expect(screen.getAllByRole("button", { name: "30" })[0]).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "50" })[0]).toBeDisabled();
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
   });
 

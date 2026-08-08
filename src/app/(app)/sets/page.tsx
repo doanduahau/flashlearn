@@ -59,8 +59,8 @@ export default async function SetsPage({
   ];
 
   return (
-    <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
-      <h1 className="text-3xl font-bold">Bộ flashcard</h1>
+    <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
+      <h1 className="text-2xl font-bold sm:text-3xl">Bộ flashcard</h1>
       <CreateSetBlock mode={createModeOf(raw.create)} searchParams={raw} />
       <SectionTabs
         label="Loại bộ flashcard"
@@ -87,27 +87,27 @@ function CreateSetBlock({
   return (
     <section
       aria-label="Tạo bộ flashcard"
-      className="mt-6 rounded-2xl border border-border-soft bg-surface-subtle p-4 sm:p-5"
+      className="mt-3 rounded-xl border border-border-soft bg-surface-subtle p-2.5 sm:mt-5 sm:rounded-2xl sm:p-4"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Tạo bộ flashcard</h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-text-secondary sm:text-base">Tạo bộ</span>
         {mode === null ? (
-          <div className="flex flex-wrap gap-2">
-            <Button asChild size="sm" className="min-h-11">
+          <>
+            <Button asChild size="sm" className="min-h-9 sm:min-h-10">
               <Link href={importHref} scroll={false}>
                 <FileUp aria-hidden="true" />
-                Nhập từ tệp
+                Nhập Excel
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm" className="min-h-11">
+            <Button asChild variant="outline" size="sm" className="min-h-9 sm:min-h-10">
               <Link href={manualHref} scroll={false}>
                 <SquarePen aria-hidden="true" />
-                Tạo bộ thủ công
+                Thủ công
               </Link>
             </Button>
-          </div>
+          </>
         ) : (
-          <Link className="text-sm underline" href={closeHref} scroll={false}>
+          <Link className="ml-auto text-sm underline" href={closeHref} scroll={false}>
             Đóng
           </Link>
         )}
@@ -115,7 +115,7 @@ function CreateSetBlock({
       {mode === "import" ? (
         <section
           aria-label="Nhập từ tệp"
-          className="mt-4 rounded-2xl border border-border-soft bg-surface p-5"
+          className="mt-3 rounded-xl border border-border-soft bg-surface p-3 sm:rounded-2xl sm:p-5"
         >
           <ImportWizard />
         </section>
@@ -187,10 +187,10 @@ async function SetsTabContent({
     }));
 
     return (
-      <section className="mt-6" aria-label="Danh sách bộ thường">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold">Bộ thường</h2>
-          <Button asChild variant="outline" size="sm" className="min-h-11">
+      <section className="mt-3 sm:mt-5" aria-label="Danh sách bộ thường">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold sm:text-lg">Bộ thường</h2>
+          <Button asChild variant="outline" size="sm" className="min-h-9 sm:min-h-10">
             <Link
               href={updateSearchParamHref("/sets", searchParams, "reorder", "1")}
               scroll={false}
@@ -236,9 +236,9 @@ async function SetsTabContent({
   }));
 
   return (
-    <section className="mt-6" aria-label="Danh sách bộ đặc biệt">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">Bộ đặc biệt</h2>
+    <section className="mt-3 sm:mt-5" aria-label="Danh sách bộ đặc biệt">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-base font-semibold sm:text-lg">Bộ đặc biệt</h2>
         <CreateCollectionToggle />
       </div>
       <LibrarySearchForm defaultValue={query} label={searchLabel} placeholder={placeholder} />
@@ -256,10 +256,14 @@ async function SetsTabContent({
 
 function SetsTabLoading() {
   return (
-    <section aria-label="Đang tải nội dung bộ flashcard" className="mt-6 space-y-4" role="status">
-      <div className="h-7 w-40 animate-pulse rounded-lg bg-surface-subtle" />
-      <div className="h-11 max-w-sm animate-pulse rounded-xl bg-surface-subtle" />
-      <div className="h-28 animate-pulse rounded-2xl bg-surface-subtle" />
+    <section
+      aria-label="Đang tải nội dung bộ flashcard"
+      className="mt-3 space-y-3 sm:mt-5 sm:space-y-4"
+      role="status"
+    >
+      <div className="h-6 w-32 animate-pulse rounded-lg bg-surface-subtle sm:h-7 sm:w-40" />
+      <div className="h-9 animate-pulse rounded-xl bg-surface-subtle sm:h-11 sm:max-w-sm" />
+      <div className="h-24 animate-pulse rounded-2xl bg-surface-subtle sm:h-28" />
     </section>
   );
 }

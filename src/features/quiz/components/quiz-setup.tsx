@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { Settings, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import {
   type QuizMode,
 } from "@/features/quiz/schemas/quiz-schema";
 import { getQuizCardCount, startQuiz } from "@/features/quiz/server/actions";
+import { cn } from "@/lib/utils";
 
 const COUNT_DEBOUNCE_MS = 250;
 const questionCounts = [10, 20, 30, 50];
@@ -69,6 +71,8 @@ export function QuizSetup({
   const [countError, setCountError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, transition] = useTransition();
+  const [configOpen, setConfigOpen] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   const selectedSources = useMemo(() => [...selected.values()], [selected]);
   const currentSources = useMemo<SourceParams>(
@@ -103,6 +107,17 @@ export function QuizSetup({
       clearTimeout(timer);
     };
   }, [all, currentSources]);
+
+  // Sync dialog open/close with state
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (configOpen) {
+      dialog.showModal();
+    } else {
+      dialog.close();
+    }
+  }, [configOpen]);
 
   const counting =
     !all && (customCount === null || !sameSources(customCount.computedFor, currentSources));
@@ -155,55 +170,178 @@ export function QuizSetup({
     eligible >= QUIZ_MIN_QUESTIONS &&
     effectiveCount >= QUIZ_MIN_QUESTIONS;
 
+  const currentModeName = modes.find((m) => m.id === mode)?.title ?? mode;
+
   return (
-    <div className="mt-6 space-y-6 pb-28 md:pb-0">
-      <label className="flex min-h-12 gap-3 rounded-2xl border border-border-soft bg-surface p-4">
+    <div className="mt-3 space-y-3 pb-28 sm:mt-5 sm:space-y-4 md:pb-0">
+      {/* "Tất cả thẻ" option */}
+      <label className="flex min-h-10 gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 sm:min-h-12 sm:p-4">
         <input type="radio" checked={all} onChange={() => setAll(true)} />
         <span className="min-w-0">
-          <strong>Tất cả thẻ</strong>
+          <strong className="text-sm sm:text-base">Tất cả thẻ</strong>
           <br />
-          <span className="text-sm text-text-secondary">{totalCards} thẻ duy nhất</span>
+          <span className="text-xs text-text-secondary sm:text-sm">{totalCards} thẻ duy nhất</span>
         </span>
       </label>
+
+      {/* Source browser — primary content */}
       <SourceBrowser
         path="/quiz"
         sourcePage={sourcePage}
         selected={selectedSources}
         onToggle={toggleSource}
       />
-      <fieldset>
-        <legend className="font-semibold">Chế độ tạo đề</legend>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {modes.map((item) => (
-            <label
-              className="flex min-h-12 gap-3 rounded-xl border border-border-soft bg-surface p-3"
-              key={item.id}
+
+      {/* Desktop: show mode + count inline below source list */}
+      <div className="hidden md:block">
+        <QuizConfigInline
+          mode={mode}
+          setMode={setMode}
+          effectiveCount={effectiveCount}
+          setCount={setCount}
+          eligible={eligible}
+          counting={counting}
+          availableCounts={availableCounts}
+          allCountOption={allCountOption}
+          countError={countError}
+        />
+      </div>
+
+      {countError ? (
+        <p role="alert" className="text-danger md:hidden">
+          {countError}
+        </p>
+      ) : null}
+      {error ? (
+        <p role="alert" className="text-danger">
+          {error}
+        </p>
+      ) : null}
+
+      {/* Bottom action bar (mobile) + sticky (desktop) */}
+      <QuizActionBar
+        selectedCount={all ? 0 : selectedSources.length}
+        eligible={eligible}
+        count={effectiveCount}
+        modeName={currentModeName}
+        counting={counting}
+        pending={pending}
+        canStart={canStart}
+        onStart={submit}
+        onOpenConfig={() => setConfigOpen(true)}
+      />
+
+      {/* Mobile config bottom sheet */}
+      <dialog
+        ref={dialogRef}
+        aria-label="Thiết lập bài kiểm tra"
+        onClose={() => setConfigOpen(false)}
+        onClick={(e) => {
+          // Close when clicking backdrop
+          if (e.target === dialogRef.current) setConfigOpen(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setConfigOpen(false);
+        }}
+        className="m-0 mt-auto w-full max-w-full rounded-t-2xl border-0 bg-surface p-0 shadow-[0_-8px_32px_rgba(39,93,70,0.16)] backdrop:bg-black/40 md:hidden"
+      >
+        <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-bold">Thiết lập bài kiểm tra</h2>
+            <button
+              type="button"
+              onClick={() => setConfigOpen(false)}
+              aria-label="Đóng thiết lập"
+              className="rounded-lg p-1.5 hover:bg-surface-subtle"
             >
-              <input
-                type="radio"
-                name="quiz-mode"
-                checked={mode === item.id}
-                onChange={() => setMode(item.id)}
-              />
-              <span>
-                <strong>{item.title}</strong>
-                <br />
-                <span className="text-sm text-text-secondary">{item.description}</span>
-              </span>
-            </label>
+              <X className="size-5" aria-hidden="true" />
+            </button>
+          </div>
+          <QuizConfigInline
+            mode={mode}
+            setMode={setMode}
+            effectiveCount={effectiveCount}
+            setCount={setCount}
+            eligible={eligible}
+            counting={counting}
+            availableCounts={availableCounts}
+            allCountOption={allCountOption}
+            countError={countError}
+          />
+          <Button
+            type="button"
+            className="mt-4 w-full min-h-11"
+            onClick={() => setConfigOpen(false)}
+          >
+            Xong
+          </Button>
+        </div>
+      </dialog>
+    </div>
+  );
+}
+
+/** Shared config UI used in both desktop inline and mobile bottom sheet */
+function QuizConfigInline({
+  mode,
+  setMode,
+  effectiveCount,
+  setCount,
+  eligible,
+  counting,
+  availableCounts,
+  allCountOption,
+  countError,
+}: Readonly<{
+  mode: QuizMode;
+  setMode: (m: QuizMode) => void;
+  effectiveCount: number;
+  setCount: (n: number) => void;
+  eligible: number;
+  counting: boolean;
+  availableCounts: number[];
+  allCountOption: boolean;
+  countError: string | null;
+}>) {
+  return (
+    <div className="space-y-4">
+      {/* Mode chips */}
+      <fieldset>
+        <legend className="text-sm font-semibold sm:text-base">Chế độ tạo đề</legend>
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {modes.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-pressed={mode === item.id}
+              onClick={() => setMode(item.id)}
+              title={item.description}
+              className={cn(
+                "rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                mode === item.id
+                  ? "border-primary bg-primary-soft text-primary-foreground"
+                  : "border-border-soft bg-surface hover:bg-surface-subtle",
+              )}
+            >
+              {item.title}
+            </button>
           ))}
         </div>
       </fieldset>
+
+      {/* Count chips */}
       <section aria-labelledby="question-count-heading">
-        <h2 id="question-count-heading" className="font-semibold">
-          Số câu hỏi
-        </h2>
-        <p aria-live="polite" className="mt-1 text-sm text-text-secondary">
-          {counting ? "Đang tính số thẻ hợp lệ…" : `Có ${eligible} thẻ hợp lệ trong phạm vi.`}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Chọn số câu hỏi">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 id="question-count-heading" className="text-sm font-semibold sm:text-base">
+            Số câu hỏi
+          </h2>
+          <p aria-live="polite" className="text-xs text-text-secondary">
+            {counting ? "Đang tính…" : `${eligible} thẻ hợp lệ`}
+          </p>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Chọn số câu hỏi">
           {eligible < QUIZ_MIN_QUESTIONS ? (
-            <Button type="button" variant="outline" disabled>
+            <Button type="button" variant="outline" size="sm" disabled>
               Tất cả ({eligible})
             </Button>
           ) : (
@@ -212,6 +350,7 @@ export function QuizSetup({
                 <Button
                   type="button"
                   key={value}
+                  size="sm"
                   variant={effectiveCount === value ? "soft" : "outline"}
                   disabled={value > eligible || counting}
                   aria-pressed={effectiveCount === value}
@@ -223,6 +362,7 @@ export function QuizSetup({
               {allCountOption ? (
                 <Button
                   type="button"
+                  size="sm"
                   variant={effectiveCount === eligible ? "soft" : "outline"}
                   disabled={counting}
                   aria-pressed={effectiveCount === eligible}
@@ -234,25 +374,12 @@ export function QuizSetup({
             </>
           )}
         </div>
+        {countError ? (
+          <p role="alert" className="mt-2 text-sm text-danger">
+            {countError}
+          </p>
+        ) : null}
       </section>
-      {countError ? (
-        <p role="alert" className="text-danger">
-          {countError}
-        </p>
-      ) : null}
-      {error ? (
-        <p role="alert" className="text-danger">
-          {error}
-        </p>
-      ) : null}
-      <QuizActionBar
-        selectedCount={all ? 0 : selectedSources.length}
-        eligible={eligible}
-        count={effectiveCount}
-        pending={pending}
-        canStart={canStart}
-        onStart={submit}
-      />
     </div>
   );
 }
@@ -261,24 +388,55 @@ function QuizActionBar({
   selectedCount,
   eligible,
   count,
+  modeName,
+  counting,
   pending,
   canStart,
   onStart,
+  onOpenConfig,
 }: Readonly<{
   selectedCount: number;
   eligible: number;
   count: number;
+  modeName: string;
+  counting: boolean;
   pending: boolean;
   canStart: boolean;
   onStart: () => void;
+  onOpenConfig: () => void;
 }>) {
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-y border-border-soft bg-surface/95 p-3 shadow-[0_-8px_24px_rgba(39,93,70,0.08)] backdrop-blur md:sticky md:bottom-4 md:rounded-2xl md:border">
-      <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 md:max-w-none">
-        <p aria-live="polite" className="min-w-0 text-sm font-medium">
+    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-y border-border-soft bg-surface/95 p-2.5 shadow-[0_-8px_24px_rgba(39,93,70,0.08)] backdrop-blur sm:p-3 md:sticky md:bottom-4 md:rounded-2xl md:border">
+      <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-2 md:max-w-none">
+        {/* Mobile: summary + config icon */}
+        <div className="flex min-w-0 flex-1 items-center gap-2 md:hidden">
+          <button
+            type="button"
+            aria-label="Thiết lập bài kiểm tra"
+            onClick={onOpenConfig}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl border border-border-soft bg-surface px-2.5 py-1.5 text-xs font-medium hover:bg-surface-subtle"
+          >
+            <Settings className="size-3.5 shrink-0" aria-hidden="true" />
+            <span className="max-w-20 truncate">{modeName}</span>
+            <span className="text-text-secondary">·</span>
+            <span>{count || 0} câu</span>
+          </button>
+          <p aria-live="polite" className="min-w-0 truncate text-xs text-text-secondary">
+            {counting ? "Đang tính thẻ…" : `${eligible} thẻ`}
+          </p>
+        </div>
+
+        {/* Desktop: text summary */}
+        <p aria-live="polite" className="hidden min-w-0 text-sm font-medium md:block">
           {selectedCount} nguồn · {eligible} thẻ · {count || 0} câu
         </p>
-        <Button type="button" className="min-h-11 shrink-0" onClick={onStart} disabled={!canStart}>
+
+        <Button
+          type="button"
+          className="min-h-9 shrink-0 sm:min-h-11"
+          onClick={onStart}
+          disabled={!canStart}
+        >
           {pending ? "Đang tạo…" : "Bắt đầu kiểm tra"}
         </Button>
       </div>

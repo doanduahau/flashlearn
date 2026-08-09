@@ -6,6 +6,7 @@ import {
   analyzeReviewState,
   analyzeShortTermLearning,
   checkSchedulerMismatches,
+  analyzeUntestedWithHistory,
   classifyByLastReviewAge,
   classifyByOverdue,
   classifyByReviewCount,
@@ -56,6 +57,7 @@ export type AggregateDiagnostic = {
   shortTermLearningTotal: number;
   oneReviewTotal: number;
   replayCheck: ReplaySampleResult;
+  untestedWithHistoryTotal: number;
 };
 
 export type ProductionDiagnosticResult = {
@@ -192,6 +194,7 @@ export async function runProductionDiagnostic(
       shortTermLearning: analyzeShortTermLearning(details),
       reviewState: analyzeReviewState(details, evaluationTime, masteryMap),
       schedulerMismatchCount: checkSchedulerMismatches(details),
+      untestedWithHistory: analyzeUntestedWithHistory(details, masteryMap),
     });
 
     replayTotal += replayResult.total;
@@ -220,6 +223,7 @@ export async function runProductionDiagnostic(
       shortTermLearningTotal: perUser.reduce((s, u) => s + u.shortTermLearning.count, 0),
       oneReviewTotal: perUser.reduce((s, u) => s + u.oneReview.count, 0),
       replayCheck: { total: replayTotal, mismatches: replayMismatches },
+      untestedWithHistoryTotal: perUser.reduce((s, u) => s + u.untestedWithHistory.count, 0),
     },
   };
 }

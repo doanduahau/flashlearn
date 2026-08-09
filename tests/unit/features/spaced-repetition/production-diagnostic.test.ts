@@ -14,6 +14,7 @@ import {
   analyzeOneReview,
   analyzeReviewState,
   analyzeShortTermLearning,
+  analyzeUntestedWithHistory,
   checkSchedulerMismatches,
   classifyByLastReviewAge,
   classifyByOverdue,
@@ -511,5 +512,139 @@ describe("sumLastEventOutcomes", () => {
       binaryCorrect: 0,
       unknown: 1,
     });
+  });
+});
+
+// ---- Regression: binary fallback outcome ----
+
+describe("binary fallback outcome regression", () => {
+  it("historical fsrs_rating=NULL + is_correct=true => binaryCorrect", () => {
+    const details = [
+      card({ flashcardId: "a", lastEventFsrsRating: null, lastEventIsCorrect: true }),
+    ];
+    expect(classifyLastEventOutcome(details).binaryCorrect).toBe(1);
+    expect(classifyLastEventOutcome(details).good).toBe(0);
+  });
+
+  it("historical fsrs_rating=NULL + is_correct=false => binaryIncorrect", () => {
+    const details = [
+      card({ flashcardId: "a", lastEventFsrsRating: null, lastEventIsCorrect: false }),
+    ];
+    expect(classifyLastEventOutcome(details).binaryIncorrect).toBe(1);
+    expect(classifyLastEventOutcome(details).again).toBe(0);
+  });
+
+  it("stored rating overrides is_correct", () => {
+    const details = [card({ flashcardId: "a", lastEventFsrsRating: 3, lastEventIsCorrect: false })];
+    expect(classifyLastEventOutcome(details).good).toBe(1);
+    expect(classifyLastEventOutcome(details).binaryIncorrect).toBe(0);
+  });
+
+  it("100 cards => exactly 100 outcome classifications, no gaps", () => {
+    const details = Array.from({ length: 50 }, (_, i) =>
+      card({ flashcardId: `g${i}`, lastEventFsrsRating: 3 }),
+    ).concat(
+      Array.from({ length: 50 }, (_, i) =>
+        card({ flashcardId: `b${i}`, lastEventFsrsRating: null, lastEventIsCorrect: true }),
+      ),
+    );
+    const outcome = classifyLastEventOutcome(details);
+    const total =
+      outcome.again +
+      outcome.hard +
+      outcome.good +
+      outcome.easy +
+      outcome.binaryCorrect +
+      outcome.binaryIncorrect +
+      outcome.unknown;
+    expect(total).toBe(100);
+    expect(outcome.good).toBe(50);
+    expect(outcome.binaryCorrect).toBe(50);
+  });
+
+  it("no schedulable event => unknown but still counted", () => {
+    const details = [
+      card({ flashcardId: "a", lastEventFsrsRating: null, lastEventIsCorrect: null }),
+    ];
+    const outcome = classifyLastEventOutcome(details);
+    expect(outcome.unknown).toBe(1);
+    const total =
+      outcome.again +
+      outcome.hard +
+      outcome.good +
+      outcome.easy +
+      outcome.binaryCorrect +
+      outcome.binaryIncorrect +
+      outcome.unknown;
+    expect(total).toBe(1);
+  });
+});
+
+// ---- Regression: analyzeOneReview binary fallback ----
+
+describe("analyzeOneReview binary fallback", () => {
+  it("binary correct counts as correct in one-review analysis", () => {
+    const details = [
+      card({
+        flashcardId: "a",
+        processedEventCount: 1,
+        lastEventFsrsRating: null,
+        lastEventIsCorrect: true,
+      }),
+    ];
+    const result = analyzeOneReview(details, T0);
+    expect(result.correctCount).toBe(1);
+    expect(result.incorrectCount).toBe(0);
+  });
+
+  it("binary incorrect counts as incorrect in one-review analysis", () => {
+    const details = [
+      card({
+        flashcardId: "a",
+        processedEventCount: 1,
+        lastEventFsrsRating: null,
+        lastEventIsCorrect: false,
+      }),
+    ];
+    const result = analyzeOneReview(details, T0);
+    expect(result.correctCount).toBe(0);
+    expect(result.incorrectCount).toBe(1);
+  });
+});
+
+// ---- Regression: analyzeUntestedWithHistory ----
+
+describe("analyzeUntestedWithHistory", () => {
+  it("cards not in mastery map => noCardInMasterySnapshot", () => {
+    const details = [card({ flashcardId: "a" })];
+    const map = new Map<string, MasteryCardInfo>();
+    const result = analyzeUntestedWithHistory(details, map);
+    expect(result.count).toBe(1);
+    expect(result.reasonCategories.noCardInMasterySnapshot).toBe(1);
+  });
+
+  it("cards untested with no event findings => eventNotFound", () => {
+    const details = [
+      card({ flashcardId: "a", lastEventFsrsRating: null, lastEventIsCorrect: null }),
+    ];
+    const map = new Map([["a", mastery("a", "untested", null)]]);
+    const result = analyzeUntestedWithHistory(details, map);
+    expect(result.count).toBe(1);
+    expect(result.reasonCategories.eventNotFound).toBe(1);
+  });
+
+  it("cards untested with valid event => other", () => {
+    const details = [card({ flashcardId: "a", lastEventFsrsRating: 3 })];
+    const map = new Map([["a", mastery("a", "untested", null)]]);
+    const result = analyzeUntestedWithHistory(details, map);
+    expect(result.count).toBe(1);
+    expect(result.reasonCategories.other).toBe(1);
+  });
+
+  it("cards with non-untested status => not counted", () => {
+    const details = [card({ flashcardId: "a" })];
+    const map = new Map([["a", mastery("a", "learning", 50)]]);
+    const result = analyzeUntestedWithHistory(details, map);
+    expect(result.count).toBe(0);
   });
 });

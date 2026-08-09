@@ -94,6 +94,15 @@ export type OneReviewAnalysis = {
   medianDaysSinceReview: number;
 };
 
+export type MasteryUntestedWithHistory = {
+  count: number;
+  reasonCategories: {
+    noCardInMasterySnapshot: number;
+    eventNotFound: number;
+    other: number;
+  };
+};
+
 export type ShortTermLearningEffect = {
   count: number;
   stateLearning: number;
@@ -125,6 +134,7 @@ export type PerUserDiagnostic = {
   shortTermLearning: ShortTermLearningEffect;
   reviewState: ReviewStateAnalysis;
   schedulerMismatchCount: number;
+  untestedWithHistory: MasteryUntestedWithHistory;
 };
 
 // ---- Constants ----
@@ -338,8 +348,16 @@ export function analyzeOneReview(
   const daysSinceReview: number[] = [];
 
   for (const d of oneEvent) {
-    if (d.lastEventFsrsRating === 3) correctCount += 1;
-    else if (d.lastEventFsrsRating === 1) incorrectCount += 1;
+    if (
+      d.lastEventFsrsRating === 3 ||
+      (d.lastEventFsrsRating == null && d.lastEventIsCorrect === true)
+    )
+      correctCount += 1;
+    else if (
+      d.lastEventFsrsRating === 1 ||
+      (d.lastEventFsrsRating == null && d.lastEventIsCorrect === false)
+    )
+      incorrectCount += 1;
 
     const key = STATE_NAME[d.state] ?? "New";
     stateBuckets[key] += 1;
@@ -512,4 +530,34 @@ export function sumLastEventOutcomes(
     result.unknown += b.unknown;
   }
   return result;
+}
+
+export function analyzeUntestedWithHistory(
+  details: readonly FsrsOnlyCardDetail[],
+  masteryMap: ReadonlyMap<string, MasteryCardInfo>,
+): MasteryUntestedWithHistory {
+  let noCardInMasterySnapshot = 0;
+  let eventNotFound = 0;
+  let other = 0;
+
+  for (const d of details) {
+    const info = masteryMap.get(d.flashcardId);
+    if (!info) {
+      noCardInMasterySnapshot += 1;
+      continue;
+    }
+    if (info.status !== "untested") continue;
+    if (d.processedEventCount > 0) {
+      if (d.lastEventFsrsRating === null && d.lastEventIsCorrect === null) {
+        eventNotFound += 1;
+      } else {
+        other += 1;
+      }
+    }
+  }
+
+  return {
+    count: noCardInMasterySnapshot + eventNotFound + other,
+    reasonCategories: { noCardInMasterySnapshot, eventNotFound, other },
+  };
 }

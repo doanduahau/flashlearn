@@ -47,11 +47,20 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
   };
 
   const findActiveCardIds = async (cardIds: readonly string[]): Promise<string[]> => {
-    const { data } = await client
-      .from("flashcards")
-      .select("id")
-      .in("id", [...cardIds]);
-    return (data ?? []).map((row: { id: string }) => row.id);
+    const results: string[] = [];
+    let start = 0;
+    while (true) {
+      const { data } = await client
+        .from("flashcards")
+        .select("id")
+        .in("id", [...cardIds])
+        .order("id", { ascending: true })
+        .range(start, start + SCOPE_ID_PAGE_SIZE - 1);
+      const page = data ?? [];
+      results.push(...page.map((row: { id: string }) => row.id));
+      if (page.length < SCOPE_ID_PAGE_SIZE) return results;
+      start += SCOPE_ID_PAGE_SIZE;
+    }
   };
 
   const findReviewEvents = async (cardIds: readonly string[]): Promise<CardReviewEventRow[]> => {
@@ -146,7 +155,6 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
             const e = ev as { id: string; fsrs_rating: number | null; is_correct: boolean | null };
             ratingMap.set(e.id, { fsrsRating: e.fsrs_rating, isCorrect: e.is_correct });
           }
-          if ((events ?? []).length < SCOPE_ID_PAGE_SIZE) break;
           j += SCOPE_ID_PAGE_SIZE;
         }
 
@@ -346,11 +354,13 @@ function formatResult(projectRef: string, result: ProductionDiagnosticResult): s
     `  >90d:      ${a.overdueBuckets.gt90d}`,
     "",
     "=== LAST EVENT OUTCOME ===",
-    `  Again (rating=1):   ${a.lastEventOutcome.again}`,
-    `  Hard (rating=2):    ${a.lastEventOutcome.hard}`,
-    `  Good (rating=3):    ${a.lastEventOutcome.good}`,
-    `  Easy (rating=4):    ${a.lastEventOutcome.easy}`,
-    `  Unknown/null:       ${a.lastEventOutcome.unknown}`,
+    `  Again (rating=1):       ${a.lastEventOutcome.again}`,
+    `  Hard (rating=2):        ${a.lastEventOutcome.hard}`,
+    `  Good (rating=3):        ${a.lastEventOutcome.good}`,
+    `  Easy (rating=4):        ${a.lastEventOutcome.easy}`,
+    `  Binary correct (null):  ${a.lastEventOutcome.binaryCorrect}`,
+    `  Binary incorrect (null):${a.lastEventOutcome.binaryIncorrect}`,
+    `  Unknown/null:           ${a.lastEventOutcome.unknown}`,
     "",
     "=== MASTERY STATUS CROSS-TAB ===",
     `  untested:  ${a.masteryCrossTab.untested}`,
@@ -374,6 +384,25 @@ function formatResult(projectRef: string, result: ProductionDiagnosticResult): s
     "=== SCHEDULER CONFIG CHECK ===",
     `  Mismatches (should be 0): ${a.totalSchedulerMismatches}`,
     "",
+    "=== INVARIANTS ===",
+  );
+
+  const outcomeTotal =
+    a.lastEventOutcome.again +
+    a.lastEventOutcome.hard +
+    a.lastEventOutcome.good +
+    a.lastEventOutcome.easy +
+    a.lastEventOutcome.binaryCorrect +
+    a.lastEventOutcome.binaryIncorrect +
+    a.lastEventOutcome.unknown;
+
+  lines.push(
+    `  FSRS-only cards:                     ${a.totalFsrsOnlyCards}`,
+    `  Last-outcome classified cards:        ${outcomeTotal}`,
+    `  Outcome classification gap:           ${a.totalFsrsOnlyCards - outcomeTotal}`,
+    "",
+    `  Untested-with-history cards:          ${a.untestedWithHistoryTotal}`,
+    "",
     "=== REPLAY CONSISTENCY ===",
     `  Sampled: ${a.replayCheck.total}, Mismatches: ${a.replayCheck.mismatches}`,
     `  ${a.replayCheck.mismatches === 0 ? "ALL PROJECTIONS MATCH REPLAY" : "PROJECTION MISMATCH DETECTED"}`,
@@ -387,12 +416,13 @@ function formatResult(projectRef: string, result: ProductionDiagnosticResult): s
       `    FSRS-only: ${u.fsrsOnlyCount}`,
       `    States — New:${u.stateBuckets.New} Learning:${u.stateBuckets.Learning} Review:${u.stateBuckets.Review} Relearning:${u.stateBuckets.Relearning}`,
       `    Review counts — 1:${u.reviewCountBuckets.count1} 2:${u.reviewCountBuckets.count2} 3:${u.reviewCountBuckets.count3} 4:${u.reviewCountBuckets.count4} 5-9:${u.reviewCountBuckets.count5to9} 10+:${u.reviewCountBuckets.count10Plus}`,
-      `    Last-event outcome — Again:${u.lastEventOutcome.again} Hard:${u.lastEventOutcome.hard} Good:${u.lastEventOutcome.good} Easy:${u.lastEventOutcome.easy} Unknown:${u.lastEventOutcome.unknown}`,
+      `    Last-event outcome — Again:${u.lastEventOutcome.again} Hard:${u.lastEventOutcome.hard} Good:${u.lastEventOutcome.good} Easy:${u.lastEventOutcome.easy} BinCorrect:${u.lastEventOutcome.binaryCorrect} BinIncorrect:${u.lastEventOutcome.binaryIncorrect} Unknown:${u.lastEventOutcome.unknown}`,
       `    Mastery cross — untested:${u.masteryCrossTab.untested} review:${u.masteryCrossTab.review} learning:${u.masteryCrossTab.learning} strong:${u.masteryCrossTab.strong}`,
       `    One-review cards: ${u.oneReview.count}`,
       `    Short-term learning (scheduled_days=0): ${u.shortTermLearning.count}`,
       `    Review-state cards: ${u.reviewState.count}`,
       `    Scheduler mismatches: ${u.schedulerMismatchCount}`,
+      `    Untested-with-history: ${u.untestedWithHistory.count} (noSnapshot:${u.untestedWithHistory.reasonCategories.noCardInMasterySnapshot} eventNotFound:${u.untestedWithHistory.reasonCategories.eventNotFound} other:${u.untestedWithHistory.reasonCategories.other})`,
     );
   }
 

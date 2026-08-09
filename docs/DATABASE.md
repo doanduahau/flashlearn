@@ -370,6 +370,38 @@ security-definer answer RPC, and its unique `quiz_question_id` makes retries
 idempotent. Account deletion cascades through `user_id`; normal product flows do
 not edit or delete events.
 
+## Mastery V1
+
+Mastery is read-time, replaceable derived data from immutable
+`card_review_events`; it is not persisted and never replaces event history. The
+domain output is one of four statuses: `untested` (no events), `review` (low or
+stale confidence), `learning` (developing recall), and `strong` (sustained,
+recent confidence). The internal score is intentionally not a user-facing
+percentage.
+
+V1 evaluates every event in UTC with these centralized constants:
+
+| Constant                    |                     Value | Rationale                                                                        |
+| --------------------------- | ------------------------: | -------------------------------------------------------------------------------- |
+| Base score                  |                        50 | Neutral starting confidence once a card has evidence.                            |
+| Correct / incorrect outcome |                 +1 / -1.5 | A mistake should undo more confidence than one correct answer earns.             |
+| Event half-life             |                   45 days | Recent outcomes have more influence than old outcomes.                           |
+| Confidence half-life        |                  120 days | An otherwise strong card gradually becomes due for review without scheduling it. |
+| Review threshold            |                        45 | Below this, the card should be treated as weak.                                  |
+| Strong threshold            | 75 with at least 4 events | Prevents a single lucky answer from becoming `strong`.                           |
+
+The algorithm sums recency-weighted outcomes, applies the bounded score range
+0–100, then applies elapsed-time decay from the latest review. It is
+deterministic for the same UTC evaluation time and event history. It does not
+set `next_review_at`, select candidates, or model intervals: mastery confidence
+and a future spaced-repetition/FSRS schedule remain separate concerns.
+
+`loadCardMasteries` first batches currently visible `flashcards`, then batches
+only their review events (with pagination above 1,000 rows). RLS scopes both
+queries, so deleted and foreign cards are never returned as active mastery
+items. The `(user_id, flashcard_id, reviewed_at)` event index supports this
+read path without an N+1 card query.
+
 ## Derived statistics
 
 `daily_learning_records` stores one immutable local date per user/day, its timezone at completion,

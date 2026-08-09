@@ -3,9 +3,12 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { MasteryCardContent } from "@/features/mastery/components/mastery-card-content";
+import { MasteryCounts } from "@/features/mastery/components/mastery-counts";
 import { MasteryLegend } from "@/features/mastery/components/mastery-legend";
 import { masteryCardClassName } from "@/features/mastery/presentation/mastery-presentation";
 import { loadCardMasteries } from "@/features/mastery/server/load-card-masteries";
+import { loadMasteryAggregate } from "@/features/mastery/server/load-mastery-aggregate";
+import type { MasteryAggregate } from "@/features/mastery/utils/aggregate-mastery";
 import type { ActiveFlashcardMastery, MasteryStatus } from "@/features/mastery/types/mastery-types";
 import { AddCardForm } from "@/features/flashcard-sets/components/add-card-form";
 import { CardSearchForm } from "@/features/flashcard-sets/components/card-search-form";
@@ -43,7 +46,7 @@ export default async function SetDetailPage({
   if (!set) notFound();
 
   const searchFilter = query ? `front.ilike.%${query}%,back.ilike.%${query}%` : null;
-  const [totalResult, visibleCountResult] = await Promise.all([
+  const [totalResult, visibleCountResult, setAggregateResult] = await Promise.all([
     supabase.from("flashcards").select("id", { count: "exact", head: true }).eq("set_id", setId),
     searchFilter
       ? supabase
@@ -52,7 +55,9 @@ export default async function SetDetailPage({
           .eq("set_id", setId)
           .or(searchFilter)
       : Promise.resolve({ count: 0 }),
+    loadMasteryAggregate(supabase, { type: "set", setId }),
   ]);
+  const setAggregate: MasteryAggregate = setAggregateResult;
 
   const total = totalResult.count ?? 0;
   const visibleTotal = searchFilter ? (visibleCountResult.count ?? 0) : total;
@@ -128,7 +133,10 @@ export default async function SetDetailPage({
       <section aria-label="Danh sách flashcard" className="mt-6">
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <CardSearchForm defaultValue={query} />
-          {cards?.length ? <MasteryLegend /> : null}
+          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+            <MasteryCounts aggregate={setAggregate} />
+            {cards?.length ? <MasteryLegend /> : null}
+          </div>
         </div>
         {searchFilter ? (
           <p className="mt-2 text-sm text-text-secondary">Tìm thấy {visibleTotal} thẻ phù hợp.</p>

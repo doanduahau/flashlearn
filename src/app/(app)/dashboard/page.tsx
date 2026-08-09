@@ -3,6 +3,8 @@ import { Play } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { MasteryCounts } from "@/features/mastery/components/mastery-counts";
+import { loadMasteryAggregate } from "@/features/mastery/server/load-mastery-aggregate";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
 import {
   accuracy,
@@ -30,10 +32,11 @@ export default async function DashboardPage({
   const today = dateInTimezone(new Date(), timezone);
   const currentMonth = monthInTimezone(new Date(), timezone);
 
-  const [todayDetail, monthActivity, streakDates] = await Promise.all([
+  const [todayDetail, monthActivity, streakDates, masteryAggregate] = await Promise.all([
     loadActivityDetail(supabase, today),
     loadMonthlyActivity(supabase, currentMonth),
     loadMonthlyStreakDates(supabase, timezone, currentMonth),
+    loadMasteryAggregate(supabase, { type: "library" }),
   ]);
 
   const completedToday = todayDetail !== null;
@@ -91,6 +94,13 @@ export default async function DashboardPage({
           {completedToday && <p className="mt-0.5 text-xs text-text-secondary">Đã hoàn thành</p>}
         </article>
       </section>
+
+      {/* Compact learning-status summary */}
+      {masteryAggregate.review > 0 || masteryAggregate.untested > 0 ? (
+        <section aria-label="Tóm tắt trạng thái học" className="mt-2 sm:mt-3">
+          <MasteryCounts aggregate={masteryAggregate} />
+        </section>
+      ) : null}
 
       {/* Monthly calendar — primary content */}
       {monthActivity ? (

@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { MasteryCardContent } from "@/features/mastery/components/mastery-card-content";
+import { MasteryCounts } from "@/features/mastery/components/mastery-counts";
 import { MasteryLegend } from "@/features/mastery/components/mastery-legend";
 import { masteryCardClassName } from "@/features/mastery/presentation/mastery-presentation";
 import { loadCardMasteries } from "@/features/mastery/server/load-card-masteries";
-import type { MasteryStatus } from "@/features/mastery/types/mastery-types";
+import { loadMasteryAggregate } from "@/features/mastery/server/load-mastery-aggregate";
+import type { ActiveFlashcardMastery, MasteryStatus } from "@/features/mastery/types/mastery-types";
 import { DeleteCollectionButton } from "@/features/special-collections/components/delete-collection-button";
 import { RemoveCollectionItemButton } from "@/features/special-collections/components/remove-collection-item-button";
 import { RenameCollectionForm } from "@/features/special-collections/components/rename-collection-form";
@@ -57,7 +59,12 @@ export default async function CollectionDetailPage({
   const cardIds = (items ?? [])
     .map((item) => item.flashcards?.id)
     .filter((id): id is string => typeof id === "string");
-  const masteries = cardIds.length ? await loadCardMasteries(supabase, cardIds) : [];
+  const [masteries, collectionAggregate] = await Promise.all([
+    cardIds.length
+      ? loadCardMasteries(supabase, cardIds)
+      : Promise.resolve([] as ActiveFlashcardMastery[]),
+    loadMasteryAggregate(supabase, { type: "collection", collectionId }),
+  ]);
   const masteryByCard = new Map<string, MasteryStatus>();
   for (const mastery of masteries) {
     masteryByCard.set(mastery.flashcardId, mastery.status);
@@ -80,11 +87,10 @@ export default async function CollectionDetailPage({
       </div>
 
       <section aria-label="Danh sách thẻ" className="mt-6">
-        {items?.length ? (
-          <div className="flex justify-end">
-            <MasteryLegend />
-          </div>
-        ) : null}
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+          <MasteryCounts aggregate={collectionAggregate} />
+          {items?.length ? <MasteryLegend /> : null}
+        </div>
         {totalCount === 0 ? (
           <div className="mt-4 rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-8 text-center">
             <p className="font-medium">Bộ đặc biệt này chưa có thẻ nào.</p>

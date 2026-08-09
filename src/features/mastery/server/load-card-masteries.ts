@@ -13,7 +13,7 @@ type Supabase = SupabaseClient<Database>;
 
 const REVIEW_EVENT_PAGE_SIZE = 1000;
 
-async function findActiveCardIds(
+export async function findActiveCardIds(
   supabase: Supabase,
   cardIds: readonly string[],
 ): Promise<string[]> {
@@ -25,7 +25,7 @@ async function findActiveCardIds(
   return (data ?? []).map((card) => card.id);
 }
 
-async function findReviewEvents(
+export async function findReviewEvents(
   supabase: Supabase,
   cardIds: readonly string[],
 ): Promise<CardReviewEventRow[]> {

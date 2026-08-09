@@ -48,12 +48,14 @@ test.describe("Visual mastery", () => {
     ).toBe(true);
 
     await page.getByRole("button", { name: "Trạng thái học" }).click();
-    await expect(page.getByText("Chưa học", { exact: true })).toBeVisible();
-    await expect(page.getByText("Cần ôn", { exact: true })).toBeVisible();
-    await expect(page.getByText("Đang học", { exact: true })).toBeVisible();
-    await expect(page.getByText("Đã nhớ", { exact: true })).toBeVisible();
+    const legend = page.getByRole("region", { name: "Chú thích trạng thái học" });
+    await expect(legend).toBeVisible();
+    await expect(legend.getByText("Chưa học", { exact: true })).toBeVisible();
+    await expect(legend.getByText("Cần ôn", { exact: true })).toBeVisible();
+    await expect(legend.getByText("Đang học", { exact: true })).toBeVisible();
+    await expect(legend.getByText("Đã nhớ", { exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByText("Cần ôn", { exact: true })).not.toBeVisible();
+    await expect(legend).not.toBeVisible();
   });
 
   test("special collection card list uses the same mastery visual", async ({ page }) => {

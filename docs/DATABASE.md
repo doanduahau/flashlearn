@@ -339,6 +339,37 @@ Types are checked in and must be regenerated whenever the schema changes.
 
 `quiz_sessions` and `quiz_questions` store immutable question/answer snapshots, source metadata, completion time and server-computed score. Both use own-row RLS for reads and revoke direct browser writes. The authenticated-only `create_quiz_session` and `submit_quiz_answer` RPCs use `auth.uid()`, empty `search_path`, source ownership validation and row locking. On final-answer completion, the answer RPC atomically writes or increments the caller's immutable daily activity row.
 
+## Card review events
+
+`card_review_events` is the append-only, per-user source of truth for individual
+learning outcomes. It currently records each submitted quiz answer atomically in
+`submit_quiz_answer`; Study card views and flips intentionally create no events.
+Future explicit recall actions (for example, “Nhớ / Chưa nhớ”) can append a
+`study_recall` event through a dedicated server-controlled RPC.
+
+| Column                                | Notes                                                                                               |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `id`                                  | Immutable event identifier.                                                                         |
+| `user_id`                             | Owner, FK → `auth.users(id)` ON DELETE CASCADE.                                                     |
+| `flashcard_id`                        | Original card UUID, deliberately not an FK so card deletion never erases historical identity.       |
+| `source`                              | `quiz`, `study_recall`, `typing`, `cloze`, or `smart_review`; only `quiz` is written in this phase. |
+| `is_correct`                          | Correct/incorrect fact when the source has an outcome.                                              |
+| `reviewed_at`                         | UTC event timestamp.                                                                                |
+| `quiz_session_id`, `quiz_question_id` | Optional quiz provenance; links are SET NULL only if the referenced quiz history is removed.        |
+
+`quiz_questions.source_flashcard_id` keeps the original card UUID independently
+of its nullable live `flashcard_id` relationship. This allows an answer submitted
+after the source card is deleted to produce a review event for the original card.
+The migration also backfills existing submitted quiz answers when their original
+card UUID is still available; an already-deleted pre-migration card remains
+represented by its immutable quiz snapshot only.
+
+Rows are readable only by their owner. Direct INSERT, UPDATE and DELETE grants
+are revoked from `authenticated`; quiz events are appended by the existing
+security-definer answer RPC, and its unique `quiz_question_id` makes retries
+idempotent. Account deletion cascades through `user_id`; normal product flows do
+not edit or delete events.
+
 ## Derived statistics
 
 `daily_learning_records` stores one immutable local date per user/day, its timezone at completion,

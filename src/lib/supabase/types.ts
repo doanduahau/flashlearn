@@ -34,6 +34,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      card_review_events: {
+        Row: {
+          flashcard_id: string
+          id: string
+          is_correct: boolean | null
+          quiz_question_id: string | null
+          quiz_session_id: string | null
+          reviewed_at: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          flashcard_id: string
+          id?: string
+          is_correct?: boolean | null
+          quiz_question_id?: string | null
+          quiz_session_id?: string | null
+          reviewed_at: string
+          source: string
+          user_id: string
+        }
+        Update: {
+          flashcard_id?: string
+          id?: string
+          is_correct?: boolean | null
+          quiz_question_id?: string | null
+          quiz_session_id?: string | null
+          reviewed_at?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_review_events_quiz_question_id_fkey"
+            columns: ["quiz_question_id"]
+            isOneToOne: true
+            referencedRelation: "quiz_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_review_events_quiz_session_id_fkey"
+            columns: ["quiz_session_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_learning_records: {
         Row: {
           completed_quiz_count: number
@@ -184,6 +232,7 @@ export type Database = {
           prompt: string
           selected_choice_index: number | null
           session_id: string
+          source_flashcard_id: string | null
           user_id: string
         }
         Insert: {
@@ -198,6 +247,7 @@ export type Database = {
           prompt: string
           selected_choice_index?: number | null
           session_id: string
+          source_flashcard_id?: string | null
           user_id: string
         }
         Update: {
@@ -212,6 +262,7 @@ export type Database = {
           prompt?: string
           selected_choice_index?: number | null
           session_id?: string
+          source_flashcard_id?: string | null
           user_id?: string
         }
         Relationships: [

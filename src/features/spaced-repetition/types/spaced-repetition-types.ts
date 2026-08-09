@@ -26,3 +26,44 @@ export type ReviewReplayFact = {
   isCorrect: boolean | null;
   fsrsRating?: number | null;
 };
+
+export type ScheduleRow = {
+  state: number;
+  stability: number;
+  difficulty: number;
+  due: string;
+  scheduledDays: number;
+  learningSteps: number;
+  reps: number;
+  lapses: number;
+  lastReview: string;
+  projectionRevision: number;
+  processedEventCount: number;
+  lastProcessedReviewedAt: string;
+  lastProcessedReviewEventId: string;
+  algorithm: string;
+  implementation: string;
+  parameterSet: string;
+  updatedAt: string;
+};
+
+export type SchedulableEventRow = {
+  id: string;
+  reviewedAt: string;
+  isCorrect: boolean | null;
+  fsrsRating: number | null;
+};
+
+/**
+ * PostgREST predicate for "schedulable" review events:
+ *   (fsrs_rating BETWEEN 1 AND 4) OR (is_correct IS NOT NULL)
+ * Shared by the repository, local runner and integration tests so the
+ * TypeScript predicate and database predicate stay aligned.
+ */
+export const SCHEDULABLE_EVENT_OR_PREDICATE =
+  "and(fsrs_rating.gte.1,fsrs_rating.lte.4),is_correct.not.is.null";
+
+export function isSchedulableEventRow(row: SchedulableEventRow): boolean {
+  if (row.fsrsRating !== null && row.fsrsRating >= 1 && row.fsrsRating <= 4) return true;
+  return row.isCorrect !== null;
+}

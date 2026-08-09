@@ -21,6 +21,7 @@ function schedule(overrides: Partial<ScheduleRow> = {}): ScheduleRow {
     algorithm: "fsrs-6",
     implementation: "ts-fsrs@5.4.1",
     parameterSet: "flashlearn-v1",
+    updatedAt: "2026-08-09T12:10:00.000Z",
     ...overrides,
   };
 }

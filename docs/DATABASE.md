@@ -484,12 +484,40 @@ Write authority: only `upsert_card_learning_schedule` (service-role,
 SECURITY DEFINER). Authenticated SELECT only; no direct INSERT/UPDATE/DELETE.
 Browser cannot forge due/stability/difficulty/revision.
 
+The `service_role` role is granted `ALL` table privileges so the server-side
+reconciliation/backfill runner can read and verify projections while writing
+them through the private RPC. This mirrors the explicit per-table service-role
+grants in the core schema.
+
 The write RPC validates flashcard ownership, the complete schedulable-event
 count, and the final `(reviewed_at, event_id)` cursor ordered ascending. It
 uses revision compare-and-swap for both insert and update. An exact retry is a
 no-op only when every persisted scheduling, cursor, and scheduler-identity
 field matches; otherwise it replaces the complete projection and advances the
 revision. `updated_at` is write metadata only, never an event-stream cursor.
+
+### Reconciliation
+
+`reconcileCardSchedule` (server/orchestrator) keeps a projection aligned with
+immutable review history. The canonical event order for one user+card is
+`reviewed_at ASC, event_id ASC`. For a card with no schedule row, all
+schedulable events are replayed and the projection is created. For an existing
+row:
+
+- Counts match and config identity matches → `up_to_date`, no write.
+- Count grew and the events strictly after the stored cursor explain the whole
+  gap → incremental replay from the persisted FSRS card state.
+- Count grew but events before/at the cursor are missing from the projection
+  (late/out-of-order event) → full replay from all immutable events.
+- Config identity differs → full replay using the current scheduler, replacing
+  identity atomically.
+- Count decreased (immutable-history anomaly) → full replay for diagnosis.
+
+Writes go through the CAS RPC with the current `projection_revision`; a CAS
+conflict or freshness rejection triggers a bounded reload+recompute+retry
+(3 attempts), then a structured error. A card deleted mid-reconciliation is
+skipped (no projection recreated). `reconcileReviewHistory` (pure) reproduces
+any persisted projection, so full replay is deterministic and idempotent.
 
 FSRS is currently shadow infrastructure and does NOT influence Smart Review
 eligibility, Dashboard counts, or Mastery UI.

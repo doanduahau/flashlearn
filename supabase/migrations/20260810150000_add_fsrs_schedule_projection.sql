@@ -83,6 +83,10 @@ revoke all on table public.card_learning_schedule
   from public, anon, authenticated;
 grant select on table public.card_learning_schedule
   to authenticated;
+-- The service_role needs full table access for server-side reconciliation and
+-- backfill reads, mirroring the explicit per-table grants in the core schema.
+grant all privileges on table public.card_learning_schedule
+  to service_role;
 
 -- Private trusted CAS projection-write RPC. Callable only by the service
 -- boundary that has already computed fresh FSRS state from ts-fsrs 5.4.1 via

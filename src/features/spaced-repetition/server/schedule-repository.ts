@@ -2,37 +2,22 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  SCHEDULABLE_EVENT_OR_PREDICATE,
+  isSchedulableEventRow,
+  type ScheduleRow,
+  type SchedulableEventRow,
+} from "@/features/spaced-repetition/types/spaced-repetition-types";
 import type { Database } from "@/lib/supabase/types";
 
 type Supabase = SupabaseClient<Database>;
 
 const EVENT_PAGE_SIZE = 1000;
 
-export type ScheduleRow = {
-  state: number;
-  stability: number;
-  difficulty: number;
-  due: string;
-  scheduledDays: number;
-  learningSteps: number;
-  reps: number;
-  lapses: number;
-  lastReview: string;
-  projectionRevision: number;
-  processedEventCount: number;
-  lastProcessedReviewedAt: string;
-  lastProcessedReviewEventId: string;
-  algorithm: string;
-  implementation: string;
-  parameterSet: string;
-};
-
-export type SchedulableEventRow = {
-  id: string;
-  reviewedAt: string;
-  isCorrect: boolean | null;
-  fsrsRating: number | null;
-};
+export type {
+  ScheduleRow,
+  SchedulableEventRow,
+} from "@/features/spaced-repetition/types/spaced-repetition-types";
 
 export async function loadSchedule(
   supabase: Supabase,
@@ -65,6 +50,7 @@ export async function loadSchedule(
     algorithm: data.algorithm,
     implementation: data.implementation,
     parameterSet: data.parameter_set,
+    updatedAt: data.updated_at,
   };
 }
 
@@ -78,7 +64,7 @@ export async function countSchedulableEvents(
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("flashcard_id", cardId)
-    .or("fsrs_rating.gte.1,and,fsrs_rating.lte.4,is_correct.not.is.null");
+    .or(SCHEDULABLE_EVENT_OR_PREDICATE);
   return count ?? 0;
 }
 
@@ -106,16 +92,14 @@ export async function loadSchedulableEventsAfter(
   if (!data) return results;
 
   for (const row of data) {
-    const isSchedulable =
-      (row.fsrs_rating !== null && row.fsrs_rating >= 1 && row.fsrs_rating <= 4) ||
-      row.is_correct !== null;
-    if (isSchedulable) {
-      results.push({
-        id: row.id,
-        reviewedAt: row.reviewed_at,
-        isCorrect: row.is_correct,
-        fsrsRating: row.fsrs_rating,
-      });
+    const eventRow: SchedulableEventRow = {
+      id: row.id,
+      reviewedAt: row.reviewed_at,
+      isCorrect: row.is_correct,
+      fsrsRating: row.fsrs_rating,
+    };
+    if (isSchedulableEventRow(eventRow)) {
+      results.push(eventRow);
     }
   }
 
@@ -136,7 +120,7 @@ export async function loadAllSchedulableEvents(
       .select("id, reviewed_at, is_correct, fsrs_rating")
       .eq("user_id", userId)
       .eq("flashcard_id", cardId)
-      .or("fsrs_rating.gte.1,and,fsrs_rating.lte.4,is_correct.not.is.null")
+      .or(SCHEDULABLE_EVENT_OR_PREDICATE)
       .order("reviewed_at", { ascending: true })
       .order("id", { ascending: true })
       .range(start, start + EVENT_PAGE_SIZE - 1);
@@ -178,7 +162,7 @@ export async function loadActiveCardIdsWithSchedulableHistory(
     .from("card_review_events")
     .select("flashcard_id")
     .eq("user_id", userId)
-    .or("fsrs_rating.gte.1,and,fsrs_rating.lte.4,is_correct.not.is.null")
+    .or(SCHEDULABLE_EVENT_OR_PREDICATE)
     .order("flashcard_id", { ascending: true })
     .limit(batchSize);
 

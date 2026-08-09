@@ -22,7 +22,8 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local > src/lib/supabase/types.ts",
-    "fsrs:reconcile:local": "npx tsx scripts/fsrs-reconcile-local.ts"
+    "fsrs:reconcile:local": "npx tsx scripts/fsrs-reconcile-local.ts",
+    "fsrs:test:local": "node scripts/test-fsrs-local.mjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.15",

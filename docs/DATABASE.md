@@ -607,6 +607,30 @@ with the production environment variables set; it is never run automatically.
 Future Smart Review cutover will consume this due read model for timing; Mastery
 remains the confidence/presentation layer.
 
+### FSRS due-divergence diagnostic
+
+`npm run fsrs:diagnose:production` is a safe, read-only diagnostic command that
+reuses the shared hardened production identity guard. It captures one fixed UTC
+`evaluationTime`, then for every user with history:
+
+- Cross-references Mastery V1 review candidates against FSRS due cards to find
+  FSRS-only cards.
+- Loads full schedule rows, last-event outcome, and current Mastery status for
+  each FSRS-only card.
+- Classifies by FSRS state (New/Learning/Review/Relearning), review-count
+  buckets, overdue age (with median/p90/max), last-review age, last-event
+  outcome (with binary fallback), and Mastery cross-tab.
+- Runs a replay-consistency check: samples cards from Learning, Relearning,
+  Review and one-review categories, replays their immutable events through
+  `replayReviewHistory()`, and compares state/due against the persisted projection.
+- Prints per-user and aggregate buckets, scheduler-config mismatches, per-user
+  due distribution, and an evidence-informed transition analysis.
+
+It is diagnostic-only: it never imports reconciliation writers, the schedule CAS
+RPC, service-role mutation paths, or quiz creation modules; it performs no
+INSERT/UPDATE/DELETE/UPSERT/RPC writes. It must be run manually with the
+production environment variables set; it is never run automatically.
+
 ## Derived statistics
 
 `daily_learning_records` stores one immutable local date per user/day, its timezone at completion,

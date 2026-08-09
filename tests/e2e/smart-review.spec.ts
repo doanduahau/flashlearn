@@ -1,0 +1,132 @@
+import { expect, type Page, test } from "@playwright/test";
+
+import { signUpAndConfirm, uniqueEmail } from "./support/auth-helpers";
+import { supabaseRest } from "./support/supabase-api";
+
+const MOBILE = { width: 390, height: 844 };
+const QUIZ_CSV = "tests/fixtures/quiz-cards.csv";
+
+async function importSet(page: Page, name: string): Promise<void> {
+  await page.goto("/import");
+  await page.getByLabel(/CSV\/XLSX/i).setInputFiles(QUIZ_CSV);
+  await page.getByLabel(/^4\./).fill(name);
+  await page.getByRole("button", { name: /Xác nhận import/i }).click();
+  await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
+}
+
+async function answerWrongQuestion(page: Page): Promise<void> {
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.getByRole("radio").first()).toBeEnabled();
+  const heading = page.getByRole("heading", { level: 1 });
+  const prompt = (await heading.textContent()) ?? "";
+  const correctAnswer = prompt.replace("prompt", "answer");
+  const answers = page.locator("fieldset label");
+  let selected = false;
+
+  for (let index = 0; index < (await answers.count()); index += 1) {
+    if (((await answers.nth(index).textContent()) ?? "").trim() !== correctAnswer) {
+      const radio = answers.nth(index).getByRole("radio");
+      await radio.check();
+      await expect(radio).toBeChecked();
+      selected = true;
+      break;
+    }
+  }
+
+  expect(selected).toBe(true);
+
+  await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
+  await expect(page.getByRole("status")).toHaveText("Chưa chính xác.");
+  const next = page.getByRole("button", { name: /Câu tiếp theo|Xem kết quả/ });
+  if (await next.isVisible()) await next.click();
+}
+
+async function answerEveryQuestionWrong(page: Page): Promise<void> {
+  for (let index = 0; index < 10; index += 1) {
+    await answerWrongQuestion(page);
+  }
+}
+
+async function getQuestionTargetIds(page: Page, sessionId: string): Promise<string[]> {
+  const response = await supabaseRest(
+    page.context(),
+    `quiz_questions?session_id=eq.${sessionId}&select=source_flashcard_id&order=position.asc`,
+  );
+  expect(response.ok).toBe(true);
+  return ((await response.json()) as Array<{ source_flashcard_id: string }>).map(
+    (question) => question.source_flashcard_id,
+  );
+}
+
+async function getTargetSetIds(page: Page, cardIds: string[]): Promise<string[]> {
+  const response = await supabaseRest(
+    page.context(),
+    `flashcards?id=in.(${cardIds.join(",")})&select=set_id`,
+  );
+  expect(response.ok).toBe(true);
+  return ((await response.json()) as Array<{ set_id: string }>).map((card) => card.set_id);
+}
+
+test.describe("Smart Review session", () => {
+  test("starts an urgent multi-set batch from Dashboard and keeps normal quiz learning records", async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("smart_review"));
+    await importSet(page, "Ôn tập A");
+    await importSet(page, "Ôn tập B");
+
+    await page.goto("/dashboard");
+    await expect(page.getByRole("button", { name: "Ôn ngay" })).toHaveCount(0);
+
+    // Seed ten review candidates through the existing Quiz flow.
+    await page.goto("/quiz");
+    await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+    await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
+    const seededSessionId = new URL(page.url()).pathname.split("/").at(-1) ?? "";
+    await answerEveryQuestionWrong(page);
+    await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+\/result$/);
+    const seededTargetIds = await getQuestionTargetIds(page, seededSessionId);
+    expect(seededTargetIds).toHaveLength(10);
+    expect(new Set(await getTargetSetIds(page, seededTargetIds)).size).toBeGreaterThan(1);
+
+    await page.goto("/dashboard");
+    const summary = page.getByRole("region", { name: "Tóm tắt trạng thái học" });
+    await expect(summary.getByText("Cần ôn", { exact: true })).toBeVisible();
+    await expect(summary.getByRole("button", { name: "Ôn ngay" })).toBeVisible();
+    await expect(summary.getByText(/%|score|điểm|phần trăm/i)).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await page.getByRole("heading", { name: "Hoạt động tháng này" }).boundingBox())?.y ?? 999,
+    ).toBeLessThan(520);
+
+    await summary.getByRole("button", { name: "Ôn ngay" }).click();
+    await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
+    const smartSessionId = new URL(page.url()).pathname.split("/").at(-1) ?? "";
+    const smartTargetIds = await getQuestionTargetIds(page, smartSessionId);
+    expect(smartTargetIds).toEqual(expect.arrayContaining(seededTargetIds));
+    expect(smartTargetIds).toHaveLength(10);
+
+    await answerEveryQuestionWrong(page);
+    await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+\/result$/);
+
+    const eventsResponse = await supabaseRest(
+      page.context(),
+      `card_review_events?quiz_session_id=eq.${smartSessionId}&select=flashcard_id`,
+    );
+    expect(eventsResponse.ok).toBe(true);
+    const eventIds = ((await eventsResponse.json()) as Array<{ flashcard_id: string }>).map(
+      (event) => event.flashcard_id,
+    );
+    expect(eventIds).toHaveLength(10);
+    expect(eventIds).toEqual(expect.arrayContaining(smartTargetIds));
+
+    await page.goto("/dashboard");
+    await expect(summary.getByText("Cần ôn", { exact: true })).toBeVisible();
+    await expect(summary.getByRole("button", { name: "Ôn ngay" })).toBeVisible();
+  });
+});

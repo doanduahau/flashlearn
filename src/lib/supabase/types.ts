@@ -402,6 +402,10 @@ export type Database = {
           position: number
         }[]
       }
+      create_owned_quiz_session_from_card_ids: {
+        Args: { p_card_ids: string[]; p_user_id: string }
+        Returns: string
+      }
       create_quiz_session: {
         Args: {
           p_all: boolean
@@ -410,6 +414,10 @@ export type Database = {
           p_question_count: number
           p_set_ids: string[]
         }
+        Returns: string
+      }
+      create_quiz_session_from_card_ids: {
+        Args: { p_card_ids: string[] }
         Returns: string
       }
       create_special_collection: {

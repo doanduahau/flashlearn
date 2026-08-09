@@ -36,6 +36,7 @@ test.describe("Mastery summary", () => {
     await expect(summary).toBeVisible();
     await expect(summary.getByText("Chưa học", { exact: true })).toBeVisible();
     await expect(summary.getByText("1", { exact: true })).toBeVisible();
+    await expect(summary.getByRole("button", { name: "Ôn ngay" })).toHaveCount(0);
     await expect(summary.getByText(/%/)).toHaveCount(0);
     await expect(summary.getByText(/score|điểm|phần trăm/i)).toHaveCount(0);
 

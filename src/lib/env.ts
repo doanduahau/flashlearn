@@ -7,12 +7,14 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://127.0.0.1:3000"),
   NEXT_PUBLIC_SUPABASE_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
 });
 
 if (!parsed.success) {
@@ -26,6 +28,11 @@ export interface SupabaseConfig {
   publishableKey: string;
 }
 
+export interface SupabaseServiceConfig {
+  url: string;
+  serviceRoleKey: string;
+}
+
 export function getSupabasePublishableConfig(): SupabaseConfig {
   if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
     throw new Error(
@@ -36,5 +43,16 @@ export function getSupabasePublishableConfig(): SupabaseConfig {
   return {
     url: env.NEXT_PUBLIC_SUPABASE_URL,
     publishableKey: env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  };
+}
+
+export function getSupabaseServiceConfig(): SupabaseServiceConfig {
+  if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set");
+  }
+
+  return {
+    url: env.NEXT_PUBLIC_SUPABASE_URL,
+    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
   };
 }

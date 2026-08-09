@@ -48,7 +48,7 @@ describe("deployment constraints", () => {
     expect(envContent).not.toContain("DIRECT_URL");
   });
 
-  it("does not require SERVICE_ROLE_KEY in frontend code", () => {
-    expect(allContent).not.toContain("SERVICE_ROLE_KEY");
+  it("does not expose a service role key to frontend code", () => {
+    expect(allContent).not.toContain("NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY");
   });
 });

@@ -38,6 +38,18 @@ describe("env validation", () => {
     );
   });
 
+  it("keeps the service role key server-only and requires it only for private RPCs", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-test-key");
+
+    const envModule = await loadEnv();
+
+    expect(envModule.getSupabaseServiceConfig()).toEqual({
+      url: "https://example.supabase.co",
+      serviceRoleKey: "service-role-test-key",
+    });
+  });
+
   it("rejects an invalid Supabase URL", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "not-a-url");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_test_key");

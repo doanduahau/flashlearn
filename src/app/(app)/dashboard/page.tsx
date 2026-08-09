@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { MasteryCounts } from "@/features/mastery/components/mastery-counts";
 import { loadMasteryAggregate } from "@/features/mastery/server/load-mastery-aggregate";
+import { StartSmartReviewButton } from "@/features/smart-review/components/start-smart-review-button";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
 import {
   accuracy,
@@ -98,7 +99,10 @@ export default async function DashboardPage({
       {/* Compact learning-status summary */}
       {masteryAggregate.review > 0 || masteryAggregate.untested > 0 ? (
         <section aria-label="Tóm tắt trạng thái học" className="mt-2 sm:mt-3">
-          <MasteryCounts aggregate={masteryAggregate} />
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 sm:rounded-3xl sm:px-5 sm:py-3">
+            <MasteryCounts aggregate={masteryAggregate} className="min-w-0" />
+            {masteryAggregate.review > 0 ? <StartSmartReviewButton /> : null}
+          </div>
         </section>
       ) : null}
 

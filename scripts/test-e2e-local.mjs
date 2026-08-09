@@ -24,13 +24,15 @@ function runNpm(args, env) {
   });
 }
 
-const { supabaseUrl, publishableKey, mailpitUrl } = await resolveLocalSupabaseEnv(npmCliPath);
+const { supabaseUrl, publishableKey, mailpitUrl, serviceRoleKey } =
+  await resolveLocalSupabaseEnv(npmCliPath);
 
 const localEnv = {
   ...process.env,
   NEXT_PUBLIC_APP_URL: "http://127.0.0.1:3000",
   NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
+  SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
   MAILPIT_URL: mailpitUrl,
 };
 await runNpm(["run", "build"], localEnv);

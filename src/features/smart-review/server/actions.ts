@@ -1,0 +1,54 @@
+"use server";
+
+import { loadMasterySnapshot } from "@/features/mastery/server/load-mastery-snapshot";
+import {
+  SMART_REVIEW_BATCH_SIZE,
+  smartReviewTargetCardIds,
+} from "@/features/smart-review/utils/smart-review-session";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+
+type StartSmartReviewResult =
+  { ok: true; sessionId: string } | { ok: false; error: string; empty?: boolean };
+
+const GENERIC_ERROR = "Không thể bắt đầu phiên ôn. Vui lòng thử lại.";
+
+async function signedInUserId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string | null> {
+  const { data } = await supabase.auth.getClaims();
+  return typeof data?.claims?.sub === "string" ? data.claims.sub : null;
+}
+
+/**
+ * Has no client input by design: the server derives an up-to-date, owner-scoped
+ * target batch immediately before it creates the ordinary quiz session.
+ */
+export async function startSmartReview(): Promise<StartSmartReviewResult> {
+  const supabase = await createClient();
+  const userId = await signedInUserId(supabase);
+  if (!userId) {
+    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+
+  const snapshot = await loadMasterySnapshot(
+    supabase,
+    { type: "library" },
+    {
+      reviewCandidateLimit: SMART_REVIEW_BATCH_SIZE,
+    },
+  );
+  const targetCardIds = smartReviewTargetCardIds(snapshot.reviewCandidates);
+  if (targetCardIds.length === 0) {
+    return { ok: false, empty: true, error: "Không còn thẻ cần ôn." };
+  }
+
+  const admin = createAdminClient();
+  const { data: sessionId, error } = await admin.rpc("create_owned_quiz_session_from_card_ids", {
+    p_user_id: userId,
+    p_card_ids: targetCardIds,
+  });
+  if (error || !sessionId) return { ok: false, error: GENERIC_ERROR };
+
+  return { ok: true, sessionId };
+}

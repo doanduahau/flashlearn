@@ -427,6 +427,29 @@ This eligibility rule is deliberately isolated. A future FSRS layer can replace
 or extend it with due scheduling without changing raw events or teaching UI
 callers about `status === 'review'`.
 
+## Smart Review quiz sessions
+
+The Dashboard starts Smart Review through a no-input server action. It reloads a
+fresh library `MasterySnapshot`, takes the first 10 centralized Smart Review
+candidates, and calls the server-only
+`create_owned_quiz_session_from_card_ids(uuid, uuid[])` RPC. The browser cannot
+provide target IDs, scores, or statuses: the action authenticates with the user
+session, then uses a server-only service-role client for the private write. The
+RPC revalidates ownership and live card existence at its write boundary; cards
+deleted during the race are excluded, and an empty surviving batch creates no
+session.
+
+The explicit-target RPC reuses the existing `quiz_sessions`, `quiz_questions`,
+and `submit_quiz_answer` path. It permits one to ten questions only for this
+internal session primitive; ordinary source-configured quizzes still enforce
+their 10-question minimum. Only explicit targets receive question snapshots and
+therefore review events. Distractors come from other active cards in the user's
+whole library and never create a learning event merely by appearing as a choice.
+
+No Smart Review origin is persisted yet: its session retains the existing
+`balanced` quiz mode so analytics and results remain compatible. A future origin
+field can be introduced if continuation or origin-specific analytics requires it.
+
 ## Derived statistics
 
 `daily_learning_records` stores one immutable local date per user/day, its timezone at completion,

@@ -58,5 +58,10 @@ export async function resolveLocalSupabaseEnv(npmCliPath, cwd = process.cwd()) {
 
   const mailpitUrl = requireLocalEndpoint("MAILPIT_URL", status.MAILPIT_URL ?? status.INBUCKET_URL);
 
-  return { supabaseUrl, publishableKey, mailpitUrl };
+  const serviceRoleKey = status.SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) {
+    throw new Error("Missing local Supabase service role key from supabase status.");
+  }
+
+  return { supabaseUrl, publishableKey, mailpitUrl, serviceRoleKey };
 }

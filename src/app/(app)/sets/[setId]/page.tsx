@@ -2,6 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import { MasteryCardContent } from "@/features/mastery/components/mastery-card-content";
+import { MasteryLegend } from "@/features/mastery/components/mastery-legend";
+import { masteryCardClassName } from "@/features/mastery/presentation/mastery-presentation";
+import { loadCardMasteries } from "@/features/mastery/server/load-card-masteries";
+import type { ActiveFlashcardMastery, MasteryStatus } from "@/features/mastery/types/mastery-types";
 import { AddCardForm } from "@/features/flashcard-sets/components/add-card-form";
 import { CardSearchForm } from "@/features/flashcard-sets/components/card-search-form";
 import { DeleteCardButton } from "@/features/flashcard-sets/components/delete-card-button";
@@ -68,7 +73,7 @@ export default async function SetDetailPage({
   const { data: cards } = await listQuery;
 
   const cardIds = (cards ?? []).map((card) => card.id);
-  const [collectionsResult, membershipsResult] = await Promise.all([
+  const [collectionsResult, membershipsResult, masteriesResult] = await Promise.all([
     supabase.from("special_collections").select("id, name").order("name", { ascending: true }),
     cardIds.length
       ? supabase
@@ -76,6 +81,9 @@ export default async function SetDetailPage({
           .select("collection_id, flashcard_id")
           .in("flashcard_id", cardIds)
       : Promise.resolve({ data: [] as { collection_id: string; flashcard_id: string }[] }),
+    cardIds.length
+      ? loadCardMasteries(supabase, cardIds)
+      : Promise.resolve([] as ActiveFlashcardMastery[]),
   ]);
 
   const collections = (collectionsResult.data ?? []).map((collection) => ({
@@ -85,6 +93,10 @@ export default async function SetDetailPage({
   const membershipsByCard: Record<string, string[]> = {};
   for (const item of membershipsResult.data ?? []) {
     (membershipsByCard[item.flashcard_id] ??= []).push(item.collection_id);
+  }
+  const masteryByCard = new Map<string, MasteryStatus>();
+  for (const mastery of masteriesResult) {
+    masteryByCard.set(mastery.flashcardId, mastery.status);
   }
 
   return (
@@ -114,7 +126,10 @@ export default async function SetDetailPage({
       </section>
 
       <section aria-label="Danh sách flashcard" className="mt-6">
-        <CardSearchForm defaultValue={query} />
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+          <CardSearchForm defaultValue={query} />
+          {cards?.length ? <MasteryLegend /> : null}
+        </div>
         {searchFilter ? (
           <p className="mt-2 text-sm text-text-secondary">Tìm thấy {visibleTotal} thẻ phù hợp.</p>
         ) : null}
@@ -125,40 +140,37 @@ export default async function SetDetailPage({
           </div>
         ) : cards?.length ? (
           <ol className="mt-4 grid gap-3">
-            {cards.map((card) => (
-              <li
-                key={card.id}
-                className="rounded-2xl border border-border-soft bg-surface p-4 sm:p-5"
-              >
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="min-w-0 max-w-full flex-1">
-                    <p className="text-sm font-medium text-text-secondary">#{card.position + 1}</p>
-                    <p className="mt-1 max-w-full whitespace-pre-wrap break-words font-semibold [overflow-wrap:anywhere]">
-                      {card.front}
-                    </p>
-                    <p className="mt-2 max-w-full whitespace-pre-wrap break-words text-text-secondary [overflow-wrap:anywhere]">
-                      {card.back}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <EditCardForm
-                      setId={set.id}
-                      cardId={card.id}
-                      initialFront={card.front}
-                      initialBack={card.back}
+            {cards.map((card) => {
+              const status = masteryByCard.get(card.id) ?? "untested";
+              return (
+                <li key={card.id} className={masteryCardClassName(status)}>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <MasteryCardContent
+                      status={status}
+                      badge={`#${card.position + 1}`}
+                      front={card.front}
+                      back={card.back}
                     />
-                    <DeleteCardButton setId={set.id} cardId={card.id} />
-                    <CardCollectionsControl
-                      cardId={card.id}
-                      setId={set.id}
-                      collections={collections}
-                      memberships={membershipsByCard[card.id] ?? []}
-                      variant="icon"
-                    />
+                    <div className="flex shrink-0 items-center gap-1">
+                      <EditCardForm
+                        setId={set.id}
+                        cardId={card.id}
+                        initialFront={card.front}
+                        initialBack={card.back}
+                      />
+                      <DeleteCardButton setId={set.id} cardId={card.id} />
+                      <CardCollectionsControl
+                        cardId={card.id}
+                        setId={set.id}
+                        collections={collections}
+                        memberships={membershipsByCard[card.id] ?? []}
+                        variant="icon"
+                      />
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ol>
         ) : (
           <div className="mt-4 rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-8 text-center">

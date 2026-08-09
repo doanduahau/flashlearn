@@ -21,6 +21,20 @@
   --info: #7ab8e8;
   --achievement: #f6c85f;
 
+  /* Mastery V1 visual states (subtle pastel tints) */
+  --mastery-untested: #f4f6f5;
+  --mastery-untested-border: #dde3e0;
+  --mastery-untested-dot: #b6c0ba;
+  --mastery-review: #fdf0ee;
+  --mastery-review-border: #f0d5d0;
+  --mastery-review-dot: #e08f8c;
+  --mastery-learning: #fdf8e9;
+  --mastery-learning-border: #ece0b6;
+  --mastery-learning-dot: #d9c069;
+  --mastery-strong: #eef8f1;
+  --mastery-strong-border: #d2e7d9;
+  --mastery-strong-dot: #65be91;
+
   /* shadcn/ui token mapping */
   --foreground: var(--text-primary);
   --card: var(--surface);
@@ -79,6 +93,18 @@
   --color-danger: var(--danger);
   --color-info: var(--info);
   --color-achievement: var(--achievement);
+  --color-mastery-untested: var(--mastery-untested);
+  --color-mastery-untested-border: var(--mastery-untested-border);
+  --color-mastery-untested-dot: var(--mastery-untested-dot);
+  --color-mastery-review: var(--mastery-review);
+  --color-mastery-review-border: var(--mastery-review-border);
+  --color-mastery-review-dot: var(--mastery-review-dot);
+  --color-mastery-learning: var(--mastery-learning);
+  --color-mastery-learning-border: var(--mastery-learning-border);
+  --color-mastery-learning-dot: var(--mastery-learning-dot);
+  --color-mastery-strong: var(--mastery-strong);
+  --color-mastery-strong-border: var(--mastery-strong-border);
+  --color-mastery-strong-dot: var(--mastery-strong-dot);
   --font-sans: var(--font-flash-sans);
   --font-heading: var(--font-flash-heading);
   --radius-sm: calc(var(--radius) - 4px);

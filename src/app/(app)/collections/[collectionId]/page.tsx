@@ -2,6 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import { MasteryCardContent } from "@/features/mastery/components/mastery-card-content";
+import { MasteryLegend } from "@/features/mastery/components/mastery-legend";
+import { masteryCardClassName } from "@/features/mastery/presentation/mastery-presentation";
+import { loadCardMasteries } from "@/features/mastery/server/load-card-masteries";
+import type { MasteryStatus } from "@/features/mastery/types/mastery-types";
 import { DeleteCollectionButton } from "@/features/special-collections/components/delete-collection-button";
 import { RemoveCollectionItemButton } from "@/features/special-collections/components/remove-collection-item-button";
 import { RenameCollectionForm } from "@/features/special-collections/components/rename-collection-form";
@@ -49,6 +54,15 @@ export default async function CollectionDetailPage({
     .order("created_at", { ascending: false })
     .range(from, to);
 
+  const cardIds = (items ?? [])
+    .map((item) => item.flashcards?.id)
+    .filter((id): id is string => typeof id === "string");
+  const masteries = cardIds.length ? await loadCardMasteries(supabase, cardIds) : [];
+  const masteryByCard = new Map<string, MasteryStatus>();
+  for (const mastery of masteries) {
+    masteryByCard.set(mastery.flashcardId, mastery.status);
+  }
+
   return (
     <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
       <Link href="/collections" className="text-sm text-text-secondary hover:text-text-primary">
@@ -66,6 +80,11 @@ export default async function CollectionDetailPage({
       </div>
 
       <section aria-label="Danh sách thẻ" className="mt-6">
+        {items?.length ? (
+          <div className="flex justify-end">
+            <MasteryLegend />
+          </div>
+        ) : null}
         {totalCount === 0 ? (
           <div className="mt-4 rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-8 text-center">
             <p className="font-medium">Bộ đặc biệt này chưa có thẻ nào.</p>
@@ -78,23 +97,16 @@ export default async function CollectionDetailPage({
             {items.map((item) => {
               const card = item.flashcards;
               if (!card) return null;
+              const status = masteryByCard.get(card.id) ?? "untested";
               return (
-                <li
-                  key={card.id}
-                  className="rounded-2xl border border-border-soft bg-surface p-4 sm:p-5"
-                >
+                <li key={card.id} className={masteryCardClassName(status)}>
                   <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                    <div className="min-w-0 flex-1 max-w-full">
-                      <p className="text-sm font-medium text-text-secondary">
-                        {card.flashcard_sets?.name ?? "Bộ flashcard"}
-                      </p>
-                      <p className="mt-1 max-w-full whitespace-pre-wrap break-words font-semibold [overflow-wrap:anywhere]">
-                        {card.front}
-                      </p>
-                      <p className="mt-2 max-w-full whitespace-pre-wrap break-words text-text-secondary [overflow-wrap:anywhere]">
-                        {card.back}
-                      </p>
-                    </div>
+                    <MasteryCardContent
+                      status={status}
+                      badge={card.flashcard_sets?.name ?? "Bộ flashcard"}
+                      front={card.front}
+                      back={card.back}
+                    />
                     <div className="flex min-h-11 shrink-0 flex-wrap items-center gap-1 self-end sm:self-auto">
                       <RemoveCollectionItemButton collectionId={collection.id} cardId={card.id} />
                     </div>

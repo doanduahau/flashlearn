@@ -127,4 +127,12 @@ describe("QuizSession", () => {
     });
     expect(router.refresh).not.toHaveBeenCalled();
   });
+
+  it("does not pollute the quiz correctness UI with mastery colors", async () => {
+    render(<QuizSession sessionId="session" total={2} question={first} />);
+    expect(
+      screen.queryByRole("img", { name: /Chưa học|Cần ôn|Đang học|Đã nhớ/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Chưa học|Cần ôn|Đang học|Đã nhớ/)).not.toBeInTheDocument();
+  });
 });

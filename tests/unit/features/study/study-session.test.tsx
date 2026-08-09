@@ -312,4 +312,12 @@ describe("StudySession", () => {
       { scroll: false },
     );
   });
+
+  it("keeps mastery status off the study card so recall is not distracted", () => {
+    renderSession();
+    expect(
+      screen.queryByRole("img", { name: /Chưa học|Cần ôn|Đang học|Đã nhớ/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Chưa học|Cần ôn|Đang học|Đã nhớ/)).not.toBeInTheDocument();
+  });
 });

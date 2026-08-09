@@ -24,7 +24,7 @@ const SCHEDULABLE_OR = SCHEDULABLE_EVENT_OR_PREDICATE;
 // production Supabase project ref before the runner will do anything. Keeping
 // it empty fail-closes: the runner refuses any project that is not explicitly
 // allowlisted here. The ref is a public project identifier, not a secret.
-export const ALLOWED_PRODUCTION_PROJECT_REFS = new Set<string>([]);
+export const ALLOWED_PRODUCTION_PROJECT_REFS = new Set(["rtrllrlilupoesikeypt"]);
 
 // Non-secret product identifier required for production mutation.
 export const PRODUCTION_CONFIRMATION_TOKEN = "flashlearn-production";

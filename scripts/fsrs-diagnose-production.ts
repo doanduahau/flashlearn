@@ -7,8 +7,10 @@ import { findDueCandidates } from "../src/features/spaced-repetition/server/due-
 import { SCHEDULABLE_EVENT_OR_PREDICATE } from "../src/features/spaced-repetition/types/spaced-repetition-types";
 import {
   runProductionDiagnostic,
+  runMissingCardTrace,
   type ProductionDiagnosticDataAccess,
   type ProductionDiagnosticResult,
+  type TraceMissingReport,
 } from "../src/features/spaced-repetition/utils/run-production-diagnostic";
 import type { FsrsOnlyCardDetail } from "../src/features/spaced-repetition/utils/diagnose-due-divergence";
 import type { Database } from "../src/lib/supabase/types";
@@ -246,6 +248,25 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
         start += SCOPE_ID_PAGE_SIZE;
       }
     },
+    loadCardTraceInfo: async (_userId, cardIds) => {
+      if (cardIds.length === 0) return [];
+      const all: Array<{
+        flashcardId: string;
+        existsInFlashcards: boolean;
+        flashcardUserId: string | null;
+        scheduleUserId: string;
+      }> = [];
+      for (const id of cardIds) {
+        const { data } = await client.from("flashcards").select("user_id").eq("id", id).single();
+        all.push({
+          flashcardId: id,
+          existsInFlashcards: data !== null,
+          flashcardUserId: data?.user_id ?? null,
+          scheduleUserId: _userId,
+        });
+      }
+      return all;
+    },
   };
 }
 
@@ -436,14 +457,57 @@ function formatResult(projectRef: string, result: ProductionDiagnosticResult): s
   return lines.join("\n");
 }
 
+function formatTraceReport(reports: readonly TraceMissingReport[]): string {
+  const lines = ["", "=== CARD-SCOPE MISMATCH TRACE ===", ""];
+
+  for (const r of reports) {
+    lines.push(
+      `  ${r.label}:`,
+      `    FSRS-only cards:               ${r.fsrsOnlyCount}`,
+      `    Missing from MasterySnapshot:  ${r.missingFromMasteryCount}`,
+      "",
+      "    Stage-by-stage:",
+      `      Present in flashcards table:   ${r.stageByStage.presentInFlashcards}`,
+      `      Pass ownership predicate:      ${r.stageByStage.passOwnership}`,
+      `      Pass library scope:            ${r.stageByStage.passLibraryScope}`,
+      `      Pass active-card predicate:    ${r.stageByStage.passActiveCardPredicate}`,
+      `      Have schedulable review event: ${r.stageByStage.haveSchedulableEvent}`,
+      `      Represented in MasterySnapshot:${r.stageByStage.representedInMasterySnapshot}`,
+      `      Unexplained gap:               ${r.stageByStage.unexplainedGap}`,
+      "",
+      "    Reason categories:",
+      `      absentFromFlashcards:          ${r.reasonCounts.absentFromFlashcards}`,
+      `      ownershipMismatch:             ${r.reasonCounts.ownershipMismatch}`,
+      `      presentInFlashcards:           ${r.reasonCounts.presentInFlashcards}`,
+      `      unexplained:                   ${r.reasonCounts.unexplained}`,
+      "",
+      "    (No raw card IDs or content printed.)",
+    );
+  }
+
+  return lines.join("\n");
+}
+
 async function main(): Promise<void> {
   const identity = resolveProductionIdentity(process.env, ALLOWED_PRODUCTION_PROJECT_REFS);
   const evaluationTime = new Date().toISOString();
 
   const client = createClient<Database>(identity.url, identity.serviceRoleKey);
   const data = await buildDataAccess(client);
-  const result = await runProductionDiagnostic(data, evaluationTime);
 
+  const traceMode = process.argv.includes("--trace-missing");
+
+  if (traceMode) {
+    console.log(`FSRS PRODUCTION CARD-SCOPE TRACE`);
+    console.log(`Project: ${identity.projectRef}`);
+    console.log(`Evaluation time (UTC): ${evaluationTime}`);
+    const traceReports = await runMissingCardTrace(data, evaluationTime);
+    console.log(formatTraceReport(traceReports));
+    console.log("READ-ONLY — NO WRITES PERFORMED");
+    return;
+  }
+
+  const result = await runProductionDiagnostic(data, evaluationTime);
   console.log(formatResult(identity.projectRef, result));
 }
 

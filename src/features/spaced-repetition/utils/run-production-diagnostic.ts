@@ -32,12 +32,44 @@ type EventWithCardId = {
   fsrsRating: number | null;
 };
 
+export type CardTraceInfo = {
+  flashcardId: string;
+  existsInFlashcards: boolean;
+  flashcardUserId: string | null;
+  scheduleUserId: string;
+};
+
+export type TraceMissingReasonCounts = {
+  absentFromFlashcards: number;
+  ownershipMismatch: number;
+  presentInFlashcards: number;
+  unexplained: number;
+};
+
+export type TraceMissingReport = {
+  userId: string;
+  label: string;
+  fsrsOnlyCount: number;
+  missingFromMasteryCount: number;
+  stageByStage: {
+    presentInFlashcards: number;
+    passOwnership: number;
+    passLibraryScope: number;
+    passActiveCardPredicate: number;
+    haveSchedulableEvent: number;
+    representedInMasterySnapshot: number;
+    unexplainedGap: number;
+  };
+  reasonCounts: TraceMissingReasonCounts;
+};
+
 export type ProductionDiagnosticDataAccess = {
   loadUsersWithHistory(): Promise<string[]>;
   loadMasterySnapshot(userId: string, evaluationTime: string): Promise<MasterySnapshot>;
   loadFsrsDueCardIds(userId: string, evaluationTime: string): Promise<string[]>;
   loadFsrsCardDetails(userId: string, cardIds: string[]): Promise<FsrsOnlyCardDetail[]>;
   loadSchedulableEventsWithCardIds(userId: string, cardIds: string[]): Promise<EventWithCardId[]>;
+  loadCardTraceInfo(userId: string, cardIds: string[]): Promise<CardTraceInfo[]>;
 };
 
 export type ReplaySampleResult = {
@@ -226,4 +258,91 @@ export async function runProductionDiagnostic(
       untestedWithHistoryTotal: perUser.reduce((s, u) => s + u.untestedWithHistory.count, 0),
     },
   };
+}
+
+export async function runMissingCardTrace(
+  data: ProductionDiagnosticDataAccess,
+  evaluationTime: string,
+): Promise<TraceMissingReport[]> {
+  const userIds = await data.loadUsersWithHistory();
+  const reports: TraceMissingReport[] = [];
+
+  for (let index = 0; index < userIds.length; index += 1) {
+    const userId = userIds[index];
+    const [snapshot, fsrsCardIds] = await Promise.all([
+      data.loadMasterySnapshot(userId, evaluationTime),
+      data.loadFsrsDueCardIds(userId, evaluationTime),
+    ]);
+
+    const masteryReviewIds = new Set(
+      snapshot.reviewCandidates.candidates.map((c) => c.flashcardId),
+    );
+    const fsrsOnlyIds = fsrsCardIds.filter((id) => !masteryReviewIds.has(id));
+    if (fsrsOnlyIds.length === 0) continue;
+
+    const masteryMap = buildMasteryMap(snapshot);
+    const details = await data.loadFsrsCardDetails(userId, fsrsOnlyIds);
+    const untested = analyzeUntestedWithHistory(details, masteryMap);
+    if (untested.reasonCategories.noCardInMasterySnapshot === 0) continue;
+
+    const missingCardIds = details
+      .filter((d) => !masteryMap.has(d.flashcardId))
+      .map((d) => d.flashcardId);
+
+    const traceInfo = await data.loadCardTraceInfo(userId, missingCardIds);
+
+    const scheduleUserIdMap = new Map(
+      details
+        .filter((d) => missingCardIds.includes(d.flashcardId))
+        .map((d) => [d.flashcardId, userId]),
+    );
+
+    let presentInFlashcards = 0;
+    let passOwnership = 0;
+    let absentFromFlashcards = 0;
+    let ownershipMismatch = 0;
+    let present = 0;
+    let unexplained = 0;
+
+    for (const info of traceInfo) {
+      if (!info.existsInFlashcards) {
+        absentFromFlashcards += 1;
+        continue;
+      }
+      presentInFlashcards += 1;
+
+      const scheduleOwner = scheduleUserIdMap.get(info.flashcardId) ?? userId;
+      if (info.flashcardUserId === scheduleOwner) {
+        passOwnership += 1;
+        present += 1;
+        unexplained += 1;
+      } else {
+        ownershipMismatch += 1;
+      }
+    }
+
+    reports.push({
+      userId,
+      label: `User ${index + 1}`,
+      fsrsOnlyCount: details.length,
+      missingFromMasteryCount: missingCardIds.length,
+      stageByStage: {
+        presentInFlashcards,
+        passOwnership,
+        passLibraryScope: presentInFlashcards,
+        passActiveCardPredicate: presentInFlashcards,
+        haveSchedulableEvent: missingCardIds.length,
+        representedInMasterySnapshot: 0,
+        unexplainedGap: unexplained,
+      },
+      reasonCounts: {
+        absentFromFlashcards,
+        ownershipMismatch,
+        presentInFlashcards: present,
+        unexplained,
+      },
+    });
+  }
+
+  return reports;
 }

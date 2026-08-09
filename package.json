@@ -25,6 +25,7 @@
     "db:types": "supabase gen types typescript --local > src/lib/supabase/types.ts",
     "fsrs:reconcile:local": "npx tsx scripts/fsrs-reconcile-local.ts",
     "fsrs:reconcile:production": "npx tsx scripts/fsrs-reconcile-production.ts",
+    "fsrs:compare:local": "npx tsx scripts/fsrs-compare-local.ts",
     "fsrs:test:local": "node scripts/test-fsrs-local.mjs"
   },
   "dependencies": {

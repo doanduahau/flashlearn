@@ -15,6 +15,7 @@ const child = spawn(
     "--",
     "tests/integration/fsrs-reconciliation.integration.test.ts",
     "tests/integration/fsrs-shadow-quiz.integration.test.ts",
+    "tests/integration/fsrs-due-read.integration.test.ts",
   ],
   {
     stdio: "inherit",

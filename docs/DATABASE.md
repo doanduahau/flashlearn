@@ -567,6 +567,37 @@ aggregate `fsrs_rating` distribution check. The runner never updates or deletes
 FSRS remains shadow-only after backfill: Smart Review, Dashboard, mastery
 colors, and result UX all continue to use Mastery V1.
 
+## FSRS due read model (Stage C1)
+
+`card_learning_schedule` doubles as a read-optimized FSRS "due" source. The
+projection's `(user_id, due, flashcard_id)` index supports indexed due reads
+without replaying review events or loading Mastery history.
+
+A card is **FSRS due** when it has a schedule row AND `due <= evaluationTime`,
+where `evaluationTime` is one fixed UTC instant per logical request. Profile
+timezone never affects eligibility; it remains for streak/calendar/day labels.
+
+`src/features/spaced-repetition/server/due-repository.ts` exposes:
+
+- `countDueCards(supabase, userId, scope, evaluationTime)` — full due count.
+- `findDueCandidates(supabase, userId, scope, evaluationTime, limit?)` —
+  ordered candidates (due ASC, last_review ASC, flashcard_id ASC).
+- `loadDueCandidateResult(...)` — `{ total, candidates }` from one fixed time.
+
+Supported scopes: `library`, `set`, `collection` (same semantics as Mastery).
+Candidates expose only `flashcardId`, `due`, `lastReview`, `state`. Cards
+without a schedule row (untested/new) are never due. RLS + explicit `user_id`
+filtering exclude foreign and inactive cards.
+
+This read model is parallel infrastructure. `startSmartReview`, the Dashboard
+"Cần ôn" count, and the result continuation count all still use Mastery V1.
+A read-only comparison utility (`src/features/spaced-repetition/utils/compare-review-sources.ts`)
+and a local command `npm run fsrs:compare:local` report aggregate Mastery-vs-FSRS
+differences per user without mutating schedules or events.
+
+Future Smart Review cutover will consume this due read model for timing; Mastery
+remains the confidence/presentation layer.
+
 ## Derived statistics
 
 `daily_learning_records` stores one immutable local date per user/day, its timezone at completion,

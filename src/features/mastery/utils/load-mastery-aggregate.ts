@@ -1,22 +1,15 @@
-import type { CardMasteryRepository } from "@/features/mastery/types/mastery-types";
+import type { MasteryAggregate } from "@/features/mastery/utils/aggregate-mastery";
 import {
-  aggregateMastery,
-  EMPTY_MASTERY_AGGREGATE,
-  type MasteryAggregate,
-} from "@/features/mastery/utils/aggregate-mastery";
-import { loadCardMasteriesWithRepository } from "@/features/mastery/utils/load-card-masteries";
+  loadMasterySnapshotWithRepository,
+  type MasteryScopeRepository,
+} from "@/features/mastery/utils/load-mastery-snapshot";
 
-export interface MasteryScopeRepository extends CardMasteryRepository {
-  findActiveCardIdsInScope(): Promise<string[]>;
-}
+export type { MasteryScopeRepository } from "@/features/mastery/utils/load-mastery-snapshot";
 
 export async function loadMasteryAggregateWithRepository(
   repository: MasteryScopeRepository,
   evaluationTime: string,
 ): Promise<MasteryAggregate> {
-  const cardIds = await repository.findActiveCardIdsInScope();
-  if (cardIds.length === 0) return EMPTY_MASTERY_AGGREGATE;
-
-  const masteries = await loadCardMasteriesWithRepository(repository, cardIds, evaluationTime);
-  return aggregateMastery(masteries);
+  const snapshot = await loadMasterySnapshotWithRepository(repository, evaluationTime);
+  return snapshot.aggregate;
 }

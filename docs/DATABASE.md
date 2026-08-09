@@ -402,6 +402,31 @@ queries, so deleted and foreign cards are never returned as active mastery
 items. The `(user_id, flashcard_id, reviewed_at)` event index supports this
 read path without an N+1 card query.
 
+## Smart Review V1 candidates
+
+Smart Review is another read-time projection of the same immutable event history;
+it writes no state and is not a spaced-repetition schedule. Its V1 eligibility
+rule is centralized in the mastery domain: only active cards whose current
+Mastery V1 status is `review` are candidates. `untested`, `learning`, and
+`strong` cards are intentionally excluded.
+
+Candidates are ranked deterministically by lowest internal mastery score first,
+then oldest `lastReviewedAt`, then flashcard UUID. A candidate result exposes a
+full `total` plus an optional limited, urgency-ordered batch. It contains only
+the card UUID and ordering facts, so a future session can fetch its cards in one
+batch instead of triggering per-card queries.
+
+`loadMasterySnapshot` captures one UTC evaluation timestamp and loads the scoped
+active cards and review events once. Its aggregate and Smart Review candidate
+projections therefore agree exactly and callers that need both must reuse that
+one snapshot. Library, set, and collection scopes use existing RLS-scoped,
+paginated lookups; deleted cards are revalidated against live `flashcards` and
+remain historical only.
+
+This eligibility rule is deliberately isolated. A future FSRS layer can replace
+or extend it with due scheduling without changing raw events or teaching UI
+callers about `status === 'review'`.
+
 ## Derived statistics
 
 `daily_learning_records` stores one immutable local date per user/day, its timezone at completion,

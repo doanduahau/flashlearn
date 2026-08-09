@@ -145,5 +145,8 @@ begin
 end;
 $$;
 
-revoke all on function public.create_quiz_session_from_card_ids(uuid[]) from public, anon;
-grant execute on function public.create_quiz_session_from_card_ids(uuid[]) to authenticated;
+-- Keep the raw explicit-card entry point private from the migration that first
+-- introduces it. A later server-only wrapper is the sole callable boundary.
+-- Revoking service_role here prevents privileged callers from bypassing that
+-- wrapper and supplying card IDs without its trusted owner scope.
+revoke all on function public.create_quiz_session_from_card_ids(uuid[]) from public, anon, authenticated, service_role;

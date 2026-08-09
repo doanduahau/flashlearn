@@ -1,5 +1,5 @@
 begin;
-select plan(33);
+select plan(34);
 
 insert into auth.users (
   instance_id, id, aud, role, email, email_confirmed_at,
@@ -82,6 +82,7 @@ select lives_ok(
 );
 select set_config('explicit.session_id', (select id::text from public.quiz_sessions limit 1), false);
 select is((select actual_question_count from public.quiz_sessions where id = current_setting('explicit.session_id')::uuid), 6, 'six explicit target cards create six questions');
+select is((select origin from public.quiz_sessions where id = current_setting('explicit.session_id')::uuid), 'smart_review', 'the trusted explicit-card wrapper persists Smart Review origin');
 select is((select count(*) from public.quiz_questions where session_id = current_setting('explicit.session_id')::uuid), 6::bigint, 'only target cards become questions');
 select is(
   (select array_agg(source_flashcard_id order by position) from public.quiz_questions where session_id = current_setting('explicit.session_id')::uuid),

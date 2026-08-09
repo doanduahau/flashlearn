@@ -216,6 +216,8 @@ database. They verify constraints, profile/trigger behavior, per-user ownership 
 | `011_profile_settings.sql`                        | timezone cooldown, immutable activity dates, ownership and direct-update denial         |
 | `011_quiz_engine.sql`                             | quiz session creation, snapshot, submission and scoring                                 |
 | `012_learning_statistics.sql`                     | derived statistics and streak timezone logic                                            |
+| `015_explicit_quiz_card_sessions.sql`             | private explicit-card session ownership, ACLs, atomicity and Smart Review origin        |
+| `016_quiz_session_origin.sql`                     | manual defaults, durable Smart Review origin and immutable origin protection            |
 
 Tests run malicious operations as a low-privilege `authenticated` role (via
 `set local role authenticated; set local request.jwt.claim.sub = '<uuid>'`), never only
@@ -337,7 +339,14 @@ Types are checked in and must be regenerated whenever the schema changes.
 
 ## Quiz persistence
 
-`quiz_sessions` and `quiz_questions` store immutable question/answer snapshots, source metadata, completion time and server-computed score. Both use own-row RLS for reads and revoke direct browser writes. The authenticated-only `create_quiz_session` and `submit_quiz_answer` RPCs use `auth.uid()`, empty `search_path`, source ownership validation and row locking. On final-answer completion, the answer RPC atomically writes or increments the caller's immutable daily activity row.
+`quiz_sessions` and `quiz_questions` store immutable question/answer snapshots, source metadata, completion time and server-computed score. `quiz_sessions.origin` is durable contextual metadata with exactly two values:
+
+- `manual` — the default for all historical rows and every normal Quiz creation.
+- `smart_review` — set only by the server-only, service-role Smart Review wrapper.
+
+The insert trigger ignores a supplied table value and derives the origin from trusted database context; an update trigger rejects later origin changes. Origin does not change question selection, correctness, scoring, review-event creation, streaks, or daily-learning records. It only lets result UX decide whether to offer a fresh Smart Review continuation.
+
+Both quiz tables use own-row RLS for reads and revoke direct browser writes. The authenticated-only `create_quiz_session` and `submit_quiz_answer` RPCs use `auth.uid()`, empty `search_path`, source ownership validation and row locking. On final-answer completion, the answer RPC atomically writes or increments the caller's immutable daily activity row.
 
 ## Card review events
 
@@ -446,9 +455,12 @@ their 10-question minimum. Only explicit targets receive question snapshots and
 therefore review events. Distractors come from other active cards in the user's
 whole library and never create a learning event merely by appearing as a choice.
 
-No Smart Review origin is persisted yet: its session retains the existing
-`balanced` quiz mode so analytics and results remain compatible. A future origin
-field can be introduced if continuation or origin-specific analytics requires it.
+The trusted wrapper sets `quiz_sessions.origin = smart_review`; the normal Quiz
+RPC keeps the `manual` default. Both origins share the same question engine,
+answer RPC, immutable review events, completion/streak logic, and result page.
+Only a completed `smart_review` result loads one fresh library
+`MasterySnapshot`: its current candidate total controls the compact “Ôn tiếp”
+or “Đã ôn xong hôm nay” context. Manual results do not load this extra snapshot.
 
 ## Derived statistics
 

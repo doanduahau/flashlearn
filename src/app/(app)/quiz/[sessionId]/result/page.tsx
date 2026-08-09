@@ -2,9 +2,13 @@ import Link from "next/link";
 import { Flame } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
+import { loadMasterySnapshot } from "@/features/mastery/server/load-mastery-snapshot";
+import { SmartReviewContinuation } from "@/features/smart-review/components/smart-review-continuation";
+import { loadSmartReviewResultContext } from "@/features/smart-review/utils/smart-review-result";
 import { loadStreakSummary } from "@/features/statistics/server/load-statistics";
 import { streakLabel } from "@/features/statistics/utils/streak-label";
 import { buildQuizResultCollectionTargets } from "@/features/quiz/utils/result-collection-targets";
+import { quizSessionOrigin } from "@/features/quiz/utils/quiz-session-origin";
 import { createClient } from "@/lib/supabase/server";
 export default async function QuizResultPage({
   params,
@@ -16,7 +20,7 @@ export default async function QuizResultPage({
   const [sessionResult, streakSummary] = await Promise.all([
     supabase
       .from("quiz_sessions")
-      .select("mode, actual_question_count, correct_answer_count, completed_at")
+      .select("mode, origin, actual_question_count, correct_answer_count, completed_at")
       .eq("id", sessionId)
       .maybeSingle(),
     loadStreakSummary(supabase),
@@ -24,13 +28,19 @@ export default async function QuizResultPage({
   const session = sessionResult.data;
   if (!session) notFound();
   if (!session.completed_at) redirect(`/quiz/${sessionId}`);
-  const { data: questions } = await supabase
-    .from("quiz_questions")
-    .select(
-      "id, position, prompt, correct_answer, choices, selected_choice_index, is_correct, flashcard_id",
-    )
-    .eq("session_id", sessionId)
-    .order("position");
+  const [questionsResult, smartReviewResult] = await Promise.all([
+    supabase
+      .from("quiz_questions")
+      .select(
+        "id, position, prompt, correct_answer, choices, selected_choice_index, is_correct, flashcard_id",
+      )
+      .eq("session_id", sessionId)
+      .order("position"),
+    loadSmartReviewResultContext(quizSessionOrigin(session.origin), () =>
+      loadMasterySnapshot(supabase, { type: "library" }),
+    ),
+  ]);
+  const questions = questionsResult.data;
 
   const cardIds = Array.from(
     new Set(
@@ -101,6 +111,9 @@ export default async function QuizResultPage({
             </div>
           </div>
         </section>
+      ) : null}
+      {smartReviewResult.kind === "smart_review" ? (
+        <SmartReviewContinuation remainingCount={smartReviewResult.remainingCount} />
       ) : null}
       <section className="mt-8 space-y-4" aria-label="Xem lại câu trả lời">
         {(questions ?? []).map((q) => {

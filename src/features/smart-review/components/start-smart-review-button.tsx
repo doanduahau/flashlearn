@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { startSmartReview } from "@/features/smart-review/server/actions";
 
-export function StartSmartReviewButton() {
+export function StartSmartReviewButton({ label = "Ôn ngay" }: { label?: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export function StartSmartReviewButton() {
         disabled={pending}
         aria-describedby={error ? "smart-review-start-error" : undefined}
       >
-        {pending ? "Đang mở…" : "Ôn ngay"}
+        {pending ? "Đang mở…" : label}
       </Button>
       {error ? (
         <p id="smart-review-start-error" role="alert" className="mt-1 text-xs text-danger">

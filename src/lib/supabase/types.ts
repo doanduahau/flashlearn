@@ -289,6 +289,7 @@ export type Database = {
           correct_answer_count: number
           id: string
           mode: string
+          origin: string
           requested_question_count: number
           source_all: boolean
           source_collection_ids: string[]
@@ -302,6 +303,7 @@ export type Database = {
           correct_answer_count?: number
           id?: string
           mode: string
+          origin?: string
           requested_question_count: number
           source_all?: boolean
           source_collection_ids?: string[]
@@ -315,6 +317,7 @@ export type Database = {
           correct_answer_count?: number
           id?: string
           mode?: string
+          origin?: string
           requested_question_count?: number
           source_all?: boolean
           source_collection_ids?: string[]

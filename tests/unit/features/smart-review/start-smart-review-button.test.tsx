@@ -31,6 +31,17 @@ describe("StartSmartReviewButton", () => {
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith("/quiz/session-1"));
   });
 
+  it("uses the same server-selected start action for continuation", async () => {
+    mocks.startSmartReview.mockResolvedValue({ ok: true, sessionId: "session-continue" });
+    const user = userEvent.setup();
+    render(<StartSmartReviewButton label="Ôn tiếp" />);
+
+    await user.click(screen.getByRole("button", { name: "Ôn tiếp" }));
+
+    await waitFor(() => expect(mocks.startSmartReview).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith("/quiz/session-continue"));
+  });
+
   it("prevents a normal double tap from starting duplicate sessions", async () => {
     let resolveStart: ((value: { ok: true; sessionId: string }) => void) | undefined;
     mocks.startSmartReview.mockImplementation(

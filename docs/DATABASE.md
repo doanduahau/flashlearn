@@ -537,6 +537,36 @@ event identifier without creating or editing history.
 
 `card_review_events.fsrs_rating` is a nullable smallint: 1=Again 2=Hard 3=Good 4=Easy.
 
+### Reconciliation runners
+
+Two runner entry points exist. They are intentionally separate so the local
+command can never silently hit production.
+
+- **Local** — `npm run fsrs:reconcile:local`. Uses `requireLocalEndpoint` and
+  refuses any non-local Supabase URL. Read-only safe by construction (it only
+  reconciles local shadow data).
+- **Production** — `npm run fsrs:reconcile:production`. Requires
+  `FLASHLEARN_PRODUCTION_SUPABASE_URL`, `FLASHLEARN_PRODUCTION_PROJECT_REF`, and
+  `SUPABASE_SERVICE_ROLE_KEY`. The URL must be `https`, must not be a local
+  host, and its hostname must be `<project-ref>.supabase.co` where the ref
+  matches `FLASHLEARN_PRODUCTION_PROJECT_REF` and is present in the hard-coded
+  `ALLOWED_PRODUCTION_PROJECT_REFS` allowlist in the runner. Anything ambiguous
+  fails closed. Dry-run (`--dry-run`) performs no writes; mutation requires
+  `--execute --confirm flashlearn-production`. Execution is batched
+  (`--batch-size`, default 50, max 500), sequential, and resumable: rerunning
+  no-ops already-current projections. Per-card failures are counted and the
+  process exits non-zero, but never terminate the whole run except for
+  identity/credential/schema/RPC failures.
+
+After a production backfill the runner performs a second pass (must be clean),
+coverage verification (active schedulable cards == active schedule rows),
+plausibility checks, a deterministic replay-consistency sample, and an
+aggregate `fsrs_rating` distribution check. The runner never updates or deletes
+`card_review_events`.
+
+FSRS remains shadow-only after backfill: Smart Review, Dashboard, mastery
+colors, and result UX all continue to use Mastery V1.
+
 ## Derived statistics
 
 `daily_learning_records` stores one immutable local date per user/day, its timezone at completion,

@@ -48,11 +48,25 @@ async function buildDataAccess(client: Supabase): Promise<ProductionCompareDataA
   };
 
   const findActiveCardIds = async (cardIds: readonly string[]): Promise<string[]> => {
-    const { data } = await client
-      .from("flashcards")
-      .select("id")
-      .in("id", [...cardIds]);
-    return (data ?? []).map((row) => row.id);
+    const results: string[] = [];
+    const uniqueIds = [...new Set(cardIds)];
+    for (let batch = 0; batch < uniqueIds.length; batch += SCOPE_ID_PAGE_SIZE) {
+      const batchIds = uniqueIds.slice(batch, batch + SCOPE_ID_PAGE_SIZE);
+      let start = 0;
+      while (true) {
+        const { data } = await client
+          .from("flashcards")
+          .select("id")
+          .in("id", batchIds)
+          .order("id", { ascending: true })
+          .range(start, start + SCOPE_ID_PAGE_SIZE - 1);
+        const page = data ?? [];
+        results.push(...page.map((row: { id: string }) => row.id));
+        if (page.length < SCOPE_ID_PAGE_SIZE) break;
+        start += SCOPE_ID_PAGE_SIZE;
+      }
+    }
+    return results;
   };
 
   const findReviewEvents = async (cardIds: readonly string[]): Promise<CardReviewEventRow[]> => {

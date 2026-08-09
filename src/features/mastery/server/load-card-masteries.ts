@@ -12,17 +12,38 @@ import type { Database } from "@/lib/supabase/types";
 type Supabase = SupabaseClient<Database>;
 
 const REVIEW_EVENT_PAGE_SIZE = 1000;
+const ACTIVE_CARD_PAGE_SIZE = 1000;
+const IN_CLAUSE_BATCH_SIZE = 200;
 
 export async function findActiveCardIds(
   supabase: Supabase,
   cardIds: readonly string[],
 ): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("flashcards")
-    .select("id")
-    .in("id", [...cardIds]);
-  if (error) throw new Error("Unable to load active flashcards for mastery");
-  return (data ?? []).map((card) => card.id);
+  const results: string[] = [];
+  const uniqueIds = [...new Set(cardIds)];
+
+  for (let batch = 0; batch < uniqueIds.length; batch += IN_CLAUSE_BATCH_SIZE) {
+    const batchIds = uniqueIds.slice(batch, batch + IN_CLAUSE_BATCH_SIZE);
+    let start = 0;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from("flashcards")
+        .select("id")
+        .in("id", batchIds)
+        .order("id", { ascending: true })
+        .range(start, start + ACTIVE_CARD_PAGE_SIZE - 1);
+
+      if (error) throw new Error("Unable to load active flashcards for mastery");
+
+      const page = data ?? [];
+      results.push(...page.map((card) => card.id));
+      if (page.length < ACTIVE_CARD_PAGE_SIZE) break;
+      start += ACTIVE_CARD_PAGE_SIZE;
+    }
+  }
+
+  return results;
 }
 
 export async function findReviewEvents(
@@ -30,29 +51,36 @@ export async function findReviewEvents(
   cardIds: readonly string[],
 ): Promise<CardReviewEventRow[]> {
   const events: CardReviewEventRow[] = [];
-  let start = 0;
+  const uniqueIds = [...new Set(cardIds)];
 
-  while (true) {
-    const { data, error } = await supabase
-      .from("card_review_events")
-      .select("flashcard_id, is_correct, reviewed_at")
-      .in("flashcard_id", [...cardIds])
-      .order("reviewed_at", { ascending: true })
-      .range(start, start + REVIEW_EVENT_PAGE_SIZE - 1);
+  for (let batch = 0; batch < uniqueIds.length; batch += IN_CLAUSE_BATCH_SIZE) {
+    const batchIds = uniqueIds.slice(batch, batch + IN_CLAUSE_BATCH_SIZE);
+    let start = 0;
 
-    if (error) throw new Error("Unable to load review events for mastery");
+    while (true) {
+      const { data, error } = await supabase
+        .from("card_review_events")
+        .select("flashcard_id, is_correct, reviewed_at")
+        .in("flashcard_id", batchIds)
+        .order("reviewed_at", { ascending: true })
+        .range(start, start + REVIEW_EVENT_PAGE_SIZE - 1);
 
-    const page = data ?? [];
-    events.push(
-      ...page.map((event) => ({
-        flashcardId: event.flashcard_id,
-        isCorrect: event.is_correct,
-        reviewedAt: event.reviewed_at,
-      })),
-    );
-    if (page.length < REVIEW_EVENT_PAGE_SIZE) return events;
-    start += REVIEW_EVENT_PAGE_SIZE;
+      if (error) throw new Error("Unable to load review events for mastery");
+
+      const page = data ?? [];
+      events.push(
+        ...page.map((event) => ({
+          flashcardId: event.flashcard_id,
+          isCorrect: event.is_correct,
+          reviewedAt: event.reviewed_at,
+        })),
+      );
+      if (page.length < REVIEW_EVENT_PAGE_SIZE) break;
+      start += REVIEW_EVENT_PAGE_SIZE;
+    }
   }
+
+  return events;
 }
 
 export async function loadCardMasteries(

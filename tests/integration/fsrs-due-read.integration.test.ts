@@ -13,7 +13,6 @@ import {
   findDueCandidates,
   loadDueCandidateResult,
 } from "@/features/spaced-repetition/server/due-repository";
-import type { FsrsDueScope } from "@/features/spaced-repetition/types/due-types";
 import type { Database } from "@/lib/supabase/types";
 
 type Supabase = SupabaseClient<Database>;

@@ -595,6 +595,15 @@ A read-only comparison utility (`src/features/spaced-repetition/utils/compare-re
 and a local command `npm run fsrs:compare:local` report aggregate Mastery-vs-FSRS
 differences per user without mutating schedules or events.
 
+`npm run fsrs:compare:production` is the same read-only comparison against the
+allowlisted production project. It reuses the shared production identity guard
+(`scripts/lib/production-identity.ts`, also used by the reconciliation runner),
+captures one fixed UTC `evaluationTime` at command start, and reports per-user
+and aggregate Mastery-vs-FSRS counts plus sanity metrics. It is diagnostic-only:
+it never imports write-capable reconciliation modules, never calls the projection
+CAS RPC, and performs no INSERT/UPDATE/DELETE/UPSERT. It must be run manually
+with the production environment variables set; it is never run automatically.
+
 Future Smart Review cutover will consume this due read model for timing; Mastery
 remains the confidence/presentation layer.
 

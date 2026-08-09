@@ -16,15 +16,20 @@ import {
 import { SCHEDULABLE_EVENT_OR_PREDICATE } from "../src/features/spaced-repetition/types/spaced-repetition-types";
 import type { Database } from "../src/lib/supabase/types";
 
+export {
+  ALLOWED_PRODUCTION_PROJECT_REFS,
+  resolveProductionIdentity,
+  validateProductionIdentity,
+  type ProductionIdentity,
+} from "./lib/production-identity";
+import {
+  ALLOWED_PRODUCTION_PROJECT_REFS,
+  resolveProductionIdentity,
+} from "./lib/production-identity";
+
 type Supabase = SupabaseClient<Database>;
 
 const SCHEDULABLE_OR = SCHEDULABLE_EVENT_OR_PREDICATE;
-
-// Production project allowlist. This MUST be updated with the real FlashLearn
-// production Supabase project ref before the runner will do anything. Keeping
-// it empty fail-closes: the runner refuses any project that is not explicitly
-// allowlisted here. The ref is a public project identifier, not a secret.
-export const ALLOWED_PRODUCTION_PROJECT_REFS = new Set(["rtrllrlilupoesikeypt"]);
 
 // Non-secret product identifier required for production mutation.
 export const PRODUCTION_CONFIRMATION_TOKEN = "flashlearn-production";
@@ -73,71 +78,6 @@ export function parseProductionArgs(argv: readonly string[]): ProductionRunnerAr
   }
 
   return { mode, batchSize, confirm };
-}
-
-export type ProductionIdentity = {
-  url: string;
-  projectRef: string;
-  serviceRoleKey: string;
-};
-
-const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
-const PROD_HOSTNAME_PATTERN = /^([a-z0-9]+)\.supabase\.co$/;
-
-export function resolveProductionIdentity(
-  env: NodeJS.ProcessEnv,
-  allowlist: ReadonlySet<string>,
-): ProductionIdentity {
-  const url = env.FLASHLEARN_PRODUCTION_SUPABASE_URL;
-  const projectRef = env.FLASHLEARN_PRODUCTION_PROJECT_REF;
-  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !projectRef || !serviceRoleKey) {
-    const missing = [
-      !url ? "FLASHLEARN_PRODUCTION_SUPABASE_URL" : null,
-      !projectRef ? "FLASHLEARN_PRODUCTION_PROJECT_REF" : null,
-      !serviceRoleKey ? "SUPABASE_SERVICE_ROLE_KEY" : null,
-    ].filter(Boolean);
-    throw new Error(`Missing required production environment variables: ${missing.join(", ")}`);
-  }
-
-  validateProductionIdentity({ url, projectRef, serviceRoleKey }, allowlist);
-  return { url, projectRef, serviceRoleKey };
-}
-
-export function validateProductionIdentity(
-  identity: ProductionIdentity,
-  allowlist: ReadonlySet<string>,
-): void {
-  let parsed: URL;
-  try {
-    parsed = new URL(identity.url);
-  } catch {
-    throw new Error(`FLASHLEARN_PRODUCTION_SUPABASE_URL is not a valid URL`);
-  }
-
-  if (parsed.protocol !== "https:") {
-    throw new Error(`production Supabase URL must be https: (got ${parsed.protocol})`);
-  }
-  if (LOCAL_HOSTNAMES.has(parsed.hostname)) {
-    throw new Error(`production Supabase URL must not point at ${parsed.hostname}`);
-  }
-
-  const match = PROD_HOSTNAME_PATTERN.exec(parsed.hostname);
-  if (!match) {
-    throw new Error(
-      `unrecognized Supabase hostname ${parsed.hostname}; expected <ref>.supabase.co`,
-    );
-  }
-  const hostRef = match[1];
-  if (hostRef !== identity.projectRef) {
-    throw new Error(
-      `URL project ref "${hostRef}" does not match FLASHLEARN_PRODUCTION_PROJECT_REF "${identity.projectRef}"`,
-    );
-  }
-  if (!allowlist.has(identity.projectRef)) {
-    throw new Error(`project ref "${identity.projectRef}" is not in the production allowlist`);
-  }
 }
 
 export function assertConfirmation(mode: RunnerMode, confirm: string | undefined): void {

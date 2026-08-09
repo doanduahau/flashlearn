@@ -484,6 +484,13 @@ Write authority: only `upsert_card_learning_schedule` (service-role,
 SECURITY DEFINER). Authenticated SELECT only; no direct INSERT/UPDATE/DELETE.
 Browser cannot forge due/stability/difficulty/revision.
 
+The write RPC validates flashcard ownership, the complete schedulable-event
+count, and the final `(reviewed_at, event_id)` cursor ordered ascending. It
+uses revision compare-and-swap for both insert and update. An exact retry is a
+no-op only when every persisted scheduling, cursor, and scheduler-identity
+field matches; otherwise it replaces the complete projection and advances the
+revision. `updated_at` is write metadata only, never an event-stream cursor.
+
 FSRS is currently shadow infrastructure and does NOT influence Smart Review
 eligibility, Dashboard counts, or Mastery UI.
 

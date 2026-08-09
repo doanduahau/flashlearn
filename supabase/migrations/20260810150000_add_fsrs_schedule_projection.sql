@@ -12,10 +12,16 @@ create table public.card_learning_schedule (
 
   -- FSRS-6 state (ts-fsrs 5.4.1 Card projection)
   state smallint not null check (state between 0 and 3),
-  stability double precision not null check (stability >= 0),
-  difficulty double precision not null check (difficulty >= 0),
+  stability double precision not null check (
+    stability >= 0 and stability < 'Infinity'::double precision
+  ),
+  difficulty double precision not null check (
+    difficulty >= 0 and difficulty < 'Infinity'::double precision
+  ),
   due timestamptz not null,
-  scheduled_days double precision not null default 0 check (scheduled_days >= 0),
+  scheduled_days double precision not null default 0 check (
+    scheduled_days >= 0 and scheduled_days < 'Infinity'::double precision
+  ),
   learning_steps integer not null default 0 check (learning_steps >= 0),
   reps integer not null default 0 check (reps >= 0),
   lapses integer not null default 0 check (lapses >= 0),
@@ -28,9 +34,9 @@ create table public.card_learning_schedule (
   last_processed_review_event_id uuid not null,
 
   -- Frozen scheduler identity
-  algorithm text not null,
-  implementation text not null,
-  parameter_set text not null,
+  algorithm text not null check (btrim(algorithm) <> ''),
+  implementation text not null check (btrim(implementation) <> ''),
+  parameter_set text not null check (btrim(parameter_set) <> ''),
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -191,8 +197,17 @@ begin
       0, p_processed_event_count,
       p_last_processed_reviewed_at, p_last_processed_review_event_id,
       p_algorithm, p_implementation, p_parameter_set
-    );
-    return 0;
+    ) on conflict (user_id, flashcard_id) do nothing
+    returning projection_revision into v_current_revision;
+
+    -- A concurrent first writer must surface a retryable CAS conflict rather
+    -- than overwrite the newly-created projection or leak a unique violation.
+    if v_current_revision is null then
+      raise exception 'cas conflict: projection was created concurrently'
+        using errcode = '22023';
+    end if;
+
+    return v_current_revision;
   end if;
 
   v_current_revision := cur.projection_revision;
@@ -204,15 +219,23 @@ begin
       using errcode = '22023';
   end if;
 
-  -- Idempotent exact repeat: same cursor AND identical key state = already current.
+  -- Idempotent exact repeat: every persisted projection field (except revision
+  -- and write timestamps) must match. A matching cursor alone is never enough.
   if p_processed_event_count = cur.processed_event_count
      and p_last_processed_review_event_id = cur.last_processed_review_event_id
+     and p_last_processed_reviewed_at = cur.last_processed_reviewed_at
      and p_state = cur.state
      and p_due = cur.due
      and p_stability = cur.stability
      and p_difficulty = cur.difficulty
+     and p_scheduled_days = cur.scheduled_days
+     and p_learning_steps = cur.learning_steps
      and p_reps = cur.reps
-     and p_lapses = cur.lapses then
+     and p_lapses = cur.lapses
+     and p_last_review = cur.last_review
+     and p_algorithm = cur.algorithm
+     and p_implementation = cur.implementation
+     and p_parameter_set = cur.parameter_set then
     return v_current_revision;
   end if;
 
@@ -235,7 +258,14 @@ begin
     algorithm = p_algorithm,
     implementation = p_implementation,
     parameter_set = p_parameter_set
-  where user_id = p_user_id and flashcard_id = p_flashcard_id;
+  where user_id = p_user_id
+    and flashcard_id = p_flashcard_id
+    and projection_revision = v_current_revision;
+
+  if not found then
+    raise exception 'cas conflict: projection changed concurrently'
+      using errcode = '22023';
+  end if;
 
   return v_current_revision + 1;
 end;

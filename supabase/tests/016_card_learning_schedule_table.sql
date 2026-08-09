@@ -2,7 +2,7 @@
 
 begin;
 
-select plan(14);
+select plan(21);
 
 -- fixtures ------------------------------------------------------------------
 insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -10,6 +10,14 @@ values (
   '00000000-0000-0000-0000-000000000000',
   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
   'authenticated', 'authenticated', 's16.a@example.com', now(),
+  '{"provider":"email","providers":["email"]}', '{}', now(), now()
+);
+
+insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+values (
+  '00000000-0000-0000-0000-000000000000',
+  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  'authenticated', 'authenticated', 's16.b@example.com', now(),
   '{"provider":"email","providers":["email"]}', '{}', now(), now()
 );
 
@@ -72,6 +80,21 @@ select is(
   (select count(*) from public.card_learning_schedule where flashcard_id = '16222222-2222-2222-2222-1622222222aa'),
   1::bigint
 );
+
+select is(has_table_privilege('authenticated', 'public.card_learning_schedule', 'select'), true, 'authenticated has table SELECT only');
+select is(has_table_privilege('authenticated', 'public.card_learning_schedule', 'insert'), false, 'authenticated has no table INSERT');
+select is(has_table_privilege('authenticated', 'public.card_learning_schedule', 'update'), false, 'authenticated has no table UPDATE');
+select is(has_table_privilege('authenticated', 'public.card_learning_schedule', 'delete'), false, 'authenticated has no table DELETE');
+select is(has_table_privilege('anon', 'public.card_learning_schedule', 'select'), false, 'anon has no table SELECT');
+
+set local role authenticated;
+set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+select is((select count(*) from public.card_learning_schedule), 1::bigint, 'owner can read own schedule');
+reset role;
+set local role authenticated;
+set local request.jwt.claim.sub = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+select is((select count(*) from public.card_learning_schedule), 0::bigint, 'RLS hides User A schedule from User B');
+reset role;
 
 delete from public.flashcards where id = '16222222-2222-2222-2222-1622222222aa';
 

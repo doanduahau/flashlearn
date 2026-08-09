@@ -530,7 +530,9 @@ export type Database = {
         Args: { p_question_id: string; p_selected_choice_index: number }
         Returns: {
           completed: boolean
+          flashcard_id: string
           is_correct: boolean
+          review_event_id: string
           session_id: string
         }[]
       }

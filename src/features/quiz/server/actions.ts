@@ -6,6 +6,7 @@ import {
   quizStartSchema,
 } from "@/features/quiz/schemas/quiz-schema";
 import { collectStudyCardIds } from "@/features/study/server/load-study-cards";
+import { reconcileCardSchedule } from "@/features/spaced-repetition/server/reconcile-card-schedule";
 import { createClient } from "@/lib/supabase/server";
 
 type Result =
@@ -54,11 +55,32 @@ export async function submitQuizAnswer(input: unknown): Promise<Result> {
   if (!parsed.success) return { ok: false, error: "Câu trả lời không hợp lệ." };
   const supabase = await createClient();
   if (!(await signedIn(supabase))) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+
   const { data, error } = await supabase.rpc("submit_quiz_answer", {
     p_question_id: parsed.data.questionId,
     p_selected_choice_index: parsed.data.selectedChoiceIndex,
   });
   const answer = data?.[0];
   if (error || !answer) return { ok: false, error: generic };
+
+  // Shadow FSRS reconciliation: best-effort, never fails the quiz answer.
+  if (answer.flashcard_id && answer.review_event_id) {
+    const userId = (await supabase.auth.getClaims()).data?.claims?.sub as string | undefined;
+    if (userId) {
+      try {
+        await reconcileCardSchedule(supabase, userId, answer.flashcard_id as string);
+      } catch (reason: unknown) {
+        const message =
+          typeof reason === "object" && reason !== null && "message" in reason
+            ? String(reason.message).substring(0, 240)
+            : "unknown";
+        console.error(
+          `[fsrs_shadow] reconciliation failed quiz_question=${parsed.data.questionId} ` +
+            `flashcard=${answer.flashcard_id} reason=${message}`,
+        );
+      }
+    }
+  }
+
   return { ok: true, correct: answer.is_correct, completed: answer.completed };
 }

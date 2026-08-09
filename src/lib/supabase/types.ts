@@ -34,9 +34,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      card_learning_schedule: {
+        Row: {
+          algorithm: string
+          created_at: string
+          difficulty: number
+          due: string
+          flashcard_id: string
+          id: string
+          implementation: string
+          lapses: number
+          last_processed_review_event_id: string
+          last_processed_reviewed_at: string
+          last_review: string
+          learning_steps: number
+          parameter_set: string
+          processed_event_count: number
+          projection_revision: number
+          reps: number
+          scheduled_days: number
+          stability: number
+          state: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          algorithm: string
+          created_at?: string
+          difficulty: number
+          due: string
+          flashcard_id: string
+          id?: string
+          implementation: string
+          lapses?: number
+          last_processed_review_event_id: string
+          last_processed_reviewed_at: string
+          last_review: string
+          learning_steps?: number
+          parameter_set: string
+          processed_event_count: number
+          projection_revision?: number
+          reps?: number
+          scheduled_days?: number
+          stability: number
+          state: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          algorithm?: string
+          created_at?: string
+          difficulty?: number
+          due?: string
+          flashcard_id?: string
+          id?: string
+          implementation?: string
+          lapses?: number
+          last_processed_review_event_id?: string
+          last_processed_reviewed_at?: string
+          last_review?: string
+          learning_steps?: number
+          parameter_set?: string
+          processed_event_count?: number
+          projection_revision?: number
+          reps?: number
+          scheduled_days?: number
+          stability?: number
+          state?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_learning_schedule_flashcard_id_fkey"
+            columns: ["flashcard_id"]
+            isOneToOne: false
+            referencedRelation: "flashcards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_review_events: {
         Row: {
           flashcard_id: string
+          fsrs_rating: number | null
           id: string
           is_correct: boolean | null
           quiz_question_id: string | null
@@ -47,6 +128,7 @@ export type Database = {
         }
         Insert: {
           flashcard_id: string
+          fsrs_rating?: number | null
           id?: string
           is_correct?: boolean | null
           quiz_question_id?: string | null
@@ -57,6 +139,7 @@ export type Database = {
         }
         Update: {
           flashcard_id?: string
+          fsrs_rating?: number | null
           id?: string
           is_correct?: boolean | null
           quiz_question_id?: string | null
@@ -468,6 +551,29 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      upsert_card_learning_schedule: {
+        Args: {
+          p_algorithm: string
+          p_difficulty: number
+          p_due: string
+          p_expected_projection_revision: number
+          p_flashcard_id: string
+          p_implementation: string
+          p_lapses: number
+          p_last_processed_review_event_id: string
+          p_last_processed_reviewed_at: string
+          p_last_review: string
+          p_learning_steps: number
+          p_parameter_set: string
+          p_processed_event_count: number
+          p_reps: number
+          p_scheduled_days: number
+          p_stability: number
+          p_state: number
+          p_user_id: string
+        }
+        Returns: number
       }
     }
     Enums: {

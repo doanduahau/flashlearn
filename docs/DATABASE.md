@@ -462,6 +462,33 @@ Only a completed `smart_review` result loads one fresh library
 `MasterySnapshot`: its current candidate total controls the compact “Ôn tiếp”
 or “Đã ôn xong hôm nay” context. Manual results do not load this extra snapshot.
 
+## FSRS schedule projection
+
+`card_learning_schedule` is a rebuildable FSRS-6 projection derived from
+immutable `card_review_events`. If lost or corrupt, it can be rebuilt from
+review events plus the frozen flashlearn-v1 scheduler configuration.
+
+No row exists for a card with zero schedulable reviews.
+
+| Column                                         | Notes                                       |
+| ---------------------------------------------- | ------------------------------------------- |
+| `user_id`, `flashcard_id`                      | UNIQUE; ON DELETE CASCADE FK to flashcards  |
+| `state`                                        | 0=New 1=Learning 2=Review 3=Relearning      |
+| `stability`, `difficulty`, `due`               | Core FSRS outputs; `due` drives eligibility |
+| `projection_revision`                          | CAS version, incremented on every write     |
+| `processed_event_count`                        | Number of schedulable events included       |
+| `last_processed_review_event_id`               | Chronological final schedulable event UUID  |
+| `algorithm`, `implementation`, `parameter_set` | fsrs-6 / ts-fsrs@5.4.1 / flashlearn-v1      |
+
+Write authority: only `upsert_card_learning_schedule` (service-role,
+SECURITY DEFINER). Authenticated SELECT only; no direct INSERT/UPDATE/DELETE.
+Browser cannot forge due/stability/difficulty/revision.
+
+FSRS is currently shadow infrastructure and does NOT influence Smart Review
+eligibility, Dashboard counts, or Mastery UI.
+
+`card_review_events.fsrs_rating` is a nullable smallint: 1=Again 2=Hard 3=Good 4=Easy.
+
 ## Derived statistics
 
 `daily_learning_records` stores one immutable local date per user/day, its timezone at completion,

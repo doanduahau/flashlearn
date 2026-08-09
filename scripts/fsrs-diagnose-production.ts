@@ -43,8 +43,8 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
         .range(start, start + SCOPE_ID_PAGE_SIZE - 1);
       const page = data ?? [];
       ids.push(...page.map((row: { id: string }) => row.id));
-      if (page.length < SCOPE_ID_PAGE_SIZE) return ids;
-      start += SCOPE_ID_PAGE_SIZE;
+      if (page.length === 0) return ids;
+      start += page.length;
     }
   };
 
@@ -63,8 +63,8 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
           .range(start, start + SCOPE_ID_PAGE_SIZE - 1);
         const page = data ?? [];
         results.push(...page.map((row: { id: string }) => row.id));
-        if (page.length < SCOPE_ID_PAGE_SIZE) break;
-        start += SCOPE_ID_PAGE_SIZE;
+        if (page.length === 0) break;
+        start += page.length;
       }
     }
     return results;
@@ -90,7 +90,7 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
           }),
         ),
       );
-      if (page.length < SCOPE_ID_PAGE_SIZE) return events;
+      if (page.length === 0) return events;
       start += SCOPE_ID_PAGE_SIZE;
     }
   };
@@ -244,7 +244,7 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
             }),
           ),
         );
-        if (page.length < SCOPE_ID_PAGE_SIZE) return all;
+        if (page.length === 0) return all;
         start += SCOPE_ID_PAGE_SIZE;
       }
     },

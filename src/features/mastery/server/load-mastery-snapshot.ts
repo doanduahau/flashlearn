@@ -39,8 +39,8 @@ async function findCollectionCardIds(supabase: Supabase, collectionId: string): 
 
     const page = data ?? [];
     ids.push(...page.map((item) => item.flashcard_id));
-    if (page.length < SCOPE_ID_PAGE_SIZE) return ids;
-    start += SCOPE_ID_PAGE_SIZE;
+    if (page.length === 0) return ids;
+    start += page.length;
   }
 }
 

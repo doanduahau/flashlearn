@@ -38,8 +38,8 @@ export async function findActiveCardIds(
 
       const page = data ?? [];
       results.push(...page.map((card) => card.id));
-      if (page.length < ACTIVE_CARD_PAGE_SIZE) break;
-      start += ACTIVE_CARD_PAGE_SIZE;
+      if (page.length === 0) break;
+      start += page.length;
     }
   }
 
@@ -75,8 +75,8 @@ export async function findReviewEvents(
           reviewedAt: event.reviewed_at,
         })),
       );
-      if (page.length < REVIEW_EVENT_PAGE_SIZE) break;
-      start += REVIEW_EVENT_PAGE_SIZE;
+      if (page.length === 0) break;
+      start += page.length;
     }
   }
 

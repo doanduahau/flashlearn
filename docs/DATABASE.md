@@ -379,6 +379,12 @@ security-definer answer RPC, and its unique `quiz_question_id` makes retries
 idempotent. Account deletion cascades through `user_id`; normal product flows do
 not edit or delete events.
 
+Quiz answers store the FSRS rating as part of the initial immutable insert only:
+incorrect is `1` (Again) and correct is `3` (Good). The browser cannot submit a
+rating. An exact transport retry returns the already-stored answer and event
+identifier only when its selected choice matches the stored choice; it never
+updates `is_correct`, `fsrs_rating`, timestamps, or daily completion data.
+
 ## Mastery V1
 
 Mastery is read-time, replaceable derived data from immutable
@@ -521,6 +527,13 @@ any persisted projection, so full replay is deterministic and idempotent.
 
 FSRS is currently shadow infrastructure and does NOT influence Smart Review
 eligibility, Dashboard counts, or Mastery UI.
+
+For a Quiz answer, the authoritative answer/question/event/daily-record work is
+one database transaction. Shadow reconciliation is a separate best-effort server
+transaction after that commit; a projection failure is logged with a coarse
+category and never changes the learner-facing Quiz result. Repeating the same
+transport request gives reconciliation another chance using the authoritative
+event identifier without creating or editing history.
 
 `card_review_events.fsrs_rating` is a nullable smallint: 1=Again 2=Hard 3=Good 4=Easy.
 

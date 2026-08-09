@@ -59,11 +59,9 @@ select is(
   false,
   'the incorrect result is recorded'
 );
-select throws_ok(
+select lives_ok(
   $$select public.submit_quiz_answer(current_setting('review.correct_question_id')::uuid, 0)$$,
-  '22023',
-  'question not found',
-  'an answer retry is rejected'
+  'an exact answer retry returns the immutable existing answer'
 );
 select is(
   (select count(*) from public.card_review_events where quiz_question_id = current_setting('review.correct_question_id')::uuid),

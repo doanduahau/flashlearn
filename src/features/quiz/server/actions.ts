@@ -19,6 +19,24 @@ async function signedIn(supabase: Awaited<ReturnType<typeof createClient>>): Pro
   return Boolean(data?.claims);
 }
 
+async function authenticatedUserId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string | null> {
+  const { data } = await supabase.auth.getClaims();
+  const subject = data?.claims?.sub;
+  return typeof subject === "string" && subject.length > 0 ? subject : null;
+}
+
+function shadowFailureCategory(reason: unknown): string {
+  if (typeof reason === "object" && reason !== null && "code" in reason) {
+    const code = (reason as { code?: unknown }).code;
+    if (typeof code === "string" && /^[A-Z0-9_]{1,24}$/i.test(code)) {
+      return `database_${code}`;
+    }
+  }
+  return "unexpected";
+}
+
 export async function startQuiz(input: unknown): Promise<Result> {
   const parsed = quizStartSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? generic };
@@ -54,7 +72,8 @@ export async function submitQuizAnswer(input: unknown): Promise<Result> {
   const parsed = answerSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Câu trả lời không hợp lệ." };
   const supabase = await createClient();
-  if (!(await signedIn(supabase))) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  const userId = await authenticatedUserId(supabase);
+  if (!userId) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
 
   const { data, error } = await supabase.rpc("submit_quiz_answer", {
     p_question_id: parsed.data.questionId,
@@ -65,20 +84,13 @@ export async function submitQuizAnswer(input: unknown): Promise<Result> {
 
   // Shadow FSRS reconciliation: best-effort, never fails the quiz answer.
   if (answer.flashcard_id && answer.review_event_id) {
-    const userId = (await supabase.auth.getClaims()).data?.claims?.sub as string | undefined;
-    if (userId) {
-      try {
-        await reconcileCardSchedule(supabase, userId, answer.flashcard_id as string);
-      } catch (reason: unknown) {
-        const message =
-          typeof reason === "object" && reason !== null && "message" in reason
-            ? String(reason.message).substring(0, 240)
-            : "unknown";
-        console.error(
-          `[fsrs_shadow] reconciliation failed quiz_question=${parsed.data.questionId} ` +
-            `flashcard=${answer.flashcard_id} reason=${message}`,
-        );
-      }
+    try {
+      await reconcileCardSchedule(supabase, userId, answer.flashcard_id as string);
+    } catch (reason: unknown) {
+      console.error(
+        `[fsrs_shadow] reconciliation failed category=${shadowFailureCategory(reason)} ` +
+          `quiz_question=${parsed.data.questionId} flashcard=${answer.flashcard_id}`,
+      );
     }
   }
 

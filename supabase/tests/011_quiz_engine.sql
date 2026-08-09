@@ -21,7 +21,7 @@ select throws_ok($$select public.create_quiz_session('balanced', array['11111111
 select throws_ok($$select public.create_quiz_session('balanced', array['22222222-bbbb-bbbb-bbbb-222222222222']::uuid[], '{}'::uuid[], false, 10)$$,'22023','source not found','foreign source is non-disclosing');
 select throws_ok($$select public.create_quiz_session('balanced', '{}'::uuid[], '{}'::uuid[], false, 10)$$,'22023','invalid quiz request','empty custom source is rejected');
 select lives_ok($$select public.submit_quiz_answer((select id from public.quiz_questions order by position limit 1),0)$$,'answer is accepted once');
-select throws_ok($$select public.submit_quiz_answer((select id from public.quiz_questions order by position limit 1),0)$$,'22023','question not found','repeated answer is rejected');
+select lives_ok($$select public.submit_quiz_answer((select id from public.quiz_questions order by position limit 1),0)$$,'an exact transport retry returns the existing answer');
 select set_config('quiz.test_question_id',(select id::text from public.quiz_questions order by position limit 1),false);
 set local request.jwt.claim.sub='bbbbbbbb-1111-1111-1111-111111111111';
 select is((select count(*) from public.quiz_sessions),0::bigint,'RLS hides another user sessions');

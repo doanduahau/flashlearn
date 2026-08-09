@@ -26,6 +26,7 @@ as $$
 declare
   v_user_id uuid := auth.uid();
   v_question public.quiz_questions;
+  v_session_completed_at timestamptz;
   v_answered integer;
   v_completed_at timestamptz;
   v_answered_at timestamptz;
@@ -52,13 +53,40 @@ begin
   where q.id = p_question_id
     and q.user_id = v_user_id
     and s.user_id = v_user_id
-    and s.completed_at is null
   for update of q, s;
 
   if not found
-     or v_question.answered_at is not null
      or p_selected_choice_index >= jsonb_array_length(v_question.choices) then
     raise exception 'question not found' using errcode = '22023';
+  end if;
+
+  select s.completed_at into v_session_completed_at
+  from public.quiz_sessions s
+  where s.id = v_question.session_id;
+
+  -- A transport retry may arrive after Transaction 1 committed but before the
+  -- best-effort shadow projection write succeeded. Return the existing,
+  -- immutable answer/event facts only when it repeats the original choice.
+  -- This never changes correctness, selected choice, timestamps, or ratings.
+  if v_question.answered_at is not null then
+    if p_selected_choice_index <> v_question.selected_choice_index then
+      raise exception 'question not found' using errcode = '22023';
+    end if;
+
+    select e.id into v_event_id
+    from public.card_review_events e
+    where e.quiz_question_id = v_question.id
+      and e.user_id = v_user_id
+      and e.flashcard_id = v_question.source_flashcard_id;
+
+    return query
+    select
+      v_question.session_id,
+      v_question.is_correct,
+      v_session_completed_at is not null,
+      v_question.source_flashcard_id,
+      v_event_id;
+    return;
   end if;
 
   v_answered_at := now();
@@ -93,13 +121,19 @@ begin
       v_question.id,
       case when v_is_correct then 3 else 1 end
     )
-    on conflict (quiz_question_id)
-      -- On a browser retry the event already exists.  Setting fsrs_rating
-      -- again is idempotent (same rating derived from the same correctness)
-      -- and the RETURNING clause still captures the event id so the server
-      -- action can reconcile the card on every answer/retry.
-      do update set fsrs_rating = excluded.fsrs_rating
+    on conflict (quiz_question_id) do nothing
     returning id into v_event_id;
+
+    -- The question row lock makes this branch unusual, but retain a strict
+    -- conflict recovery path for historical/concurrent data. It selects the
+    -- existing immutable fact; it never updates it.
+    if v_event_id is null then
+      select e.id into v_event_id
+      from public.card_review_events e
+      where e.quiz_question_id = v_question.id
+        and e.user_id = v_user_id
+        and e.flashcard_id = v_question.source_flashcard_id;
+    end if;
   end if;
 
   select count(*) into v_answered

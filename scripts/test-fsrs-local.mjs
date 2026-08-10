@@ -17,6 +17,8 @@ const child = spawn(
     "tests/integration/fsrs-shadow-quiz.integration.test.ts",
     "tests/integration/fsrs-due-read.integration.test.ts",
     "tests/integration/mastery-snapshot-completeness.integration.test.ts",
+    "tests/integration/transition-queue.integration.test.ts",
+    "tests/integration/cutover-transition.integration.test.ts",
   ],
   {
     stdio: "inherit",

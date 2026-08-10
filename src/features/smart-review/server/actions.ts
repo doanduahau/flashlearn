@@ -1,10 +1,7 @@
 "use server";
 
 import { loadTransitionQueue } from "@/features/spaced-repetition/server/transition-queue";
-import {
-  SMART_REVIEW_BATCH_SIZE,
-  smartReviewTargetCardIdsFromTransitionQueue,
-} from "@/features/smart-review/utils/smart-review-session";
+import { smartReviewTargetCardIdsFromTransitionQueue } from "@/features/smart-review/utils/smart-review-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,7 +29,13 @@ export async function startSmartReview(): Promise<StartSmartReviewResult> {
   }
 
   const evaluationTime = new Date().toISOString();
-  const queue = await loadTransitionQueue(supabase, userId, { type: "library" }, evaluationTime);
+  let queue;
+  try {
+    queue = await loadTransitionQueue(supabase, userId, { type: "library" }, evaluationTime);
+  } catch {
+    console.error("[smart_review] start transition queue unavailable");
+    return { ok: false, error: GENERIC_ERROR };
+  }
 
   const targetCardIds = smartReviewTargetCardIdsFromTransitionQueue(queue);
   if (targetCardIds.length === 0) {

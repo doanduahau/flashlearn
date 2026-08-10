@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import { signUpAndConfirm, uniqueEmail } from "./support/auth-helpers";
-import { supabaseRest } from "./support/supabase-api";
+import { localSupabaseAdminRest, supabaseRest } from "./support/supabase-api";
 
 const MOBILE = { width: 390, height: 844 };
 const QUIZ_CSV = "tests/fixtures/quiz-cards.csv";
@@ -98,6 +98,18 @@ async function getTargetSetIds(page: Page, cardIds: string[]): Promise<string[]>
   return ((await response.json()) as Array<{ set_id: string }>).map((card) => card.set_id);
 }
 
+async function makeSchedulesDue(cardIds: string[]): Promise<void> {
+  const response = await localSupabaseAdminRest(
+    `card_learning_schedule?flashcard_id=in.(${cardIds.join(",")})`,
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ due: "2020-01-01T00:00:00.000Z" }),
+    },
+  );
+  expect(response.ok).toBe(true);
+}
+
 test.describe("Smart Review session", () => {
   test("starts an urgent multi-set batch from Dashboard and keeps normal quiz learning records", async ({
     page,
@@ -118,6 +130,7 @@ test.describe("Smart Review session", () => {
     expect(seededTargetIds).toHaveLength(10);
     expect(new Set(await getTargetSetIds(page, seededTargetIds)).size).toBeGreaterThan(1);
     await expect(getSessionOrigin(page, seededSessionId)).resolves.toBe("manual");
+    await makeSchedulesDue(seededTargetIds);
 
     await page.goto("/dashboard");
     const summary = page.getByRole("region", { name: "Tóm tắt trạng thái học" });
@@ -154,6 +167,7 @@ test.describe("Smart Review session", () => {
     );
     expect(eventIds).toHaveLength(10);
     expect(eventIds).toEqual(expect.arrayContaining(smartTargetIds));
+    await makeSchedulesDue(smartTargetIds);
 
     await page.goto("/dashboard");
     await expect(summary.getByText("Cần ôn", { exact: true })).toBeVisible();
@@ -168,9 +182,10 @@ test.describe("Smart Review session", () => {
     await signUpAndConfirm(page, uniqueEmail("smart_review_continue"));
     await importSet(page, "Ôn tiếp", SMART_REVIEW_24_CSV);
 
-    await startManualQuiz(page, true);
+    const seededSessionId = await startManualQuiz(page, true);
     await answerEveryQuestionWrong(page, 24);
     await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+\/result$/);
+    await makeSchedulesDue(await getQuestionTargetIds(page, seededSessionId));
 
     await page.goto("/dashboard");
     await page.getByRole("button", { name: "Ôn ngay" }).click();
@@ -188,8 +203,10 @@ test.describe("Smart Review session", () => {
 
     const continuation = page.getByRole("region", { name: "Tiếp tục ôn thông minh" });
     await expect(continuation).toBeVisible();
-    await expect(continuation.getByText("Còn 18 thẻ cần ôn")).toBeVisible();
-    await expect(continuation.getByText("Còn 14 thẻ cần ôn")).toHaveCount(0);
+    // The transition queue reports the next actionable batch, not an
+    // arithmetic subtraction of the previous session or raw due backlog.
+    await expect(continuation.getByText("Còn 10 thẻ cần ôn")).toBeVisible();
+    await expect(continuation.getByText("Còn 18 thẻ cần ôn")).toHaveCount(0);
     await expect(continuation.getByRole("button", { name: "Ôn tiếp" })).toBeVisible();
     expect(
       await page.evaluate(
@@ -204,8 +221,7 @@ test.describe("Smart Review session", () => {
     await expect(getSessionOrigin(page, continuedSessionId)).resolves.toBe("smart_review");
     const continuedTargets = await getQuestionTargetIds(page, continuedSessionId);
     expect(continuedTargets).not.toEqual(firstBatchIds);
-    expect(continuedTargets.filter((id) => firstBatchIds.slice(0, 6).includes(id))).toEqual([]);
-    expect(continuedTargets.some((id) => firstBatchIds.slice(6).includes(id))).toBe(true);
+    expect(continuedTargets.filter((id) => firstBatchIds.includes(id))).toEqual([]);
   });
 
   test("shows the finished state when fresh mastery has no review candidates", async ({ page }) => {
@@ -213,9 +229,10 @@ test.describe("Smart Review session", () => {
     await signUpAndConfirm(page, uniqueEmail("smart_review_complete"));
     await importSet(page, "Ôn xong");
 
-    await startManualQuiz(page);
+    const seededSessionId = await startManualQuiz(page);
     await answerEveryQuestionWrong(page);
     await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+\/result$/);
+    await makeSchedulesDue(await getQuestionTargetIds(page, seededSessionId));
 
     await page.goto("/dashboard");
     await page.getByRole("button", { name: "Ôn ngay" }).click();

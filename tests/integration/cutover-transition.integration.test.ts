@@ -11,16 +11,19 @@ vi.mock("server-only", () => ({}));
 
 const { loadTransitionQueue } =
   await import("@/features/spaced-repetition/server/transition-queue");
+const { reconcileCardSchedule } =
+  await import("@/features/spaced-repetition/server/reconcile-card-schedule");
 
 type Supabase = SupabaseClient<Database>;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 const DUE_PAST = "2026-08-09T10:00:00.000Z";
 const EVAL = "2026-08-09T12:00:00.000Z";
 
-if (!supabaseUrl || !serviceKey) {
+if (!supabaseUrl || !serviceKey || !publishableKey) {
   describe.skip("Cutover integration — needs local Supabase env", () => {
     it("is skipped when local env is absent", () => {});
   });
@@ -29,6 +32,7 @@ if (!supabaseUrl || !serviceKey) {
 
   let userId = "";
   let setId = "";
+  let userClient: Supabase;
   const normalCardIds: string[] = [];
   const legacyCardIds: string[] = [];
   const normalEventIds: string[] = [];
@@ -36,13 +40,18 @@ if (!supabaseUrl || !serviceKey) {
 
   beforeAll(async () => {
     const prefix = `c2b-${Date.now()}`;
+    const email = `${prefix}@test.flashlearn.dev`;
+    const password = "IntegrationTest1!";
     const { data: u } = await client.auth.admin.createUser({
-      email: `${prefix}@test.flashlearn.dev`,
-      password: "IntegrationTest1!",
+      email,
+      password,
       email_confirm: true,
     });
     userId = u?.user?.id ?? "";
     if (!userId) throw new Error("no user");
+    userClient = createClient<Database>(supabaseUrl, publishableKey);
+    const signedIn = await userClient.auth.signInWithPassword({ email, password });
+    if (signedIn.error) throw signedIn.error;
 
     setId = "c1000000-0000-4000-8000-000000000001";
     await client.from("flashcard_sets").insert({ id: setId, user_id: userId, name: "C2B" });
@@ -65,11 +74,15 @@ if (!supabaseUrl || !serviceKey) {
 
     const allCardIds = [...normalCardIds, ...legacyCardIds];
 
-    await client
-      .from("flashcards")
-      .insert(
-        allCardIds.map((id) => ({ id, user_id: userId, set_id: setId, front: "F", back: "B" })),
-      );
+    await client.from("flashcards").insert(
+      allCardIds.map((id) => ({
+        id,
+        user_id: userId,
+        set_id: setId,
+        front: `Front ${id}`,
+        back: `Back ${id}`,
+      })),
+    );
 
     // Events: normal get explicit rating=3, legacy get null rating
     await client.from("card_review_events").insert([
@@ -151,6 +164,25 @@ if (!supabaseUrl || !serviceKey) {
       expect(q.actionableNow).toBe(10);
       expect(q.candidates).toHaveLength(10);
     });
+
+    it("persists the queue's ordered targets as quiz question positions", async () => {
+      const queue = await loadTransitionQueue(client, userId, { type: "library" }, EVAL);
+      const targetIds = queue.candidates.map((item) => item.candidate.flashcardId);
+      const { data: sessionId, error } = await client.rpc(
+        "create_owned_quiz_session_from_card_ids",
+        { p_user_id: userId, p_card_ids: targetIds },
+      );
+      if (error || !sessionId) throw error ?? new Error("Missing explicit quiz session");
+
+      const questions = await client
+        .from("quiz_questions")
+        .select("source_flashcard_id")
+        .eq("session_id", sessionId)
+        .order("position", { ascending: true });
+      expect(questions.error).toBeNull();
+      expect(questions.data?.map((question) => question.source_flashcard_id)).toEqual(targetIds);
+      expect(questions.data).toHaveLength(10);
+    });
   });
 
   describe("Scenario B: simulate drain => after some reviews, fewer normal", () => {
@@ -187,6 +219,54 @@ if (!supabaseUrl || !serviceKey) {
       expect(q.normalSelected).toBe(0);
       expect(q.legacySelected).toBe(10);
       expect(q.actionableNow).toBe(10);
+    });
+
+    it("exits legacy classification after an explicit-rated quiz answer and reconciliation", async () => {
+      const legacyQueue = await loadTransitionQueue(client, userId, { type: "library" }, EVAL);
+      const legacyCardId = legacyQueue.candidates[0]?.candidate.flashcardId;
+      expect(legacyCardId).toBeTruthy();
+
+      const { data: sessionId, error: sessionError } = await client.rpc(
+        "create_owned_quiz_session_from_card_ids",
+        { p_user_id: userId, p_card_ids: [legacyCardId as string] },
+      );
+      if (sessionError || !sessionId) {
+        throw sessionError ?? new Error("Missing explicit quiz session");
+      }
+      const question = await client
+        .from("quiz_questions")
+        .select("id, correct_choice_index")
+        .eq("session_id", sessionId)
+        .single();
+      if (question.error || !question.data) throw question.error ?? new Error("Missing question");
+
+      const answered = await userClient.rpc("submit_quiz_answer", {
+        p_question_id: question.data.id,
+        p_selected_choice_index: question.data.correct_choice_index,
+      });
+      if (answered.error || !answered.data?.[0]) {
+        throw answered.error ?? new Error("Missing answer result");
+      }
+      expect(answered.data[0].flashcard_id).toBe(legacyCardId);
+      await reconcileCardSchedule(userClient, userId, legacyCardId as string);
+
+      const event = await client
+        .from("card_review_events")
+        .select("fsrs_rating")
+        .eq("id", answered.data[0].review_event_id)
+        .single();
+      expect(event.data?.fsrs_rating).toBe(3);
+
+      const futureQueue = await loadTransitionQueue(
+        client,
+        userId,
+        { type: "library" },
+        "2030-01-01T00:00:00.000Z",
+      );
+      expect(
+        futureQueue.candidates.find((item) => item.candidate.flashcardId === legacyCardId)
+          ?.classification,
+      ).toBe("normal");
     });
   });
 

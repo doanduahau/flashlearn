@@ -16,6 +16,14 @@ function supabaseAnonKey(): string {
   return key;
 }
 
+function localServiceRoleKey(): string {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) {
+    throw new Error('Missing local SUPABASE_SERVICE_ROLE_KEY; run E2E through "npm run test:e2e".');
+  }
+  return key;
+}
+
 async function authTokenCookie(context: BrowserContext): Promise<string> {
   const cookies = await context.cookies();
   const chunks = cookies
@@ -52,6 +60,23 @@ export async function supabaseRest(
     headers: {
       apikey: supabaseAnonKey(),
       Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...(init.headers ?? {}),
+    },
+  });
+}
+
+/** Local E2E fixture setup only. Never available to browser application code. */
+export async function localSupabaseAdminRest(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const key = localServiceRoleKey();
+  return fetch(`${supabaseApiUrl()}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
     },

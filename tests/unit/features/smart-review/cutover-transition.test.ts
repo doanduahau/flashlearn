@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { smartReviewTargetCardIdsFromTransitionQueue } from "@/features/smart-review/utils/smart-review-session";
 import { loadSmartReviewResultContext } from "@/features/smart-review/utils/smart-review-result";
-import {
-  buildFsrsTransitionQueue,
-  classifyCandidate,
-} from "@/features/spaced-repetition/utils/transition-queue";
+import { buildFsrsTransitionQueue } from "@/features/spaced-repetition/utils/transition-queue";
 import type { ClassifiedCandidate } from "@/features/spaced-repetition/utils/transition-queue";
 
 const EVAL = "2026-08-09T12:00:00.000Z";

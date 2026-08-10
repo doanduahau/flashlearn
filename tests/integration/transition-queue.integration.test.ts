@@ -183,7 +183,7 @@ if (!supabaseUrl || !serviceKey) {
         implementation: "ts-fsrs@5.4.1",
         parameter_set: "flashlearn-v1",
       })),
-      ...reviewCardIds.map((cardId, i) => ({
+      ...reviewCardIds.map((cardId) => ({
         user_id: userId,
         flashcard_id: cardId,
         state: 2,

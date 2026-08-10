@@ -3,7 +3,7 @@ import { Play } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { MasteryCounts } from "@/features/mastery/components/mastery-counts";
+import { DashboardLearningStatus } from "@/features/mastery/components/dashboard-learning-status";
 import { loadMasteryAggregate } from "@/features/mastery/server/load-mastery-aggregate";
 import { loadTransitionQueue } from "@/features/spaced-repetition/server/transition-queue";
 import { StartSmartReviewButton } from "@/features/smart-review/components/start-smart-review-button";
@@ -46,7 +46,7 @@ export default async function DashboardPage({
   const userId =
     typeof claimsResult.data?.claims?.sub === "string" ? claimsResult.data.claims.sub : null;
 
-  let actionableNow = 0;
+  let smartReviewActionableCount: number | null = 0;
   if (userId) {
     try {
       const queue = await loadTransitionQueue(
@@ -55,11 +55,10 @@ export default async function DashboardPage({
         { type: "library" },
         evaluationTime,
       );
-      actionableNow = queue.actionableNow;
+      smartReviewActionableCount = queue.actionableNow;
     } catch {
-      // Transition queue failure: silently fall back to no actionable cards.
-      // Do not convert DB failure into a visible zero count as if the queue were empty.
-      actionableNow = -1;
+      console.error("[smart_review] dashboard transition queue unavailable");
+      smartReviewActionableCount = null;
     }
   }
 
@@ -120,17 +119,22 @@ export default async function DashboardPage({
       </section>
 
       {/* Compact learning-status summary — FSRS transition queue for review count */}
-      {actionableNow >= 0 ? (
+      {smartReviewActionableCount !== null ? (
         <section aria-label="Tóm tắt trạng thái học" className="mt-2 sm:mt-3">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 sm:rounded-3xl sm:px-5 sm:py-3">
-            <MasteryCounts
-              aggregate={{ ...masteryAggregate, review: actionableNow }}
+            <DashboardLearningStatus
+              masteryAggregate={masteryAggregate}
+              smartReviewActionableCount={smartReviewActionableCount}
               className="min-w-0"
             />
-            {actionableNow > 0 ? <StartSmartReviewButton /> : null}
+            {smartReviewActionableCount > 0 ? <StartSmartReviewButton /> : null}
           </div>
         </section>
-      ) : null}
+      ) : (
+        <p role="alert" className="mt-2 text-sm text-danger sm:mt-3">
+          Không thể tải trạng thái ôn lúc này.
+        </p>
+      )}
 
       {/* Monthly calendar — primary content */}
       {monthActivity ? (

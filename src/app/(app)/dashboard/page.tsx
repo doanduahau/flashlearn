@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { MasteryCounts } from "@/features/mastery/components/mastery-counts";
 import { loadMasteryAggregate } from "@/features/mastery/server/load-mastery-aggregate";
 import { countDueCards } from "@/features/spaced-repetition/server/due-repository";
+import { countNewCards } from "@/features/spaced-repetition/server/new-cards-repository";
 import { StartSmartReviewButton } from "@/features/smart-review/components/start-smart-review-button";
+import { StartNewCardsButton } from "@/features/spaced-repetition/components/start-new-cards-button";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
 import {
   accuracy,
@@ -47,17 +49,20 @@ export default async function DashboardPage({
   const userId =
     typeof claimsResult.data?.claims?.sub === "string" ? claimsResult.data.claims.sub : null;
 
-  type DueState = { status: "ok"; count: number } | { status: "error" };
-  let dueState: DueState = { status: "error" };
+  let dueCount = 0;
+  let newCardsCount = 0;
+  let learningError = false;
   if (userId) {
     try {
-      const count = await countDueCards(supabase, userId, { type: "library" }, evaluationTime);
-      dueState = { status: "ok", count };
+      [dueCount, newCardsCount] = await Promise.all([
+        countDueCards(supabase, userId, { type: "library" }, evaluationTime),
+        countNewCards(supabase, userId),
+      ]);
     } catch (error) {
-      console.error("[dashboard] unable to load smart review due count", {
+      console.error("[dashboard] unable to load learning counts", {
         name: error instanceof Error ? error.name : "unknown",
       });
-      dueState = { status: "error" };
+      learningError = true;
     }
   }
 
@@ -115,7 +120,7 @@ export default async function DashboardPage({
         </article>
       </section>
 
-      {dueState.status === "error" ? (
+      {learningError ? (
         <section
           role="alert"
           aria-label="Tóm tắt trạng thái học"
@@ -123,14 +128,21 @@ export default async function DashboardPage({
         >
           Không thể tải số thẻ cần ôn.
         </section>
-      ) : dueState.status === "ok" ? (
+      ) : dueCount > 0 || newCardsCount > 0 ? (
         <section aria-label="Tóm tắt trạng thái học" className="mt-2 sm:mt-3">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 sm:rounded-3xl sm:px-5 sm:py-3">
             <MasteryCounts
-              aggregate={{ ...masteryAggregate, review: dueState.count }}
+              aggregate={{
+                ...masteryAggregate,
+                review: dueCount,
+                untested: newCardsCount,
+              }}
               className="min-w-0"
             />
-            {dueState.count > 0 ? <StartSmartReviewButton /> : null}
+            <div className="flex shrink-0 items-center gap-2">
+              {dueCount > 0 ? <StartSmartReviewButton /> : null}
+              {newCardsCount > 0 ? <StartNewCardsButton /> : null}
+            </div>
           </div>
         </section>
       ) : null}

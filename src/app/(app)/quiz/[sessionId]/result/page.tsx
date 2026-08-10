@@ -3,7 +3,9 @@ import { Flame } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
 import { countDueCards } from "@/features/spaced-repetition/server/due-repository";
+import { countNewCards } from "@/features/spaced-repetition/server/new-cards-repository";
 import { SmartReviewContinuation } from "@/features/smart-review/components/smart-review-continuation";
+import { NewCardsContinuation } from "@/features/spaced-repetition/components/new-cards-continuation";
 import { loadSmartReviewResultContext } from "@/features/smart-review/utils/smart-review-result";
 import { loadStreakSummary } from "@/features/statistics/server/load-statistics";
 import { streakLabel } from "@/features/statistics/utils/streak-label";
@@ -41,13 +43,20 @@ export default async function QuizResultPage({
       )
       .eq("session_id", sessionId)
       .order("position"),
-    loadSmartReviewResultContext(quizSessionOrigin(session.origin), () => {
-      if (!userId) return Promise.resolve({ total: 0 });
-      const evalTime = new Date().toISOString();
-      return countDueCards(supabase, userId, { type: "library" }, evalTime).then((total) => ({
-        total,
-      }));
-    }),
+    loadSmartReviewResultContext(
+      quizSessionOrigin(session.origin),
+      () => {
+        if (!userId) return Promise.resolve({ total: 0 });
+        const evalTime = new Date().toISOString();
+        return countDueCards(supabase, userId, { type: "library" }, evalTime).then((total) => ({
+          total,
+        }));
+      },
+      () => {
+        if (!userId) return Promise.resolve({ total: 0 });
+        return countNewCards(supabase, userId).then((total) => ({ total }));
+      },
+    ),
   ]);
   const questions = questionsResult.data;
 
@@ -123,6 +132,8 @@ export default async function QuizResultPage({
       ) : null}
       {smartReviewResult.kind === "smart_review" ? (
         <SmartReviewContinuation remainingCount={smartReviewResult.remainingCount} />
+      ) : smartReviewResult.kind === "new_cards" ? (
+        <NewCardsContinuation remainingCount={smartReviewResult.remainingCount} />
       ) : null}
       <section className="mt-8 space-y-4" aria-label="Xem lại câu trả lời">
         {(questions ?? []).map((q) => {

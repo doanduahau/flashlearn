@@ -1,14 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { quizSessionOrigin } from "@/features/quiz/utils/quiz-session-origin";
+import {
+  quizSessionOrigin,
+  type QuizSessionOrigin,
+} from "@/features/quiz/utils/quiz-session-origin";
 
 describe("quizSessionOrigin", () => {
-  it("keeps the durable Smart Review origin distinct", () => {
+  it("returns new_cards for 'new_cards'", () => {
+    expect(quizSessionOrigin("new_cards")).toBe("new_cards");
+  });
+
+  it("returns smart_review for 'smart_review'", () => {
     expect(quizSessionOrigin("smart_review")).toBe("smart_review");
   });
 
-  it("treats historical and unknown values as the compatible manual origin", () => {
+  it("returns manual for 'manual'", () => {
     expect(quizSessionOrigin("manual")).toBe("manual");
-    expect(quizSessionOrigin("legacy")).toBe("manual");
+  });
+
+  it("returns manual for unknown values", () => {
+    expect(quizSessionOrigin("unknown")).toBe("manual");
+    expect(quizSessionOrigin("")).toBe("manual");
   });
 });

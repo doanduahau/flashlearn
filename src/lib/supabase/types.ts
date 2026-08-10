@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -489,6 +489,10 @@ export type Database = {
         }[]
       }
       create_owned_quiz_session_from_card_ids: {
+        Args: { p_card_ids: string[]; p_user_id: string }
+        Returns: string
+      }
+      create_owned_quiz_session_from_card_ids_new_cards: {
         Args: { p_card_ids: string[]; p_user_id: string }
         Returns: string
       }

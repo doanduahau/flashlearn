@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClipboardPaste, FileUp, ListOrdered, Sheet, SquarePen } from "lucide-react";
+import { ClipboardPaste, FileText, FileUp, ListOrdered, Sheet, SquarePen } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -14,6 +14,7 @@ import { ManualSetForm } from "@/features/flashcard-sets/components/manual-set-f
 import { ImportWizard } from "@/features/imports/components/import-wizard";
 import { PasteImport } from "@/features/imports/components/paste-import";
 import { GoogleSheetsImport } from "@/features/imports/components/google-sheets-import";
+import { DocumentImport } from "@/features/imports/components/document-import";
 import {
   CollectionsList,
   type CollectionSummary,
@@ -32,14 +33,20 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Bộ flashcard" };
 
 type LibraryTab = "regular" | "special";
-type CreateMode = "import" | "manual" | "paste" | "google_sheets" | null;
+type CreateMode = "import" | "manual" | "paste" | "google_sheets" | "document" | null;
 
 function tabOf(value: string | string[] | undefined): LibraryTab {
   return value === "special" ? "special" : "regular";
 }
 
 function createModeOf(value: string | string[] | undefined): CreateMode {
-  if (value === "import" || value === "manual" || value === "paste" || value === "google_sheets")
+  if (
+    value === "import" ||
+    value === "manual" ||
+    value === "paste" ||
+    value === "google_sheets" ||
+    value === "document"
+  )
     return value;
   return null;
 }
@@ -88,6 +95,7 @@ function CreateSetBlock({
   const manualHref = updateSearchParamHref("/sets", searchParams, "create", "manual");
   const pasteHref = updateSearchParamHref("/sets", searchParams, "create", "paste");
   const sheetsHref = updateSearchParamHref("/sets", searchParams, "create", "google_sheets");
+  const documentHref = updateSearchParamHref("/sets", searchParams, "create", "document");
   const closeHref = removeSearchParamHref("/sets", searchParams, "create");
 
   return (
@@ -125,6 +133,17 @@ function CreateSetBlock({
               <Link href={sheetsHref} scroll={false}>
                 <Sheet aria-hidden="true" />
                 Google Sheets
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="min-h-9 flex-1 sm:min-h-10 sm:flex-none"
+            >
+              <Link href={documentHref} scroll={false}>
+                <FileText aria-hidden="true" />
+                Tài liệu
               </Link>
             </Button>
             <Button
@@ -171,6 +190,14 @@ function CreateSetBlock({
               className="mt-3 rounded-xl border border-border-soft bg-surface p-3 sm:rounded-2xl sm:p-5"
             >
               <GoogleSheetsImport />
+            </section>
+          ) : null}
+          {mode === "document" ? (
+            <section
+              aria-label="Tài liệu"
+              className="mt-3 rounded-xl border border-border-soft bg-surface p-3 sm:rounded-2xl sm:p-5"
+            >
+              <DocumentImport />
             </section>
           ) : null}
         </>

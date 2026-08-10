@@ -68,7 +68,7 @@ export function parseColumnBodies(json: unknown, columns: number[]): ColumnBodie
   return { headers, rows, rowCount: rows.length };
 }
 
-export function parseSheetValues(json: unknown, sheetTitle: string): SheetData {
+export function parseSheetValues(json: unknown, _sheetTitle: string): SheetData {
   const values = (json as { values?: unknown }).values;
   const rows: string[][] = Array.isArray(values)
     ? (values as unknown[][]).map((row) => (Array.isArray(row) ? row.map(String) : []))

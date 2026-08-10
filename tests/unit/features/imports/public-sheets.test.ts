@@ -5,7 +5,7 @@ import {
   fetchPublicSpreadsheet,
   validatePublicSpreadsheetUrl,
 } from "@/features/imports/utils/public-sheets";
-import { GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
+import { GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS } from "@/lib/constants";
 
 const MOCK_API_KEY = "mock-browser-api-key";
 

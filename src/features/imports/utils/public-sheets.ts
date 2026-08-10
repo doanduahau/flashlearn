@@ -16,7 +16,7 @@ export type PublicSheetValuesResult =
   | { kind: "error"; message: string }
   | { kind: "auth_required"; message: string };
 
-async function sheetsJson(url: string, apiKey: string): Promise<{ json: unknown; status: number }> {
+async function sheetsJson(url: string): Promise<{ json: unknown; status: number }> {
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   const json = await res.json().catch(() => null);
   return { json, status: res.status };
@@ -42,7 +42,7 @@ export async function fetchPublicSpreadsheet(
   const spreadsheetId = validated.spreadsheetId;
 
   const metaUrl = `${SHEETS_API_BASE}/${spreadsheetId}?key=${apiKey}&fields=properties.title,sheets.properties(sheetId,title,index)`;
-  const metaResult = await sheetsJson(metaUrl, apiKey);
+  const metaResult = await sheetsJson(metaUrl);
 
   if (metaResult.status === 401 || metaResult.status === 403) {
     return {
@@ -58,7 +58,7 @@ export async function fetchPublicSpreadsheet(
 
   const range = buildHeaderScanRange(sheet.title, GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS);
   const headerUrl = `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
-  const headerResult = await sheetsJson(headerUrl, apiKey);
+  const headerResult = await sheetsJson(headerUrl);
 
   if (headerResult.status === 401 || headerResult.status === 403) {
     return {
@@ -85,7 +85,7 @@ export async function fetchPublicSheetValues(
   const ranges = columns.map((col) => buildDataColumnRange(sheetTitle, col, IMPORT_MAX_ROWS));
   const rangesParam = ranges.map((r) => `ranges=${encodeURIComponent(r)}`).join("&");
   const url = `${SHEETS_API_BASE}/${spreadsheetId}/values:batchGet?${rangesParam}&majorDimension=ROWS&key=${apiKey}`;
-  const valuesResult = await sheetsJson(url, apiKey);
+  const valuesResult = await sheetsJson(url);
 
   if (valuesResult.status === 401 || valuesResult.status === 403) {
     return {

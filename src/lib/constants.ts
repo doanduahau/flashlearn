@@ -31,3 +31,7 @@ export const PASTE_MAX_CHARS = 50_000;
 export const GEMINI_MAX_OUTPUT_CARDS = 100;
 
 export const GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS = 702;
+
+export const DOCUMENT_MAX_BYTES = 15 * 1024 * 1024;
+export const DOCUMENT_MAX_EXTRACTED_CHARS = 100_000;
+export const PDF_MAX_PAGES = 200;

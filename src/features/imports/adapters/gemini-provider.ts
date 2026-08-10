@@ -1,7 +1,6 @@
 ﻿import "server-only";
 
-import type { Schema } from "@google/generative-ai";
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 import type { DraftFlashcard } from "../types/import-types";
 import type { FlashcardGenerationProvider } from "../types/import-types";
@@ -10,16 +9,16 @@ import { getGeminiApiKey } from "@/lib/env";
 
 const MODEL_ID = "gemini-2.5-flash-lite";
 
-const GEMINI_RESPONSE_SCHEMA: Schema = {
-  type: SchemaType.OBJECT,
+const GEMINI_RESPONSE_SCHEMA = {
+  type: Type.OBJECT,
   properties: {
     cards: {
-      type: SchemaType.ARRAY,
+      type: Type.ARRAY,
       items: {
-        type: SchemaType.OBJECT,
+        type: Type.OBJECT,
         properties: {
-          front: { type: SchemaType.STRING },
-          back: { type: SchemaType.STRING },
+          front: { type: Type.STRING },
+          back: { type: Type.STRING },
         },
         required: ["front", "back"],
       },
@@ -54,20 +53,27 @@ export class GeminiFlashcardGenerationProvider implements FlashcardGenerationPro
       throw new Error("GEMINI_API_KEY is not configured.");
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: MODEL_ID });
+    const genAI = new GoogleGenAI({ apiKey });
 
     const prompt = buildPrompt(text);
 
-    const result = await model.generateContent({
+    const result = await genAI.models.generateContent({
+      model: MODEL_ID,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
+      config: {
         responseMimeType: "application/json",
         responseSchema: GEMINI_RESPONSE_SCHEMA,
+        httpOptions: {
+          retryOptions: { attempts: 1 },
+        },
       },
     });
 
-    const responseText = result.response.text();
+    const responseText = result.text;
+    if (!responseText) {
+      throw new Error("AI không trả về phản hồi.");
+    }
+
     let parsed: unknown;
     try {
       parsed = JSON.parse(responseText);

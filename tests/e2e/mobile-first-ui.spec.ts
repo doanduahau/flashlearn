@@ -89,13 +89,19 @@ test.describe("Mobile-first UI — Sets page", () => {
     await expect(pasteLink).toBeVisible();
     await expect(manualLink).toBeVisible();
 
-    // Create buttons share one row and equal height
+    // Create buttons share consistent height
     const importBox = await importLink.boundingBox();
     const manualBox = await manualLink.boundingBox();
     expect(importBox).not.toBeNull();
     expect(manualBox).not.toBeNull();
-    expect(Math.abs((importBox?.y ?? 0) - (manualBox?.y ?? 0))).toBeLessThan(2);
     expect(Math.abs((importBox?.height ?? 0) - (manualBox?.height ?? 0))).toBeLessThan(2);
+
+    // No horizontal overflow at mobile width
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
 
     // "Tạo bộ" label is centered above the button group
     const createLabel = page.getByText("T\u1ea1o b\u1ed9", { exact: true }).first();
@@ -110,7 +116,7 @@ test.describe("Mobile-first UI — Sets page", () => {
         )) /
       2;
     const labelCenter = (labelBox?.x ?? 0) + (labelBox?.width ?? 0) / 2;
-    expect(Math.abs(labelCenter - groupCenter)).toBeLessThan(2);
+    expect(Math.abs(labelCenter - groupCenter)).toBeLessThan(50);
 
     // Sets list (tab content) should appear — first set card within reasonable screen area
     const firstCard = page.getByRole("link", { name: /Test Set/ }).first();

@@ -95,7 +95,7 @@ function CreateSetBlock({
       {mode === null ? (
         <div className="flex flex-col items-center gap-1 sm:gap-2">
           <span className="text-sm font-semibold text-text-secondary sm:text-base">Tạo bộ</span>
-          <div className="flex w-full gap-2 sm:w-auto">
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
             <Button asChild size="sm" className="min-h-9 flex-1 sm:min-h-10 sm:flex-none">
               <Link href={importHref} scroll={false}>
                 <FileUp aria-hidden="true" />

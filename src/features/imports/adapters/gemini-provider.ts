@@ -7,7 +7,7 @@ import type { FlashcardGenerationProvider } from "../types/import-types";
 import { CARD_TEXT_MAX_LENGTH, GEMINI_MAX_OUTPUT_CARDS } from "@/lib/constants";
 import { getGeminiApiKey } from "@/lib/env";
 
-const MODEL_ID = "gemini-2.5-flash-lite";
+const MODEL_ID = "gemini-flash-lite-latest";
 
 const GEMINI_RESPONSE_SCHEMA = {
   type: Type.OBJECT,

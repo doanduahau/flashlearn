@@ -3,9 +3,9 @@ import { Play } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { DashboardLearningStatus } from "@/features/mastery/components/dashboard-learning-status";
+import { MasteryCounts } from "@/features/mastery/components/mastery-counts";
 import { loadMasteryAggregate } from "@/features/mastery/server/load-mastery-aggregate";
-import { loadTransitionQueue } from "@/features/spaced-repetition/server/transition-queue";
+import { countDueCards } from "@/features/spaced-repetition/server/due-repository";
 import { StartSmartReviewButton } from "@/features/smart-review/components/start-smart-review-button";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
 import {
@@ -35,30 +35,24 @@ export default async function DashboardPage({
   const currentMonth = monthInTimezone(new Date(), timezone);
 
   const evaluationTime = new Date().toISOString();
-  const [todayDetail, monthActivity, streakDates, masteryAggregate] = await Promise.all([
-    loadActivityDetail(supabase, today),
-    loadMonthlyActivity(supabase, currentMonth),
-    loadMonthlyStreakDates(supabase, timezone, currentMonth),
-    loadMasteryAggregate(supabase, { type: "library" }),
-  ]);
+  const [todayDetail, monthActivity, streakDates, masteryAggregate, claimsResult] =
+    await Promise.all([
+      loadActivityDetail(supabase, today),
+      loadMonthlyActivity(supabase, currentMonth),
+      loadMonthlyStreakDates(supabase, timezone, currentMonth),
+      loadMasteryAggregate(supabase, { type: "library" }),
+      supabase.auth.getClaims(),
+    ]);
 
-  const claimsResult = await supabase.auth.getClaims();
   const userId =
     typeof claimsResult.data?.claims?.sub === "string" ? claimsResult.data.claims.sub : null;
 
-  let smartReviewActionableCount: number | null = 0;
+  let dueCount = -1;
   if (userId) {
     try {
-      const queue = await loadTransitionQueue(
-        supabase,
-        userId,
-        { type: "library" },
-        evaluationTime,
-      );
-      smartReviewActionableCount = queue.actionableNow;
+      dueCount = await countDueCards(supabase, userId, { type: "library" }, evaluationTime);
     } catch {
-      console.error("[smart_review] dashboard transition queue unavailable");
-      smartReviewActionableCount = null;
+      dueCount = -1;
     }
   }
 
@@ -76,7 +70,6 @@ export default async function DashboardPage({
     <main className="mx-auto w-full max-w-5xl p-3 sm:p-8">
       <h1 className="text-2xl font-bold sm:text-3xl">Tổng quan</h1>
 
-      {/* Compact motivation row */}
       <section
         aria-labelledby="daily-motivation-heading"
         className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface-subtle px-3 py-2.5 sm:mt-5 sm:rounded-3xl sm:px-5 sm:py-4"
@@ -93,7 +86,6 @@ export default async function DashboardPage({
         </Button>
       </section>
 
-      {/* Stat cards — always 2-col */}
       <section
         className="mt-2 grid grid-cols-2 gap-2 sm:mt-3 sm:gap-3"
         aria-label="Tóm tắt hôm nay"
@@ -118,25 +110,18 @@ export default async function DashboardPage({
         </article>
       </section>
 
-      {/* Compact learning-status summary — FSRS transition queue for review count */}
-      {smartReviewActionableCount !== null ? (
+      {dueCount >= 0 ? (
         <section aria-label="Tóm tắt trạng thái học" className="mt-2 sm:mt-3">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 sm:rounded-3xl sm:px-5 sm:py-3">
-            <DashboardLearningStatus
-              masteryAggregate={masteryAggregate}
-              smartReviewActionableCount={smartReviewActionableCount}
+            <MasteryCounts
+              aggregate={{ ...masteryAggregate, review: dueCount }}
               className="min-w-0"
             />
-            {smartReviewActionableCount > 0 ? <StartSmartReviewButton /> : null}
+            {dueCount > 0 ? <StartSmartReviewButton /> : null}
           </div>
         </section>
-      ) : (
-        <p role="alert" className="mt-2 text-sm text-danger sm:mt-3">
-          Không thể tải trạng thái ôn lúc này.
-        </p>
-      )}
+      ) : null}
 
-      {/* Monthly calendar — primary content */}
       {monthActivity ? (
         <div className="mt-3 rounded-2xl border border-border-soft bg-surface p-3 sm:mt-4 sm:rounded-3xl sm:p-6">
           <h2 className="text-base font-bold sm:text-lg">Hoạt động tháng này</h2>

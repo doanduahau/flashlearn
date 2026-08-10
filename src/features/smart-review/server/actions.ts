@@ -1,7 +1,10 @@
 "use server";
 
-import { loadTransitionQueue } from "@/features/spaced-repetition/server/transition-queue";
-import { smartReviewTargetCardIdsFromTransitionQueue } from "@/features/smart-review/utils/smart-review-session";
+import { loadDueCandidateResult } from "@/features/spaced-repetition/server/due-repository";
+import {
+  SMART_REVIEW_BATCH_SIZE,
+  smartReviewTargetCardIds,
+} from "@/features/smart-review/utils/smart-review-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,8 +21,8 @@ async function signedInUserId(
 }
 
 /**
- * Has no client input by design: the server derives an up-to-date, owner-scoped
- * transition queue immediately before creating the ordinary quiz session.
+ * Has no client input by design: the server derives up-to-date, owner-scoped
+ * direct FSRS due candidates immediately before creating the ordinary quiz session.
  */
 export async function startSmartReview(): Promise<StartSmartReviewResult> {
   const supabase = await createClient();
@@ -29,15 +32,21 @@ export async function startSmartReview(): Promise<StartSmartReviewResult> {
   }
 
   const evaluationTime = new Date().toISOString();
-  let queue;
+  let dueResult;
   try {
-    queue = await loadTransitionQueue(supabase, userId, { type: "library" }, evaluationTime);
+    dueResult = await loadDueCandidateResult(
+      supabase,
+      userId,
+      { type: "library" },
+      evaluationTime,
+      SMART_REVIEW_BATCH_SIZE,
+    );
   } catch {
-    console.error("[smart_review] start transition queue unavailable");
+    console.error("[smart_review] start due candidate load failed");
     return { ok: false, error: GENERIC_ERROR };
   }
 
-  const targetCardIds = smartReviewTargetCardIdsFromTransitionQueue(queue);
+  const targetCardIds = smartReviewTargetCardIds(dueResult);
   if (targetCardIds.length === 0) {
     return { ok: false, empty: true, error: "Không còn thẻ cần ôn." };
   }

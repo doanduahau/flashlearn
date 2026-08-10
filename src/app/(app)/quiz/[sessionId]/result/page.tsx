@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Flame } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
-import { loadTransitionQueue } from "@/features/spaced-repetition/server/transition-queue";
+import { countDueCards } from "@/features/spaced-repetition/server/due-repository";
 import { SmartReviewContinuation } from "@/features/smart-review/components/smart-review-continuation";
 import { loadSmartReviewResultContext } from "@/features/smart-review/utils/smart-review-result";
 import { loadStreakSummary } from "@/features/statistics/server/load-statistics";
@@ -42,9 +42,11 @@ export default async function QuizResultPage({
       .eq("session_id", sessionId)
       .order("position"),
     loadSmartReviewResultContext(quizSessionOrigin(session.origin), () => {
-      if (!userId) return Promise.resolve({ actionableNow: 0 });
+      if (!userId) return Promise.resolve({ total: 0 });
       const evalTime = new Date().toISOString();
-      return loadTransitionQueue(supabase, userId, { type: "library" }, evalTime);
+      return countDueCards(supabase, userId, { type: "library" }, evalTime).then((total) => ({
+        total,
+      }));
     }),
   ]);
   const questions = questionsResult.data;

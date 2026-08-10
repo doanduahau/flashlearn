@@ -1,25 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import type { SmartReviewCandidateResult } from "@/features/mastery/types/mastery-types";
+import type { FsrsDueCandidateResult } from "@/features/spaced-repetition/types/due-types";
 import {
   SMART_REVIEW_BATCH_SIZE,
   smartReviewTargetCardIds,
 } from "@/features/smart-review/utils/smart-review-session";
 
-function candidates(count: number): SmartReviewCandidateResult {
+function candidates(count: number): FsrsDueCandidateResult {
   return {
     total: count,
     candidates: Array.from({ length: count }, (_, index) => ({
       flashcardId: `card-${index + 1}`,
-      status: "review" as const,
-      score: index,
-      lastReviewedAt: "2026-08-10T12:00:00.000Z",
+      due: "2026-08-09T10:00:00.000Z",
+      lastReview: "2026-08-08T10:00:00.000Z",
+      state: 2,
     })),
   };
 }
 
 describe("smartReviewTargetCardIds", () => {
-  it("returns no targets when there are no review candidates", () => {
+  it("returns no targets when there are no due candidates", () => {
     expect(smartReviewTargetCardIds(candidates(0))).toEqual([]);
   });
 
@@ -35,11 +35,12 @@ describe("smartReviewTargetCardIds", () => {
     ]);
   });
 
-  it("uses the first ten urgency-ranked candidates without reordering them", () => {
+  it("uses all candidates (caller applies limit)", () => {
     const result = smartReviewTargetCardIds(candidates(24));
 
     expect(SMART_REVIEW_BATCH_SIZE).toBe(10);
-    expect(result).toEqual([
+    expect(result).toHaveLength(24);
+    expect(result.slice(0, 10)).toEqual([
       "card-1",
       "card-2",
       "card-3",

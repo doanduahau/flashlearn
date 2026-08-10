@@ -609,32 +609,20 @@ remains the confidence/presentation layer.
 
 ### FSRS Smart Review Cutover
 
-Smart Review scheduling is now powered by the FSRS transition queue
-(`src/features/spaced-repetition/utils/transition-queue.ts`). Mastery V1 remains
-for confidence/presentation/colors.
+FlashLearn is pre-launch. Smart Review scheduling uses direct FSRS due:
 
-During the transition period (historical short-term debt):
+| Surface              | Source                                  | Count                          |
+| -------------------- | --------------------------------------- | ------------------------------ |
+| Dashboard "Cần ôn"   | `countDueCards(...)`                    | full due total (e.g., 107)     |
+| Smart Review session | `loadDueCandidateResult(..., limit=10)` | first 10 candidates by due ASC |
+| Result continuation  | fresh `countDueCards(...)`              | fresh total                    |
 
-| Surface              | Source                      | Count                  |
-| -------------------- | --------------------------- | ---------------------- |
-| Dashboard "Cần ôn"   | `queue.actionableNow`       | 0–10                   |
-| Smart Review session | `queue.candidates`          | min(normal, 10) + fill |
-| Result continuation  | fresh `queue.actionableNow` | 0–10                   |
+All algorithmically due cards (Learning, Review, Relearning) are eligible.
+No legacy-classification or transition fill policy is applied. Historical pre-launch
+test data is accepted as-is; no schedules are mutated.
 
-The transition queue classifies due cards as **normal** (state=Review, explicit
-fsrs_rating, or not short-term Learning/Relearning) or **legacy** (Learning/
-Relearning + scheduled_days=0 + null fsrs_rating + binary is_correct). Normal
-cards fill the queue first; legacy debt fills remaining positions (max 10 total).
-Anomalies (missing cursor events) are counted separately but treated as normal
-for fail-open safety.
-
-Legacy debt drains automatically: once a legacy card is answered, its new
-review event gets an explicit fsrs_rating, and upon reconciliation it exits the
-legacy classification. No migration flags or special mutations are needed.
-
-`MasteryAggregate.review` retains its original semantic meaning and is NOT
-overwritten by the FSRS actionable count. The Dashboard passes
-`actionableNow` as a separate value to the presentation component.
+Mastery V1 remains for confidence/presentation/colors only. FSRS alone determines
+review eligibility, count, and ordering.
 
 ### FSRS due-divergence diagnostic
 

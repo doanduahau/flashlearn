@@ -27,8 +27,7 @@
     "fsrs:reconcile:production": "tsx scripts/fsrs-reconcile-production.ts",
     "fsrs:compare:local": "tsx scripts/fsrs-compare-local.ts",
     "fsrs:compare:production": "tsx scripts/fsrs-compare-production.ts",
-    "fsrs:diagnose:production": "tsx scripts/fsrs-diagnose-production.ts",
-    "fsrs:simulate-cutover:production": "tsx scripts/fsrs-simulate-cutover-production.ts"
+    "fsrs:diagnose:production": "tsx scripts/fsrs-diagnose-production.ts"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.15",

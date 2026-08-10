@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import Script from "next/script";
 
 import {
-  analyzeGoogleSheetContent,
+  analyzeSheetText,
+  loadPrivateSheetValues,
   openGoogleSheet,
-  openGoogleSheetUrl,
 } from "@/features/imports/server/analyze-google-sheets";
 import { importFlashcards } from "@/features/imports/server/actions";
+import { fetchPublicSpreadsheet } from "@/features/imports/utils/public-sheets";
+import { adaptSheetData } from "@/features/imports/adapters/google-sheets-adapter";
+import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
+import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { IMPORT_PREVIEW_ROWS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +24,7 @@ type SheetInfo = {
   sheets: Array<{ title: string; sheetId: number; index: number }>;
   headers: string[];
   rowCount: number;
-  previewRows: Array<{ front: string; back: string; sourceRow?: number }>;
+  previewRows: DraftFlashcard[];
   valid: number;
   blank: number;
   partial: number;
@@ -92,6 +96,7 @@ export function GoogleSheetsImport() {
   const [spreadsheetId, setSpreadsheetId] = useState("");
   const [accessToken, setAccessToken] = useState("");
   const [urlInput, setUrlInput] = useState("");
+  const [isPublicFlow, setIsPublicFlow] = useState(false);
 
   const tokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
   const gapiLoadedRef = useRef(false);
@@ -107,18 +112,36 @@ export function GoogleSheetsImport() {
     window.gapi?.load("picker", () => {});
   }, []);
 
-  function handleOpenResult(result: { kind: string; [key: string]: unknown }): void {
-    if (result.kind !== "success") return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const r = result as any;
-    const analysis = r.analysis as { kind: string; [key: string]: unknown };
+  type SheetMetaLike = {
+    spreadsheetTitle: string;
+    sheets: Array<{ title: string; sheetId: number; index: number }>;
+  };
+
+  type RawSheetData = {
+    headers: string[];
+    rows: string[][];
+    rowCount: number;
+  };
+
+  function applyAnalysis(
+    meta: SheetMetaLike,
+    sheetData: RawSheetData,
+    preferredMapping?: { frontColumn: number; backColumn: number },
+  ): void {
+    const analysis = adaptSheetData(sheetData, preferredMapping);
+
+    if (analysis.kind === "error") {
+      setError(analysis.message);
+      setMode("loaded");
+      return;
+    }
 
     if (analysis.kind === "needs_mapping") {
       setSheetInfo({
-        spreadsheetTitle: String(r.meta?.spreadsheetTitle ?? ""),
-        sheets: (r.meta?.sheets as SheetInfo["sheets"]) ?? [],
-        headers: (analysis.columns as string[]) ?? [],
-        rowCount: Number(r.sheetData?.rowCount ?? 0),
+        spreadsheetTitle: meta.spreadsheetTitle,
+        sheets: meta.sheets,
+        headers: analysis.columns,
+        rowCount: sheetData.rowCount,
         previewRows: [],
         valid: 0,
         blank: 0,
@@ -133,45 +156,34 @@ export function GoogleSheetsImport() {
     }
 
     if (analysis.kind === "single_column_semantic") {
-      void runSemantic();
+      void runSemantic(analysis.text);
       return;
     }
 
-    const cards =
-      (analysis.cards as Array<{ front: string; back: string; sourceRow?: number }>) ?? [];
-    const mapping = (analysis.mapping as { frontColumn: number; backColumn: number }) ?? {
-      frontColumn: 0,
-      backColumn: 1,
-    };
-
+    const validation = validateDraftCards(analysis.cards);
     setSheetInfo({
-      spreadsheetTitle: String(r.meta?.spreadsheetTitle ?? ""),
-      sheets: (r.meta?.sheets as SheetInfo["sheets"]) ?? [],
-      headers: (r.sheetData?.headers as string[]) ?? [],
-      rowCount: Number(r.sheetData?.rowCount ?? 0),
-      previewRows: cards.slice(0, IMPORT_PREVIEW_ROWS),
-      valid: cards.length,
-      blank: 0,
-      partial: 0,
-      duplicate: 0,
-      frontColumn: mapping.frontColumn,
-      backColumn: mapping.backColumn,
+      spreadsheetTitle: meta.spreadsheetTitle,
+      sheets: meta.sheets,
+      headers: sheetData.headers,
+      rowCount: sheetData.rowCount,
+      previewRows: validation.cards.slice(0, IMPORT_PREVIEW_ROWS),
+      valid: validation.valid,
+      blank: validation.blank,
+      partial: validation.partial,
+      duplicate: validation.duplicate,
+      frontColumn: analysis.mapping.frontColumn,
+      backColumn: analysis.mapping.backColumn,
     });
-    setFrontColumn(mapping.frontColumn);
-    setBackColumn(mapping.backColumn);
+    setFrontColumn(analysis.mapping.frontColumn);
+    setBackColumn(analysis.mapping.backColumn);
     setNeedsMapping(false);
     setMode("loaded");
   }
 
-  async function runSemantic(): Promise<void> {
-    if (!spreadsheetId) return;
+  async function runSemantic(text: string): Promise<void> {
     setMode("analyzing");
     try {
-      const result = await analyzeGoogleSheetContent({
-        spreadsheetId,
-        accessToken,
-        sheetIndex: selectedSheetIndex,
-      });
+      const result = await analyzeSheetText({ text });
       if (result.kind === "success") {
         if (sheetInfo) {
           setSheetInfo({
@@ -183,13 +195,15 @@ export function GoogleSheetsImport() {
             duplicate: result.duplicate,
           });
         }
+        setMode("loaded");
       } else {
         setError(result.message);
+        setMode("loaded");
       }
     } catch {
       setError("Không thể phân tích nội dung.");
+      setMode("loaded");
     }
-    setMode("loaded");
   }
 
   function requestToken(): void {
@@ -244,9 +258,10 @@ export function GoogleSheetsImport() {
             return;
           }
           setSpreadsheetId(file.id);
+          setIsPublicFlow(false);
           setMode("opening");
           setError("");
-          void loadSheet(file.id, token, 0);
+          void loadPrivate(file.id, token, 0);
         } else if (data.action === "cancel") {
           setMode("init");
         }
@@ -257,7 +272,7 @@ export function GoogleSheetsImport() {
     built.setVisible(true);
   }
 
-  async function loadSheet(id: string, token: string, sheetIdx: number): Promise<void> {
+  async function loadPrivate(id: string, token: string, sheetIdx: number): Promise<void> {
     try {
       const result = await openGoogleSheet({
         spreadsheetId: id,
@@ -269,50 +284,113 @@ export function GoogleSheetsImport() {
         setMode("init");
         return;
       }
-      handleOpenResult(result);
+      applyAnalysis(result.meta, result.sheetData);
     } catch {
       setError("Không thể mở bảng tính.");
       setMode("init");
     }
   }
 
-  async function changeSheet(newIndex: number): Promise<void> {
+  async function changePrivateSheet(newIndex: number): Promise<void> {
+    if (!sheetInfo) return;
+    const sheet = sheetInfo.sheets[newIndex];
+    if (!sheet) return;
     setSelectedSheetIndex(newIndex);
     setMode("opening");
     setError("");
-    await loadSheet(spreadsheetId, accessToken, newIndex);
+    try {
+      const result = await loadPrivateSheetValues({
+        spreadsheetId,
+        accessToken,
+        sheetTitle: sheet.title,
+      });
+      if (result.kind === "error" || result.kind === "auth_required") {
+        setError(result.message);
+        setMode("loaded");
+        return;
+      }
+      const meta = {
+        spreadsheetTitle: sheetInfo.spreadsheetTitle,
+        sheets: sheetInfo.sheets,
+      };
+      applyAnalysis(meta, result.sheetData);
+    } catch {
+      setError("Không thể mở sheet.");
+      setMode("loaded");
+    }
+  }
+
+  async function changePublicSheet(newIndex: number): Promise<void> {
+    if (!sheetInfo) return;
+    const sheet = sheetInfo.sheets[newIndex];
+    if (!sheet) return;
+    setSelectedSheetIndex(newIndex);
+    setMode("opening");
+    setError("");
+    try {
+      const result = await fetchPublicSpreadsheet(
+        `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+        config.apiKey,
+        newIndex,
+      );
+      if (result.kind === "error" || result.kind === "auth_required") {
+        setError(result.message);
+        setMode("loaded");
+        return;
+      }
+      applyAnalysis(result.meta, result.sheetData);
+    } catch {
+      setError("Không thể mở sheet.");
+      setMode("loaded");
+    }
+  }
+
+  async function changeSheet(newIndex: number): Promise<void> {
+    if (isPublicFlow) await changePublicSheet(newIndex);
+    else await changePrivateSheet(newIndex);
   }
 
   async function analyzeWithMapping(): Promise<void> {
-    if (!spreadsheetId) return;
+    if (!sheetInfo) return;
     setMode("analyzing");
     setError("");
-    try {
-      const result = await analyzeGoogleSheetContent({
+    const mapping = { frontColumn, backColumn };
+    const meta = {
+      spreadsheetTitle: sheetInfo.spreadsheetTitle,
+      sheets: sheetInfo.sheets,
+    };
+    // Re-run analysis on already-loaded data with the user's chosen mapping.
+    if (isPublicFlow) {
+      const result = await fetchPublicSpreadsheet(
+        `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+        config.apiKey,
+        selectedSheetIndex,
+      );
+      if (result.kind === "error" || result.kind === "auth_required") {
+        setError(result.message);
+        setMode("loaded");
+        return;
+      }
+      applyAnalysis(meta, result.sheetData, mapping);
+    } else {
+      const sheet = sheetInfo.sheets[selectedSheetIndex];
+      if (!sheet) {
+        setError("Sheet không tồn tại.");
+        setMode("loaded");
+        return;
+      }
+      const result = await loadPrivateSheetValues({
         spreadsheetId,
         accessToken,
-        sheetIndex: selectedSheetIndex,
-        frontColumn,
-        backColumn,
+        sheetTitle: sheet.title,
       });
-      if (result.kind === "success") {
-        if (sheetInfo) {
-          setSheetInfo({
-            ...sheetInfo,
-            previewRows: result.cards.slice(0, IMPORT_PREVIEW_ROWS),
-            valid: result.valid,
-            blank: result.blank,
-            partial: result.partial,
-            duplicate: result.duplicate,
-          });
-        }
-      } else {
+      if (result.kind === "error" || result.kind === "auth_required") {
         setError(result.message);
+        setMode("loaded");
+        return;
       }
-    } catch {
-      setError("Không thể phân tích dữ liệu.");
+      applyAnalysis(meta, result.sheetData, mapping);
     }
-    setMode("loaded");
   }
 
   async function submitImport(): Promise<void> {
@@ -341,21 +419,36 @@ export function GoogleSheetsImport() {
       setError("Vui lòng dán liên kết Google Sheets.");
       return;
     }
+    if (!config.apiKey) {
+      setError("Google Sheets chưa được cấu hình.");
+      return;
+    }
     setMode("opening");
     setError("");
     try {
-      const result = await openGoogleSheetUrl({ url: urlInput });
-      if (result.kind === "error" || result.kind === "auth_required") {
+      const result = await fetchPublicSpreadsheet(urlInput, config.apiKey, 0);
+      if (result.kind === "error") {
         setError(result.message);
         setMode("init");
         return;
       }
-      setSpreadsheetId(String((result as Record<string, unknown>).spreadsheetId ?? ""));
-      handleOpenResult(result);
+      if (result.kind === "auth_required") {
+        setError(result.message);
+        setMode("init");
+        return;
+      }
+      setSpreadsheetId(extractIdFromUrl(urlInput));
+      setIsPublicFlow(true);
+      applyAnalysis(result.meta, result.sheetData);
     } catch {
       setError("Không thể đọc bảng tính.");
       setMode("init");
     }
+  }
+
+  function extractIdFromUrl(url: string): string {
+    const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]{30,})\//);
+    return m?.[1] ?? "";
   }
 
   if (!isConfigured) {

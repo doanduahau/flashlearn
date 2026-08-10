@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { MasteryCounts } from "@/features/mastery/components/mastery-counts";
 import { loadMasteryAggregate } from "@/features/mastery/server/load-mastery-aggregate";
+import { loadTransitionQueue } from "@/features/spaced-repetition/server/transition-queue";
 import { StartSmartReviewButton } from "@/features/smart-review/components/start-smart-review-button";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
 import {
@@ -33,12 +34,34 @@ export default async function DashboardPage({
   const today = dateInTimezone(new Date(), timezone);
   const currentMonth = monthInTimezone(new Date(), timezone);
 
+  const evaluationTime = new Date().toISOString();
   const [todayDetail, monthActivity, streakDates, masteryAggregate] = await Promise.all([
     loadActivityDetail(supabase, today),
     loadMonthlyActivity(supabase, currentMonth),
     loadMonthlyStreakDates(supabase, timezone, currentMonth),
     loadMasteryAggregate(supabase, { type: "library" }),
   ]);
+
+  const claimsResult = await supabase.auth.getClaims();
+  const userId =
+    typeof claimsResult.data?.claims?.sub === "string" ? claimsResult.data.claims.sub : null;
+
+  let actionableNow = 0;
+  if (userId) {
+    try {
+      const queue = await loadTransitionQueue(
+        supabase,
+        userId,
+        { type: "library" },
+        evaluationTime,
+      );
+      actionableNow = queue.actionableNow;
+    } catch {
+      // Transition queue failure: silently fall back to no actionable cards.
+      // Do not convert DB failure into a visible zero count as if the queue were empty.
+      actionableNow = -1;
+    }
+  }
 
   const completedToday = todayDetail !== null;
   const todayAccuracy =
@@ -96,12 +119,15 @@ export default async function DashboardPage({
         </article>
       </section>
 
-      {/* Compact learning-status summary */}
-      {masteryAggregate.review > 0 || masteryAggregate.untested > 0 ? (
+      {/* Compact learning-status summary — FSRS transition queue for review count */}
+      {actionableNow >= 0 ? (
         <section aria-label="Tóm tắt trạng thái học" className="mt-2 sm:mt-3">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 sm:rounded-3xl sm:px-5 sm:py-3">
-            <MasteryCounts aggregate={masteryAggregate} className="min-w-0" />
-            {masteryAggregate.review > 0 ? <StartSmartReviewButton /> : null}
+            <MasteryCounts
+              aggregate={{ ...masteryAggregate, review: actionableNow }}
+              className="min-w-0"
+            />
+            {actionableNow > 0 ? <StartSmartReviewButton /> : null}
           </div>
         </section>
       ) : null}

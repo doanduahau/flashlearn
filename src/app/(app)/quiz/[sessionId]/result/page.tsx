@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Flame } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
-import { loadMasterySnapshot } from "@/features/mastery/server/load-mastery-snapshot";
+import { loadTransitionQueue } from "@/features/spaced-repetition/server/transition-queue";
 import { SmartReviewContinuation } from "@/features/smart-review/components/smart-review-continuation";
 import { loadSmartReviewResultContext } from "@/features/smart-review/utils/smart-review-result";
 import { loadStreakSummary } from "@/features/statistics/server/load-statistics";
@@ -17,17 +17,22 @@ export default async function QuizResultPage({
 }) {
   const { sessionId } = await params;
   const supabase = await createClient();
-  const [sessionResult, streakSummary] = await Promise.all([
+  const [sessionResult, streakSummary, claimsResult] = await Promise.all([
     supabase
       .from("quiz_sessions")
       .select("mode, origin, actual_question_count, correct_answer_count, completed_at")
       .eq("id", sessionId)
       .maybeSingle(),
     loadStreakSummary(supabase),
+    supabase.auth.getClaims(),
   ]);
   const session = sessionResult.data;
   if (!session) notFound();
   if (!session.completed_at) redirect(`/quiz/${sessionId}`);
+
+  const userId =
+    typeof claimsResult.data?.claims?.sub === "string" ? claimsResult.data.claims.sub : null;
+
   const [questionsResult, smartReviewResult] = await Promise.all([
     supabase
       .from("quiz_questions")
@@ -36,9 +41,11 @@ export default async function QuizResultPage({
       )
       .eq("session_id", sessionId)
       .order("position"),
-    loadSmartReviewResultContext(quizSessionOrigin(session.origin), () =>
-      loadMasterySnapshot(supabase, { type: "library" }),
-    ),
+    loadSmartReviewResultContext(quizSessionOrigin(session.origin), () => {
+      if (!userId) return Promise.resolve({ actionableNow: 0 });
+      const evalTime = new Date().toISOString();
+      return loadTransitionQueue(supabase, userId, { type: "library" }, evalTime);
+    }),
   ]);
   const questions = questionsResult.data;
 

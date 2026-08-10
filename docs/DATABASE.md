@@ -607,6 +607,35 @@ with the production environment variables set; it is never run automatically.
 Future Smart Review cutover will consume this due read model for timing; Mastery
 remains the confidence/presentation layer.
 
+### FSRS Smart Review Cutover
+
+Smart Review scheduling is now powered by the FSRS transition queue
+(`src/features/spaced-repetition/utils/transition-queue.ts`). Mastery V1 remains
+for confidence/presentation/colors.
+
+During the transition period (historical short-term debt):
+
+| Surface              | Source                      | Count                  |
+| -------------------- | --------------------------- | ---------------------- |
+| Dashboard "Cần ôn"   | `queue.actionableNow`       | 0–10                   |
+| Smart Review session | `queue.candidates`          | min(normal, 10) + fill |
+| Result continuation  | fresh `queue.actionableNow` | 0–10                   |
+
+The transition queue classifies due cards as **normal** (state=Review, explicit
+fsrs_rating, or not short-term Learning/Relearning) or **legacy** (Learning/
+Relearning + scheduled_days=0 + null fsrs_rating + binary is_correct). Normal
+cards fill the queue first; legacy debt fills remaining positions (max 10 total).
+Anomalies (missing cursor events) are counted separately but treated as normal
+for fail-open safety.
+
+Legacy debt drains automatically: once a legacy card is answered, its new
+review event gets an explicit fsrs_rating, and upon reconciliation it exits the
+legacy classification. No migration flags or special mutations are needed.
+
+`MasteryAggregate.review` retains its original semantic meaning and is NOT
+overwritten by the FSRS actionable count. The Dashboard passes
+`actionableNow` as a separate value to the presentation component.
+
 ### FSRS due-divergence diagnostic
 
 `npm run fsrs:diagnose:production` is a safe, read-only diagnostic command that

@@ -1,9 +1,9 @@
 "use server";
 
-import { loadMasterySnapshot } from "@/features/mastery/server/load-mastery-snapshot";
+import { loadTransitionQueue } from "@/features/spaced-repetition/server/transition-queue";
 import {
   SMART_REVIEW_BATCH_SIZE,
-  smartReviewTargetCardIds,
+  smartReviewTargetCardIdsFromTransitionQueue,
 } from "@/features/smart-review/utils/smart-review-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -22,7 +22,7 @@ async function signedInUserId(
 
 /**
  * Has no client input by design: the server derives an up-to-date, owner-scoped
- * target batch immediately before it creates the ordinary quiz session.
+ * transition queue immediately before creating the ordinary quiz session.
  */
 export async function startSmartReview(): Promise<StartSmartReviewResult> {
   const supabase = await createClient();
@@ -31,14 +31,10 @@ export async function startSmartReview(): Promise<StartSmartReviewResult> {
     return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
   }
 
-  const snapshot = await loadMasterySnapshot(
-    supabase,
-    { type: "library" },
-    {
-      reviewCandidateLimit: SMART_REVIEW_BATCH_SIZE,
-    },
-  );
-  const targetCardIds = smartReviewTargetCardIds(snapshot.reviewCandidates);
+  const evaluationTime = new Date().toISOString();
+  const queue = await loadTransitionQueue(supabase, userId, { type: "library" }, evaluationTime);
+
+  const targetCardIds = smartReviewTargetCardIdsFromTransitionQueue(queue);
   if (targetCardIds.length === 0) {
     return { ok: false, empty: true, error: "Không còn thẻ cần ôn." };
   }

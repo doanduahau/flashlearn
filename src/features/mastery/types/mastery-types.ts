@@ -45,3 +45,30 @@ export type CardReviewEventRow = {
   isCorrect: boolean | null;
   reviewedAt: string;
 };
+
+/**
+ * Optional, read-only instrumentation for the shared Mastery loading pipeline.
+ * It intentionally retains identifiers only so diagnostic code can determine
+ * where a card leaves the real pipeline without repeating repository queries.
+ */
+export type MasteryPipelineTrace = {
+  scopedCardIds: string[];
+  requestedCardIds: string[];
+  activeCardIds: string[];
+  reviewEventCardIds: string[];
+  derivedMasteryCardIds: string[];
+  returnedMasteryCardIds: string[];
+  snapshotMasteryCardIds: string[];
+};
+
+export function createMasteryPipelineTrace(): MasteryPipelineTrace {
+  return {
+    scopedCardIds: [],
+    requestedCardIds: [],
+    activeCardIds: [],
+    reviewEventCardIds: [],
+    derivedMasteryCardIds: [],
+    returnedMasteryCardIds: [],
+    snapshotMasteryCardIds: [],
+  };
+}

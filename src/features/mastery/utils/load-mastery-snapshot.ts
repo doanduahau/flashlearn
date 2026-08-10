@@ -1,6 +1,7 @@
 import type {
   ActiveFlashcardMastery,
   CardMasteryRepository,
+  MasteryPipelineTrace,
   SmartReviewCandidateResult,
 } from "@/features/mastery/types/mastery-types";
 import {
@@ -25,13 +26,17 @@ export async function loadMasterySnapshotWithRepository(
   repository: MasteryScopeRepository,
   evaluationTime: string,
   reviewCandidateLimit?: number,
+  pipelineTrace?: MasteryPipelineTrace,
 ): Promise<MasterySnapshot> {
   const scopedCardIds = await repository.findActiveCardIdsInScope();
+  pipelineTrace?.scopedCardIds.push(...scopedCardIds);
   const masteries = await loadCardMasteriesWithRepository(
     repository,
     scopedCardIds,
     evaluationTime,
+    pipelineTrace,
   );
+  pipelineTrace?.snapshotMasteryCardIds.push(...masteries.map((mastery) => mastery.flashcardId));
 
   return {
     evaluationTime,

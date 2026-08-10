@@ -1,5 +1,9 @@
 import { createFlashlearnScheduler } from "../config";
 import { replayReviewHistory } from "./replay-history";
+import {
+  createMasteryPipelineTrace,
+  type MasteryPipelineTrace,
+} from "@/features/mastery/types/mastery-types";
 import type { MasterySnapshot } from "@/features/mastery/utils/load-mastery-snapshot";
 import {
   analyzeOneReview,
@@ -65,7 +69,11 @@ export type TraceMissingReport = {
 
 export type ProductionDiagnosticDataAccess = {
   loadUsersWithHistory(): Promise<string[]>;
-  loadMasterySnapshot(userId: string, evaluationTime: string): Promise<MasterySnapshot>;
+  loadMasterySnapshot(
+    userId: string,
+    evaluationTime: string,
+    pipelineTrace?: MasteryPipelineTrace,
+  ): Promise<MasterySnapshot>;
   loadFsrsDueCardIds(userId: string, evaluationTime: string): Promise<string[]>;
   loadFsrsCardDetails(userId: string, cardIds: string[]): Promise<FsrsOnlyCardDetail[]>;
   loadSchedulableEventsWithCardIds(userId: string, cardIds: string[]): Promise<EventWithCardId[]>;
@@ -98,12 +106,41 @@ export type ProductionDiagnosticResult = {
   aggregate: AggregateDiagnostic;
 };
 
-function buildMasteryMap(snapshot: MasterySnapshot): Map<string, MasteryCardInfo> {
+export type MasteryPipelineTraceReport = {
+  userId: string;
+  label: string;
+  targetCount: number;
+  overallMasteries: number;
+  targetStageCounts: {
+    p0RequestedScope: number;
+    p1ScopedCardIds: number;
+    p2RequestedCardIds: number;
+    p3ActiveCardIds: number;
+    p4EventBearingCardIds: number;
+    p4ReviewEventCount: number;
+    p5DerivedMasteries: number;
+    p6ReturnedMasteries: number;
+    p7SnapshotMasteries: number;
+  };
+};
+
+export function buildMasteryMap(snapshot: MasterySnapshot): Map<string, MasteryCardInfo> {
   const map = new Map<string, MasteryCardInfo>();
   for (const m of snapshot.masteries) {
     map.set(m.flashcardId, { flashcardId: m.flashcardId, status: m.status, score: m.score });
   }
   return map;
+}
+
+function countTargetIds(targetIds: ReadonlySet<string>, ids: readonly string[]): number {
+  return new Set(ids.filter((id) => targetIds.has(id))).size;
+}
+
+function countTargetEvents(
+  targetIds: ReadonlySet<string>,
+  eventCardIds: readonly string[],
+): number {
+  return eventCardIds.filter((cardId) => targetIds.has(cardId)).length;
 }
 
 function pickSampleIds(
@@ -340,6 +377,61 @@ export async function runMissingCardTrace(
         ownershipMismatch,
         presentInFlashcards: present,
         unexplained,
+      },
+    });
+  }
+
+  return reports;
+}
+
+/**
+ * Captures the actual values returned by the shared Mastery loader invocation.
+ * Unlike runMissingCardTrace, this does not independently replay repository SQL
+ * to infer a pipeline stage.
+ */
+export async function runMasteryPipelineTrace(
+  data: ProductionDiagnosticDataAccess,
+  evaluationTime: string,
+): Promise<MasteryPipelineTraceReport[]> {
+  const userIds = await data.loadUsersWithHistory();
+  const reports: MasteryPipelineTraceReport[] = [];
+
+  for (let index = 0; index < userIds.length; index += 1) {
+    const userId = userIds[index];
+    const pipelineTrace = createMasteryPipelineTrace();
+    const [snapshot, fsrsCardIds] = await Promise.all([
+      data.loadMasterySnapshot(userId, evaluationTime, pipelineTrace),
+      data.loadFsrsDueCardIds(userId, evaluationTime),
+    ]);
+
+    const masteryReviewIds = new Set(
+      snapshot.reviewCandidates.candidates.map((candidate) => candidate.flashcardId),
+    );
+    const masteryMap = buildMasteryMap(snapshot);
+    const targetIds = new Set(
+      fsrsCardIds.filter((cardId) => !masteryReviewIds.has(cardId) && !masteryMap.has(cardId)),
+    );
+    if (targetIds.size === 0) continue;
+
+    const eventBearingTargetIds = new Set(
+      pipelineTrace.reviewEventCardIds.filter((cardId) => targetIds.has(cardId)),
+    );
+
+    reports.push({
+      userId,
+      label: `User ${index + 1}`,
+      targetCount: targetIds.size,
+      overallMasteries: snapshot.masteries.length,
+      targetStageCounts: {
+        p0RequestedScope: targetIds.size,
+        p1ScopedCardIds: countTargetIds(targetIds, pipelineTrace.scopedCardIds),
+        p2RequestedCardIds: countTargetIds(targetIds, pipelineTrace.requestedCardIds),
+        p3ActiveCardIds: countTargetIds(targetIds, pipelineTrace.activeCardIds),
+        p4EventBearingCardIds: eventBearingTargetIds.size,
+        p4ReviewEventCount: countTargetEvents(targetIds, pipelineTrace.reviewEventCardIds),
+        p5DerivedMasteries: countTargetIds(targetIds, pipelineTrace.derivedMasteryCardIds),
+        p6ReturnedMasteries: countTargetIds(targetIds, pipelineTrace.returnedMasteryCardIds),
+        p7SnapshotMasteries: countTargetIds(targetIds, pipelineTrace.snapshotMasteryCardIds),
       },
     });
   }

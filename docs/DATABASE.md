@@ -631,6 +631,19 @@ RPC, service-role mutation paths, or quiz creation modules; it performs no
 INSERT/UPDATE/DELETE/UPSERT/RPC writes. It must be run manually with the
 production environment variables set; it is never run automatically.
 
+### Mastery snapshot pipeline trace
+
+`npm run fsrs:diagnose:production -- --trace-mastery-pipeline` is an optional,
+read-only follow-up for FSRS-only cards missing from the final Mastery map. It
+uses the same fixed evaluation time and the same shared
+`loadMasterySnapshotWithRepository()` invocation as the diagnostic, recording
+only aggregate intersections at these real loader stages: scoped IDs, requested
+IDs, active IDs, returned review events, derivations, returned masteries, and
+final snapshot entries. It prints no UUIDs or card content and performs no
+writes. This is intentionally different from the older `--trace-missing` mode,
+whose ownership/scope fields are independent post-snapshot checks rather than
+shared-loader stage observations.
+
 ## Derived statistics
 
 `daily_learning_records` stores one immutable local date per user/day, its timezone at completion,

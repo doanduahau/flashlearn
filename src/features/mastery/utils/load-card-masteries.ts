@@ -1,6 +1,7 @@
 import type {
   ActiveFlashcardMastery,
   CardMasteryRepository,
+  MasteryPipelineTrace,
   CardReviewEventRow,
 } from "@/features/mastery/types/mastery-types";
 import { deriveFlashcardMastery } from "@/features/mastery/utils/derive-flashcard-mastery";
@@ -13,22 +14,32 @@ export async function loadCardMasteriesWithRepository(
   repository: CardMasteryRepository,
   requestedCardIds: readonly string[],
   evaluationTime: string,
+  pipelineTrace?: MasteryPipelineTrace,
 ): Promise<ActiveFlashcardMastery[]> {
   const uniqueIds = uniqueCardIds(requestedCardIds);
+  pipelineTrace?.requestedCardIds.push(...uniqueIds);
   if (uniqueIds.length === 0) return [];
 
   const activeCardIds = await repository.findActiveCardIds(uniqueIds);
+  pipelineTrace?.activeCardIds.push(...activeCardIds);
   if (activeCardIds.length === 0) return [];
 
   const eventsByCardId = new Map<string, CardReviewEventRow[]>();
-  for (const event of await repository.findReviewEvents(activeCardIds)) {
+  const reviewEvents = await repository.findReviewEvents(activeCardIds);
+  pipelineTrace?.reviewEventCardIds.push(...reviewEvents.map((event) => event.flashcardId));
+  for (const event of reviewEvents) {
     const events = eventsByCardId.get(event.flashcardId) ?? [];
     events.push(event);
     eventsByCardId.set(event.flashcardId, events);
   }
 
-  return activeCardIds.map((flashcardId) => ({
-    flashcardId,
-    ...deriveFlashcardMastery(eventsByCardId.get(flashcardId) ?? [], evaluationTime),
-  }));
+  const masteries = activeCardIds.map((flashcardId) => {
+    pipelineTrace?.derivedMasteryCardIds.push(flashcardId);
+    return {
+      flashcardId,
+      ...deriveFlashcardMastery(eventsByCardId.get(flashcardId) ?? [], evaluationTime),
+    };
+  });
+  pipelineTrace?.returnedMasteryCardIds.push(...masteries.map((mastery) => mastery.flashcardId));
+  return masteries;
 }

@@ -2,12 +2,17 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { pathToFileURL } from "node:url";
 
 import { loadMasterySnapshotWithRepository } from "../src/features/mastery/utils/load-mastery-snapshot";
-import type { CardReviewEventRow } from "../src/features/mastery/types/mastery-types";
+import type {
+  CardReviewEventRow,
+  MasteryPipelineTrace,
+} from "../src/features/mastery/types/mastery-types";
 import { findDueCandidates } from "../src/features/spaced-repetition/server/due-repository";
 import { SCHEDULABLE_EVENT_OR_PREDICATE } from "../src/features/spaced-repetition/types/spaced-repetition-types";
 import {
   runProductionDiagnostic,
+  runMasteryPipelineTrace,
   runMissingCardTrace,
+  type MasteryPipelineTraceReport,
   type ProductionDiagnosticDataAccess,
   type ProductionDiagnosticResult,
   type TraceMissingReport,
@@ -95,7 +100,11 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
     }
   };
 
-  const loadMasterySnapshot = async (userId: string, evaluationTime: string) => {
+  const loadMasterySnapshot = async (
+    userId: string,
+    evaluationTime: string,
+    pipelineTrace?: MasteryPipelineTrace,
+  ) => {
     return loadMasterySnapshotWithRepository(
       {
         findActiveCardIdsInScope: () => findActiveCardIdsInScope(userId),
@@ -104,6 +113,7 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
       },
       evaluationTime,
       undefined,
+      pipelineTrace,
     );
   };
 
@@ -488,6 +498,37 @@ function formatTraceReport(reports: readonly TraceMissingReport[]): string {
   return lines.join("\n");
 }
 
+function formatMasteryPipelineTrace(reports: readonly MasteryPipelineTraceReport[]): string {
+  const lines = ["", "=== MASTERY SNAPSHOT PIPELINE TRACE ===", ""];
+
+  if (reports.length === 0) {
+    lines.push("  No FSRS-only cards were missing from the final Mastery map.");
+  }
+
+  for (const report of reports) {
+    const stages = report.targetStageCounts;
+    lines.push(
+      `  ${report.label}:`,
+      `    Target cards: ${report.targetCount}`,
+      `    P0 target count: ${stages.p0RequestedScope}`,
+      `    P1 target count: ${stages.p1ScopedCardIds}`,
+      `    P2 target count: ${stages.p2RequestedCardIds}`,
+      `    P3 target count: ${stages.p3ActiveCardIds}`,
+      `    P4 event-bearing target cards: ${stages.p4EventBearingCardIds}`,
+      `    P4 total Mastery-loaded events for target cards: ${stages.p4ReviewEventCount}`,
+      `    P5 target derivations: ${stages.p5DerivedMasteries}`,
+      `    P6 target mastery results: ${stages.p6ReturnedMasteries}`,
+      `    P7 target snapshot entries: ${stages.p7SnapshotMasteries}`,
+      `    Masteries.length overall: ${report.overallMasteries}`,
+      "",
+      "    (Stage values come from the same shared Mastery loader invocation; no raw IDs or content printed.)",
+      "",
+    );
+  }
+
+  return lines.join("\n");
+}
+
 async function main(): Promise<void> {
   const identity = resolveProductionIdentity(process.env, ALLOWED_PRODUCTION_PROJECT_REFS);
   const evaluationTime = new Date().toISOString();
@@ -496,6 +537,17 @@ async function main(): Promise<void> {
   const data = await buildDataAccess(client);
 
   const traceMode = process.argv.includes("--trace-missing");
+  const masteryPipelineTraceMode = process.argv.includes("--trace-mastery-pipeline");
+
+  if (masteryPipelineTraceMode) {
+    console.log(`FSRS PRODUCTION MASTERY SNAPSHOT PIPELINE TRACE`);
+    console.log(`Project: ${identity.projectRef}`);
+    console.log(`Evaluation time (UTC): ${evaluationTime}`);
+    const traceReports = await runMasteryPipelineTrace(data, evaluationTime);
+    console.log(formatMasteryPipelineTrace(traceReports));
+    console.log("READ-ONLY â€” NO WRITES PERFORMED");
+    return;
+  }
 
   if (traceMode) {
     console.log(`FSRS PRODUCTION CARD-SCOPE TRACE`);

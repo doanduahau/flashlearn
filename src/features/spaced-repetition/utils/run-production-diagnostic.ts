@@ -4,6 +4,10 @@ import {
   createMasteryPipelineTrace,
   type MasteryPipelineTrace,
 } from "@/features/mastery/types/mastery-types";
+import {
+  createActiveCardLoaderTrace,
+  type ActiveCardLoaderTrace,
+} from "@/features/mastery/utils/find-active-card-ids";
 import type { MasterySnapshot } from "@/features/mastery/utils/load-mastery-snapshot";
 import {
   analyzeOneReview,
@@ -73,7 +77,12 @@ export type ProductionDiagnosticDataAccess = {
     userId: string,
     evaluationTime: string,
     pipelineTrace?: MasteryPipelineTrace,
+    activeLoaderTrace?: ActiveCardLoaderTrace,
   ): Promise<MasterySnapshot>;
+  probeActiveCardIds?(
+    cardIds: readonly string[],
+    inBatchSize: number,
+  ): Promise<ActiveCardLoaderTrace>;
   loadFsrsDueCardIds(userId: string, evaluationTime: string): Promise<string[]>;
   loadFsrsCardDetails(userId: string, cardIds: string[]): Promise<FsrsOnlyCardDetail[]>;
   loadSchedulableEventsWithCardIds(userId: string, cardIds: string[]): Promise<EventWithCardId[]>;
@@ -124,6 +133,24 @@ export type MasteryPipelineTraceReport = {
   };
 };
 
+export type ActiveLoaderBatchProbe = {
+  inBatchSize: number;
+  queries: number;
+  totalIdsReturned: number;
+  targetIdsReturned: number;
+  errorBatches: number;
+};
+
+export type ActiveLoaderTraceReport = {
+  userId: string;
+  label: string;
+  totalInputIds: number;
+  configuredInBatchSize: number;
+  configuredBatchCount: number;
+  batches: ActiveCardLoaderTrace["batches"];
+  alternativeBatchProbes: ActiveLoaderBatchProbe[];
+};
+
 export function buildMasteryMap(snapshot: MasterySnapshot): Map<string, MasteryCardInfo> {
   const map = new Map<string, MasteryCardInfo>();
   for (const m of snapshot.masteries) {
@@ -141,6 +168,18 @@ function countTargetEvents(
   eventCardIds: readonly string[],
 ): number {
   return eventCardIds.filter((cardId) => targetIds.has(cardId)).length;
+}
+
+function countTraceIds(trace: ActiveCardLoaderTrace, targetIds: ReadonlySet<string>): number {
+  return new Set(trace.returnedCardIds.filter((cardId) => targetIds.has(cardId))).size;
+}
+
+function countTraceQueries(trace: ActiveCardLoaderTrace): number {
+  return trace.batches.reduce((total, batch) => total + batch.pagesRequested, 0);
+}
+
+function countTraceErrors(trace: ActiveCardLoaderTrace): number {
+  return trace.batches.filter((batch) => batch.error !== null).length;
 }
 
 function pickSampleIds(
@@ -433,6 +472,68 @@ export async function runMasteryPipelineTrace(
         p6ReturnedMasteries: countTargetIds(targetIds, pipelineTrace.returnedMasteryCardIds),
         p7SnapshotMasteries: countTargetIds(targetIds, pipelineTrace.snapshotMasteryCardIds),
       },
+    });
+  }
+
+  return reports;
+}
+
+/**
+ * Replays only the active-card SELECT through the same loader used for P3.
+ * Alternative probes vary batch size only; predicates and ordering remain in
+ * findActiveCardIdsWithOptions.
+ */
+export async function runActiveLoaderTrace(
+  data: ProductionDiagnosticDataAccess,
+  evaluationTime: string,
+  configuredInBatchSize: number,
+  alternativeInBatchSizes: readonly number[],
+): Promise<ActiveLoaderTraceReport[]> {
+  if (!data.probeActiveCardIds) {
+    throw new Error("Active-card loader probe is unavailable");
+  }
+
+  const userIds = await data.loadUsersWithHistory();
+  const reports: ActiveLoaderTraceReport[] = [];
+
+  for (let index = 0; index < userIds.length; index += 1) {
+    const userId = userIds[index];
+    const pipelineTrace = createMasteryPipelineTrace();
+    const activeLoaderTrace = createActiveCardLoaderTrace();
+    const fsrsCardIds = await data.loadFsrsDueCardIds(userId, evaluationTime);
+
+    try {
+      await data.loadMasterySnapshot(userId, evaluationTime, pipelineTrace, activeLoaderTrace);
+    } catch {
+      // The trace retains completed query-page metadata and P2 input. Failing
+      // closed is intentional: this diagnostic must not treat an error as [].
+    }
+
+    const p2Ids = new Set(pipelineTrace.requestedCardIds);
+    const targetIds = new Set(fsrsCardIds.filter((cardId) => p2Ids.has(cardId)));
+    if (targetIds.size === 0 || activeLoaderTrace.batches.length === 0) continue;
+
+    const probeSizes = [...new Set([configuredInBatchSize, ...alternativeInBatchSizes])];
+    const alternativeBatchProbes: ActiveLoaderBatchProbe[] = [];
+    for (const inBatchSize of probeSizes) {
+      const probeTrace = await data.probeActiveCardIds(pipelineTrace.requestedCardIds, inBatchSize);
+      alternativeBatchProbes.push({
+        inBatchSize,
+        queries: countTraceQueries(probeTrace),
+        totalIdsReturned: new Set(probeTrace.returnedCardIds).size,
+        targetIdsReturned: countTraceIds(probeTrace, targetIds),
+        errorBatches: countTraceErrors(probeTrace),
+      });
+    }
+
+    reports.push({
+      userId,
+      label: `User ${index + 1}`,
+      totalInputIds: pipelineTrace.requestedCardIds.length,
+      configuredInBatchSize,
+      configuredBatchCount: activeLoaderTrace.batches.length,
+      batches: activeLoaderTrace.batches,
+      alternativeBatchProbes,
     });
   }
 

@@ -2,6 +2,12 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { pathToFileURL } from "node:url";
 
 import { loadMasterySnapshotWithRepository } from "../src/features/mastery/utils/load-mastery-snapshot";
+import {
+  ACTIVE_CARD_IN_BATCH_SIZE,
+  createActiveCardLoaderTrace,
+  findActiveCardIdsWithOptions,
+  type ActiveCardLoaderTrace,
+} from "../src/features/mastery/utils/find-active-card-ids";
 import type {
   CardReviewEventRow,
   MasteryPipelineTrace,
@@ -10,8 +16,10 @@ import { findDueCandidates } from "../src/features/spaced-repetition/server/due-
 import { SCHEDULABLE_EVENT_OR_PREDICATE } from "../src/features/spaced-repetition/types/spaced-repetition-types";
 import {
   runProductionDiagnostic,
+  runActiveLoaderTrace,
   runMasteryPipelineTrace,
   runMissingCardTrace,
+  type ActiveLoaderTraceReport,
   type MasteryPipelineTraceReport,
   type ProductionDiagnosticDataAccess,
   type ProductionDiagnosticResult,
@@ -53,28 +61,6 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
     }
   };
 
-  const findActiveCardIds = async (cardIds: readonly string[]): Promise<string[]> => {
-    const results: string[] = [];
-    const uniqueIds = [...new Set(cardIds)];
-    for (let batch = 0; batch < uniqueIds.length; batch += SCOPE_ID_PAGE_SIZE) {
-      const batchIds = uniqueIds.slice(batch, batch + SCOPE_ID_PAGE_SIZE);
-      let start = 0;
-      while (true) {
-        const { data } = await client
-          .from("flashcards")
-          .select("id")
-          .in("id", batchIds)
-          .order("id", { ascending: true })
-          .range(start, start + SCOPE_ID_PAGE_SIZE - 1);
-        const page = data ?? [];
-        results.push(...page.map((row: { id: string }) => row.id));
-        if (page.length === 0) break;
-        start += page.length;
-      }
-    }
-    return results;
-  };
-
   const findReviewEvents = async (cardIds: readonly string[]): Promise<CardReviewEventRow[]> => {
     const events: CardReviewEventRow[] = [];
     let start = 0;
@@ -104,11 +90,13 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
     userId: string,
     evaluationTime: string,
     pipelineTrace?: MasteryPipelineTrace,
+    activeLoaderTrace?: ActiveCardLoaderTrace,
   ) => {
     return loadMasterySnapshotWithRepository(
       {
         findActiveCardIdsInScope: () => findActiveCardIdsInScope(userId),
-        findActiveCardIds,
+        findActiveCardIds: (cardIds) =>
+          findActiveCardIdsWithOptions(client, cardIds, { trace: activeLoaderTrace }),
         findReviewEvents,
       },
       evaluationTime,
@@ -213,6 +201,16 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
   return {
     loadUsersWithHistory,
     loadMasterySnapshot,
+    probeActiveCardIds: async (cardIds, inBatchSize) => {
+      const trace = createActiveCardLoaderTrace();
+      try {
+        await findActiveCardIdsWithOptions(client, cardIds, { inBatchSize, trace });
+      } catch {
+        // The per-batch trace carries the sanitized failure category for this
+        // read-only comparison. Do not expose raw PostgREST errors.
+      }
+      return trace;
+    },
     loadFsrsDueCardIds: (userId, evaluationTime) =>
       findDueCandidates(client, userId, { type: "library" }, evaluationTime).then((candidates) =>
         candidates.map((candidate) => candidate.flashcardId),
@@ -529,6 +527,54 @@ function formatMasteryPipelineTrace(reports: readonly MasteryPipelineTraceReport
   return lines.join("\n");
 }
 
+function formatActiveLoaderTrace(reports: readonly ActiveLoaderTraceReport[]): string {
+  const lines = ["", "=== ACTIVE CARD LOADER TRACE ===", ""];
+
+  if (reports.length === 0) {
+    lines.push("  No FSRS-due cards reached the active-card loader input.");
+  }
+
+  for (const report of reports) {
+    lines.push(
+      `  ${report.label}:`,
+      `    Total input IDs: ${report.totalInputIds}`,
+      `    Configured IN batch size: ${report.configuredInBatchSize}`,
+      `    Number of batches: ${report.configuredBatchCount}`,
+      "",
+    );
+
+    for (let index = 0; index < report.batches.length; index += 1) {
+      const batch = report.batches[index];
+      lines.push(
+        `    Batch ${index + 1}:`,
+        `      input IDs: ${batch.inputIdCount}`,
+        `      pages requested: ${batch.pagesRequested}`,
+        `      rows returned: ${batch.rowsReturned}`,
+        `      error present: ${batch.error ? "yes" : "no"}`,
+        `      error code/status/category: ${batch.error ? `${batch.error.code ?? "none"}/${batch.error.status ?? "none"}/${batch.error.category}` : "none"}`,
+      );
+    }
+
+    lines.push("", "    Alternative same-query batch probes:");
+    for (const probe of report.alternativeBatchProbes) {
+      lines.push(
+        `      ${probe.inBatchSize}:`,
+        `        queries: ${probe.queries}`,
+        `        total IDs returned: ${probe.totalIdsReturned}`,
+        `        target IDs returned: ${probe.targetIdsReturned}`,
+        `        error batches: ${probe.errorBatches}`,
+      );
+    }
+    lines.push(
+      "",
+      "    (No raw card IDs, user IDs, content, URLs, or error messages printed.)",
+      "",
+    );
+  }
+
+  return lines.join("\n");
+}
+
 async function main(): Promise<void> {
   const identity = resolveProductionIdentity(process.env, ALLOWED_PRODUCTION_PROJECT_REFS);
   const evaluationTime = new Date().toISOString();
@@ -538,6 +584,22 @@ async function main(): Promise<void> {
 
   const traceMode = process.argv.includes("--trace-missing");
   const masteryPipelineTraceMode = process.argv.includes("--trace-mastery-pipeline");
+  const activeLoaderTraceMode = process.argv.includes("--trace-active-loader");
+
+  if (activeLoaderTraceMode) {
+    console.log(`FSRS PRODUCTION ACTIVE CARD LOADER TRACE`);
+    console.log(`Project: ${identity.projectRef}`);
+    console.log(`Evaluation time (UTC): ${evaluationTime}`);
+    const traceReports = await runActiveLoaderTrace(
+      data,
+      evaluationTime,
+      ACTIVE_CARD_IN_BATCH_SIZE,
+      [500, 200, 100, 50],
+    );
+    console.log(formatActiveLoaderTrace(traceReports));
+    console.log("READ-ONLY â€” NO WRITES PERFORMED");
+    return;
+  }
 
   if (masteryPipelineTraceMode) {
     console.log(`FSRS PRODUCTION MASTERY SNAPSHOT PIPELINE TRACE`);

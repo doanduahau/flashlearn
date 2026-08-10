@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildMasteryMap,
+  runActiveLoaderTrace,
   runMasteryPipelineTrace,
   type ProductionDiagnosticDataAccess,
 } from "@/features/spaced-repetition/utils/run-production-diagnostic";
@@ -13,6 +14,7 @@ import type {
   CardReviewEventRow,
   MasteryPipelineTrace,
 } from "@/features/mastery/types/mastery-types";
+import { createActiveCardLoaderTrace } from "@/features/mastery/utils/find-active-card-ids";
 import { loadMasterySnapshotWithRepository } from "@/features/mastery/utils/load-mastery-snapshot";
 
 const NOW = "2026-08-10T12:00:00.000Z";
@@ -136,6 +138,85 @@ describe("Mastery pipeline instrumentation", () => {
           p6ReturnedMasteries: 0,
           p7SnapshotMasteries: 0,
         },
+      },
+    ]);
+  });
+
+  it("reports per-batch metadata and same-query alternative probes without raw IDs", async () => {
+    const data: ProductionDiagnosticDataAccess = {
+      loadUsersWithHistory: async () => ["user-a"],
+      loadMasterySnapshot: async (_userId, evaluationTime, pipelineTrace, activeLoaderTrace) => {
+        pipelineTrace?.scopedCardIds.push("target-a", "target-b");
+        pipelineTrace?.requestedCardIds.push("target-a", "target-b");
+        activeLoaderTrace?.batches.push({
+          inputIdCount: 2,
+          pagesRequested: 1,
+          rowsReturned: 0,
+          error: { code: "PGRST123", status: 400, category: "postgrest" },
+        });
+        return {
+          evaluationTime,
+          masteries: [],
+          aggregate: { total: 0, untested: 0, review: 0, learning: 0, strong: 0 },
+          reviewCandidates: { total: 0, candidates: [] },
+        };
+      },
+      loadFsrsDueCardIds: async () => ["target-a", "target-b"],
+      loadFsrsCardDetails: async () => [],
+      loadSchedulableEventsWithCardIds: async () => [],
+      loadCardTraceInfo: async () => [],
+      probeActiveCardIds: async (_cardIds, inBatchSize) => {
+        const trace = createActiveCardLoaderTrace();
+        trace.batches.push({
+          inputIdCount: 2,
+          pagesRequested: 1,
+          rowsReturned: inBatchSize === 50 ? 2 : 0,
+          error:
+            inBatchSize === 50 ? null : { code: "PGRST123", status: 400, category: "postgrest" },
+        });
+        if (inBatchSize === 50) trace.returnedCardIds.push("target-a", "target-b");
+        return trace;
+      },
+    };
+
+    await expect(runActiveLoaderTrace(data, NOW, 200, [100, 50])).resolves.toEqual([
+      {
+        userId: "user-a",
+        label: "User 1",
+        totalInputIds: 2,
+        configuredInBatchSize: 200,
+        configuredBatchCount: 1,
+        batches: [
+          {
+            inputIdCount: 2,
+            pagesRequested: 1,
+            rowsReturned: 0,
+            error: { code: "PGRST123", status: 400, category: "postgrest" },
+          },
+        ],
+        alternativeBatchProbes: [
+          {
+            inBatchSize: 200,
+            queries: 1,
+            totalIdsReturned: 0,
+            targetIdsReturned: 0,
+            errorBatches: 1,
+          },
+          {
+            inBatchSize: 100,
+            queries: 1,
+            totalIdsReturned: 0,
+            targetIdsReturned: 0,
+            errorBatches: 1,
+          },
+          {
+            inBatchSize: 50,
+            queries: 1,
+            totalIdsReturned: 2,
+            targetIdsReturned: 2,
+            errorBatches: 0,
+          },
+        ],
       },
     ]);
   });

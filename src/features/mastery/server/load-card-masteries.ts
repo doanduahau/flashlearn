@@ -6,44 +6,24 @@ import type {
   ActiveFlashcardMastery,
   CardReviewEventRow,
 } from "@/features/mastery/types/mastery-types";
+import {
+  ACTIVE_CARD_IN_BATCH_SIZE,
+  findActiveCardIdsWithOptions,
+} from "@/features/mastery/utils/find-active-card-ids";
 import { loadCardMasteriesWithRepository } from "@/features/mastery/utils/load-card-masteries";
 import type { Database } from "@/lib/supabase/types";
 
 type Supabase = SupabaseClient<Database>;
 
 const REVIEW_EVENT_PAGE_SIZE = 1000;
-const ACTIVE_CARD_PAGE_SIZE = 1000;
-const IN_CLAUSE_BATCH_SIZE = 200;
 
 export async function findActiveCardIds(
   supabase: Supabase,
   cardIds: readonly string[],
 ): Promise<string[]> {
-  const results: string[] = [];
-  const uniqueIds = [...new Set(cardIds)];
-
-  for (let batch = 0; batch < uniqueIds.length; batch += IN_CLAUSE_BATCH_SIZE) {
-    const batchIds = uniqueIds.slice(batch, batch + IN_CLAUSE_BATCH_SIZE);
-    let start = 0;
-
-    while (true) {
-      const { data, error } = await supabase
-        .from("flashcards")
-        .select("id")
-        .in("id", batchIds)
-        .order("id", { ascending: true })
-        .range(start, start + ACTIVE_CARD_PAGE_SIZE - 1);
-
-      if (error) throw new Error("Unable to load active flashcards for mastery");
-
-      const page = data ?? [];
-      results.push(...page.map((card) => card.id));
-      if (page.length === 0) break;
-      start += page.length;
-    }
-  }
-
-  return results;
+  return findActiveCardIdsWithOptions(supabase, cardIds, {
+    inBatchSize: ACTIVE_CARD_IN_BATCH_SIZE,
+  });
 }
 
 export async function findReviewEvents(
@@ -53,8 +33,8 @@ export async function findReviewEvents(
   const events: CardReviewEventRow[] = [];
   const uniqueIds = [...new Set(cardIds)];
 
-  for (let batch = 0; batch < uniqueIds.length; batch += IN_CLAUSE_BATCH_SIZE) {
-    const batchIds = uniqueIds.slice(batch, batch + IN_CLAUSE_BATCH_SIZE);
+  for (let batch = 0; batch < uniqueIds.length; batch += ACTIVE_CARD_IN_BATCH_SIZE) {
+    const batchIds = uniqueIds.slice(batch, batch + ACTIVE_CARD_IN_BATCH_SIZE);
     let start = 0;
 
     while (true) {

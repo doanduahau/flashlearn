@@ -23,12 +23,11 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local > src/lib/supabase/types.ts",
-    "fsrs:reconcile:local": "npx tsx scripts/fsrs-reconcile-local.ts",
-    "fsrs:reconcile:production": "npx tsx scripts/fsrs-reconcile-production.ts",
-    "fsrs:compare:local": "npx tsx scripts/fsrs-compare-local.ts",
-    "fsrs:compare:production": "npx tsx scripts/fsrs-compare-production.ts",
-    "fsrs:diagnose:production": "npx tsx scripts/fsrs-diagnose-production.ts",
-    "fsrs:test:local": "node scripts/test-fsrs-local.mjs"
+    "fsrs:reconcile:local": "tsx scripts/fsrs-reconcile-local.ts",
+    "fsrs:reconcile:production": "tsx scripts/fsrs-reconcile-production.ts",
+    "fsrs:compare:local": "tsx scripts/fsrs-compare-local.ts",
+    "fsrs:compare:production": "tsx scripts/fsrs-compare-production.ts",
+    "fsrs:diagnose:production": "tsx scripts/fsrs-diagnose-production.ts"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.15",
@@ -65,6 +64,7 @@
     "prettier": "^3.9.6",
     "supabase": "^2.111.0",
     "tailwindcss": "^4",
+    "tsx": "4.23.12",
     "typescript": "^5",
     "vitest": "^4.1.10"
   },

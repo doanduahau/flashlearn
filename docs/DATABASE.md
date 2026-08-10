@@ -644,6 +644,15 @@ writes. This is intentionally different from the older `--trace-missing` mode,
 whose ownership/scope fields are independent post-snapshot checks rather than
 shared-loader stage observations.
 
+`npm run fsrs:diagnose:production -- --trace-active-loader` is a second
+read-only diagnostic for a proven P2â†’P3 loss. It runs the same active-card
+loader query used by Mastery (`flashcards.id IN (...)`, ordered by `id`, paged)
+and reports aggregate per-batch page/row/error metadata plus same-query probes
+at batch sizes 500, 200, 100, and 50. It prints only sanitized error
+code/status/category and never raw errors, URLs, UUIDs, or card content. The
+normal loader fails closed on any Supabase error; it never interprets an error
+as an empty active-card result.
+
 ## Derived statistics
 
 `daily_learning_records` stores one immutable local date per user/day, its timezone at completion,

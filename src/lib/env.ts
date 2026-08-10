@@ -9,6 +9,9 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
+  NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
+  NEXT_PUBLIC_GOOGLE_PICKER_API_KEY: z.string().optional(),
+  NEXT_PUBLIC_GOOGLE_DRIVE_APP_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -17,6 +20,9 @@ const parsed = envSchema.safeParse({
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+  NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
+  NEXT_PUBLIC_GOOGLE_PICKER_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY,
+  NEXT_PUBLIC_GOOGLE_DRIVE_APP_ID: process.env.NEXT_PUBLIC_GOOGLE_DRIVE_APP_ID,
 });
 
 if (!parsed.success) {

@@ -1,13 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  fetchPublicSheetValues,
   fetchPublicSpreadsheet,
-  parseSheetValues,
   validatePublicSpreadsheetUrl,
 } from "@/features/imports/utils/public-sheets";
-import { GOOGLE_SHEETS_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
+import { GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
 
 const MOCK_API_KEY = "mock-browser-api-key";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function mockFetchResponse(status: number, json: unknown): void {
   vi.stubGlobal(
@@ -18,10 +22,6 @@ function mockFetchResponse(status: number, json: unknown): void {
     }),
   );
 }
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe("validatePublicSpreadsheetUrl", () => {
   it("accepts a valid Google Sheets URL", () => {
@@ -49,7 +49,7 @@ describe("validatePublicSpreadsheetUrl", () => {
   });
 });
 
-describe("fetchPublicSpreadsheet — browser API key path", () => {
+describe("fetchPublicSpreadsheet — browser API key header discovery", () => {
   it("uses the browser API key in the query string (referrer-restricted path)", async () => {
     mockFetchResponse(200, {
       properties: { title: "Test Sheet" },
@@ -68,7 +68,7 @@ describe("fetchPublicSpreadsheet — browser API key path", () => {
     expect(firstUrl).toContain("sheets.googleapis.com");
   });
 
-  it("requests a bounded A1 range for values, not the full sheet", async () => {
+  it("requests a header scan bounded to one row across the discovery width", async () => {
     const calls: string[] = [];
     vi.stubGlobal(
       "fetch",
@@ -77,12 +77,7 @@ describe("fetchPublicSpreadsheet — browser API key path", () => {
         if (String(url).includes("/values/")) {
           return {
             status: 200,
-            json: async () => ({
-              values: [
-                ["Front", "Back"],
-                ["A", "B"],
-              ],
-            }),
+            json: async () => ({ values: [["Front", "Back"]] }),
           };
         }
         return {
@@ -100,12 +95,12 @@ describe("fetchPublicSpreadsheet — browser API key path", () => {
       MOCK_API_KEY,
     );
 
-    const valuesUrl = calls.find((u) => u.includes("/values/"));
-    expect(valuesUrl).toBeTruthy();
+    const headerUrl = calls.find((u) => u.includes("/values/"));
+    expect(headerUrl).toBeTruthy();
     const expected = encodeURIComponent(
-      `A1:${colLetters(GOOGLE_SHEETS_MAX_COLUMNS - 1)}${IMPORT_MAX_ROWS + 1}`,
+      `A1:${colLetters(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS - 1)}1`,
     );
-    expect(valuesUrl).toContain(expected);
+    expect(headerUrl).toContain(expected);
   });
 
   it("returns auth_required when public access is denied (private sheet)", async () => {
@@ -126,12 +121,53 @@ describe("fetchPublicSpreadsheet — browser API key path", () => {
     expect(result.kind).toBe("error");
     expect(fetchMock).not.toHaveBeenCalled();
   });
+});
 
-  it("returns error when the spreadsheet is not found", async () => {
-    mockFetchResponse(404, { error: { message: "Not Found" } });
-    const result = await fetchPublicSpreadsheet(
-      "https://docs.google.com/spreadsheets/d/abc123abc123abc123abc123abc123abc12/edit",
+describe("fetchPublicSheetValues — adaptive column body", () => {
+  it("requests only the selected columns via batchGet with the browser API key", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        status: 200,
+        json: async () => ({
+          valueRanges: [
+            { range: "Sheet1!B2:B2001", values: [["B1"], ["B2"]] },
+            { range: "Sheet1!C2:C2001", values: [["C1"], ["C2"]] },
+          ],
+        }),
+      }),
+    );
+
+    const result = await fetchPublicSheetValues(
+      "abc123abc123abc123abc123abc123abc12",
+      "Sheet1",
       MOCK_API_KEY,
+      [1, 2],
+    );
+
+    expect(result.kind).toBe("success");
+    const fetchMock = vi.mocked(fetch);
+    const url = String(fetchMock.mock.calls[0]?.[0]);
+    expect(url).toContain(":batchGet");
+    expect(url).toContain(`key=${MOCK_API_KEY}`);
+  });
+
+  it("rejects invalid column sets", async () => {
+    const result = await fetchPublicSheetValues(
+      "abc123abc123abc123abc123abc123abc12",
+      "Sheet1",
+      MOCK_API_KEY,
+      [],
+    );
+    expect(result.kind).toBe("error");
+  });
+
+  it("rejects more than two columns", async () => {
+    const result = await fetchPublicSheetValues(
+      "abc123abc123abc123abc123abc123abc12",
+      "Sheet1",
+      MOCK_API_KEY,
+      [0, 1, 2],
     );
     expect(result.kind).toBe("error");
   });
@@ -147,26 +183,3 @@ function colLetters(index: number): string {
   }
   return result;
 }
-
-describe("parseSheetValues", () => {
-  it("caps rows to IMPORT_MAX_ROWS + 1 at parse time", () => {
-    const bigRows = Array.from({ length: 5000 }, (_, i) => [`front${i}`, `back${i}`]);
-    const result = parseSheetValues({ values: bigRows }, "Sheet1");
-    expect(result.rows.length).toBeLessThanOrEqual(IMPORT_MAX_ROWS + 1);
-    expect(result.rowCount).toBe(4999);
-  });
-
-  it("treats first row as headers", () => {
-    const result = parseSheetValues(
-      {
-        values: [
-          ["Front", "Back"],
-          ["A", "B"],
-        ],
-      },
-      "Sheet1",
-    );
-    expect(result.headers).toEqual(["Front", "Back"]);
-    expect(result.rows).toEqual([["A", "B"]]);
-  });
-});

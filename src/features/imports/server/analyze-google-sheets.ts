@@ -5,14 +5,19 @@ import { GeminiFlashcardGenerationProvider } from "@/features/imports/adapters/g
 import { semanticSheetToCards } from "@/features/imports/adapters/google-sheets-adapter";
 import type { GoogleSheetMeta, SheetData } from "@/features/imports/adapters/google-sheets-adapter";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
-import { buildA1Range } from "@/features/imports/utils/sheets-a1";
-import { GOOGLE_SHEETS_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
+import { buildDataColumnRange, buildHeaderScanRange } from "@/features/imports/utils/sheets-a1";
+import {
+  parseColumnBodies,
+  parseHeaderScan,
+  parseSpreadsheetMeta,
+} from "@/features/imports/utils/sheets-parser";
+import { GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 
 const SHEETS_API_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
 
-type SheetFetchResult =
-  | { kind: "success"; meta: GoogleSheetMeta; sheetData: SheetData }
+type SheetOpenResult =
+  | { kind: "success"; meta: GoogleSheetMeta; headers: string[]; sheetTitle: string }
   | { kind: "auth_required"; message: string }
   | { kind: "error"; message: string };
 
@@ -39,35 +44,6 @@ async function requireAuth(): Promise<boolean> {
   return Boolean(claims?.claims);
 }
 
-function parseSpreadsheetMeta(json: unknown): GoogleSheetMeta {
-  const meta = json as {
-    properties?: { title?: string };
-    sheets?: Array<{ properties?: { sheetId?: number; title?: string; index?: number } }>;
-  };
-  const title = meta.properties?.title ?? "Google Sheets";
-  const sheets: GoogleSheetMeta["sheets"] = [];
-  for (const s of meta.sheets ?? []) {
-    const p = s.properties ?? {};
-    sheets.push({
-      title: p.title ?? `Sheet ${sheets.length + 1}`,
-      sheetId: p.sheetId ?? sheets.length,
-      index: p.index ?? sheets.length,
-    });
-  }
-  return { spreadsheetTitle: title, sheets };
-}
-
-function parseSheetValues(json: unknown, sheetTitle: string): SheetData {
-  const values = (json as { values?: unknown }).values;
-  const rows: string[][] = Array.isArray(values)
-    ? (values as unknown[][]).map((row) => (Array.isArray(row) ? row.map(String) : []))
-    : [];
-  const limited = rows.slice(0, IMPORT_MAX_ROWS + 1);
-  const headers = (limited[0] ?? []).map((cell) => String(cell ?? ""));
-  const dataRows = limited.slice(1);
-  return { headers, rows: dataRows, rowCount: Math.max(0, rows.length - 1) };
-}
-
 function authHeaders(accessToken: string): Record<string, string> {
   return { Accept: "application/json", Authorization: `Bearer ${accessToken}` };
 }
@@ -86,20 +62,43 @@ async function fetchSheetMetadata(
   return parseSpreadsheetMeta(await metaRes.json());
 }
 
-async function fetchSheetValues(
+async function fetchHeaderScan(
   spreadsheetId: string,
   sheetTitle: string,
   accessToken: string,
-): Promise<SheetData | { error: string; status: number }> {
-  const range = buildA1Range(sheetTitle, IMPORT_MAX_ROWS + 1, GOOGLE_SHEETS_MAX_COLUMNS);
-  const valuesUrl = `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}?majorDimension=ROWS`;
-  const valuesRes = await fetch(valuesUrl, { headers: authHeaders(accessToken) });
-  if (!valuesRes.ok) {
-    if (valuesRes.status === 401 || valuesRes.status === 403)
-      return { error: "Permission denied.", status: valuesRes.status };
-    return { error: "Không thể đọc dữ liệu bảng tính.", status: valuesRes.status };
+): Promise<string[] | { error: string; status: number }> {
+  const range = buildHeaderScanRange(sheetTitle, GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS);
+  const url = `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}`;
+  const res = await fetch(url, { headers: authHeaders(accessToken) });
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403)
+      return { error: "Permission denied.", status: res.status };
+    return { error: "Không thể đọc bảng tính.", status: res.status };
   }
-  return parseSheetValues(await valuesRes.json(), sheetTitle);
+  return parseHeaderScan(await res.json());
+}
+
+async function fetchColumnBodies(
+  spreadsheetId: string,
+  sheetTitle: string,
+  columns: number[],
+  accessToken: string,
+): Promise<SheetData | { error: string; status: number }> {
+  const ranges = columns.map((col) => buildDataColumnRange(sheetTitle, col, IMPORT_MAX_ROWS));
+  const rangesParam = ranges.map((r) => `ranges=${encodeURIComponent(r)}`).join("&");
+  const url = `${SHEETS_API_BASE}/${spreadsheetId}/values:batchGet?${rangesParam}&majorDimension=ROWS`;
+  const res = await fetch(url, { headers: authHeaders(accessToken) });
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403)
+      return { error: "Permission denied.", status: res.status };
+    return { error: "Không thể đọc dữ liệu bảng tính.", status: res.status };
+  }
+  const result = parseColumnBodies(await res.json(), columns);
+  return {
+    headers: result.headers,
+    rows: result.rows.slice(0, IMPORT_MAX_ROWS),
+    rowCount: Math.min(result.rowCount, IMPORT_MAX_ROWS),
+  };
 }
 
 function sanitizeSpreadsheetId(value: unknown): string {
@@ -118,7 +117,16 @@ function sanitizeSheetTitle(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function openGoogleSheet(rawInput: unknown): Promise<SheetFetchResult> {
+function sanitizeColumns(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  const out: number[] = [];
+  for (const item of value) {
+    if (typeof item === "number" && Number.isFinite(item) && item >= 0) out.push(Math.floor(item));
+  }
+  return Array.from(new Set(out)).sort((a, b) => a - b);
+}
+
+export async function openGoogleSheet(rawInput: unknown): Promise<SheetOpenResult> {
   if (!(await requireAuth())) return { kind: "error", message: "Phiên đăng nhập đã hết hạn." };
 
   if (!rawInput || typeof rawInput !== "object") {
@@ -153,20 +161,20 @@ export async function openGoogleSheet(rawInput: unknown): Promise<SheetFetchResu
   const sheet = metaResult.sheets[sheetIndex];
   if (!sheet) return { kind: "error", message: "Sheet không tồn tại." };
 
-  const valuesResult = await fetchSheetValues(spreadsheetId, sheet.title, accessToken);
-  if ("error" in valuesResult) {
-    return valuesResult.status === 401 || valuesResult.status === 403
+  const headerResult = await fetchHeaderScan(spreadsheetId, sheet.title, accessToken);
+  if ("error" in headerResult) {
+    return headerResult.status === 401 || headerResult.status === 403
       ? {
           kind: "auth_required",
           message: "Bảng tính này cần quyền truy cập. Hãy chọn bảng tính từ Google Drive.",
         }
-      : { kind: "error", message: valuesResult.error };
+      : { kind: "error", message: headerResult.error };
   }
 
-  return { kind: "success", meta: metaResult, sheetData: valuesResult };
+  return { kind: "success", meta: metaResult, headers: headerResult, sheetTitle: sheet.title };
 }
 
-export async function loadPrivateSheetValues(rawInput: unknown): Promise<SheetValuesResult> {
+export async function discoverPrivateSheetHeaders(rawInput: unknown): Promise<SheetOpenResult> {
   if (!(await requireAuth())) return { kind: "error", message: "Phiên đăng nhập đã hết hạn." };
 
   if (!rawInput || typeof rawInput !== "object") {
@@ -188,7 +196,50 @@ export async function loadPrivateSheetValues(rawInput: unknown): Promise<SheetVa
     };
   }
 
-  const valuesResult = await fetchSheetValues(spreadsheetId, sheetTitle, accessToken);
+  const headerResult = await fetchHeaderScan(spreadsheetId, sheetTitle, accessToken);
+  if ("error" in headerResult) {
+    return headerResult.status === 401 || headerResult.status === 403
+      ? {
+          kind: "auth_required",
+          message: "Bảng tính này cần quyền truy cập. Hãy chọn bảng tính từ Google Drive.",
+        }
+      : { kind: "error", message: headerResult.error };
+  }
+
+  return {
+    kind: "success",
+    meta: { spreadsheetTitle: sheetTitle, sheets: [] },
+    headers: headerResult,
+    sheetTitle,
+  };
+}
+
+export async function loadPrivateSheetValues(rawInput: unknown): Promise<SheetValuesResult> {
+  if (!(await requireAuth())) return { kind: "error", message: "Phiên đăng nhập đã hết hạn." };
+
+  if (!rawInput || typeof rawInput !== "object") {
+    return { kind: "error", message: "Dữ liệu không hợp lệ." };
+  }
+
+  const input = rawInput as Record<string, unknown>;
+  const spreadsheetId = sanitizeSpreadsheetId(input.spreadsheetId);
+  const accessToken = sanitizeAccessToken(input.accessToken);
+  const sheetTitle = sanitizeSheetTitle(input.sheetTitle);
+  const columns = sanitizeColumns(input.columns);
+
+  if (!spreadsheetId || spreadsheetId.length < 30)
+    return { kind: "error", message: "Liên kết Google Sheets không hợp lệ." };
+  if (!sheetTitle) return { kind: "error", message: "Sheet không hợp lệ." };
+  if (columns.length === 0 || columns.length > 2)
+    return { kind: "error", message: "Cột không hợp lệ." };
+  if (!accessToken) {
+    return {
+      kind: "auth_required",
+      message: "Bảng tính này cần quyền truy cập. Hãy chọn bảng tính từ Google Drive.",
+    };
+  }
+
+  const valuesResult = await fetchColumnBodies(spreadsheetId, sheetTitle, columns, accessToken);
   if ("error" in valuesResult) {
     return valuesResult.status === 401 || valuesResult.status === 403
       ? {

@@ -13,8 +13,11 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
-import { openGoogleSheet } from "@/features/imports/server/analyze-google-sheets";
-import { GOOGLE_SHEETS_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
+import {
+  openGoogleSheet,
+  loadPrivateSheetValues,
+} from "@/features/imports/server/analyze-google-sheets";
+import { GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -22,14 +25,27 @@ afterEach(() => {
 
 function okFetch(url: string) {
   mocks.fetch.mockImplementation(async (input: string) => {
-    if (String(input).includes("/values/")) {
+    const u = String(input);
+    if (u.includes(":batchGet")) {
+      return {
+        status: 200,
+        ok: true,
+        json: async () => ({
+          valueRanges: [
+            { range: "Sheet1!A2:A2001", values: [["B1"], ["B2"], ["B3"]] },
+            { range: "Sheet1!C2:C2001", values: [["C1"], ["C2"], ["C3"]] },
+          ],
+        }),
+      };
+    }
+    if (u.includes("/values/")) {
       return {
         status: 200,
         ok: true,
         json: async () => ({
           values: [
-            ["Front", "Back"],
-            ["A", "B"],
+            ["Front", "Back", "Extra"],
+            ["A", "B", "X"],
           ],
         }),
       };
@@ -45,7 +61,7 @@ function okFetch(url: string) {
   });
 }
 
-describe("openGoogleSheet (private flow)", () => {
+describe("openGoogleSheet (private flow) — header discovery", () => {
   it("requires authentication", async () => {
     mocks.getClaims.mockResolvedValue({ data: null });
     const result = await openGoogleSheet({});
@@ -74,7 +90,7 @@ describe("openGoogleSheet (private flow)", () => {
     }
   });
 
-  it("requests a bounded A1 range for values", async () => {
+  it("requests a header scan bounded to one row across the discovery width", async () => {
     mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
     okFetch("http://x");
     vi.stubGlobal("fetch", mocks.fetch);
@@ -85,11 +101,11 @@ describe("openGoogleSheet (private flow)", () => {
       sheetIndex: 0,
     });
 
-    const valuesCall = mocks.fetch.mock.calls.find((c) => String(c[0]).includes("/values/"));
-    expect(valuesCall).toBeTruthy();
-    const url = String(valuesCall?.[0]);
+    const headerCall = mocks.fetch.mock.calls.find((c) => String(c[0]).includes("/values/"));
+    expect(headerCall).toBeTruthy();
+    const url = String(headerCall?.[0]);
     const expected = encodeURIComponent(
-      `A1:${colLetters(GOOGLE_SHEETS_MAX_COLUMNS - 1)}${IMPORT_MAX_ROWS + 1}`,
+      `A1:${colLetters(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS - 1)}1`,
     );
     expect(url).toContain(expected);
   });
@@ -109,6 +125,67 @@ describe("openGoogleSheet (private flow)", () => {
       spreadsheetId: "short",
       accessToken: "token",
       sheetIndex: 0,
+    });
+    expect(result.kind).toBe("error");
+  });
+});
+
+describe("loadPrivateSheetValues — adaptive column body", () => {
+  it("requests only the selected columns via batchGet, bounded to 2001 rows", async () => {
+    mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
+    okFetch("http://x");
+    vi.stubGlobal("fetch", mocks.fetch);
+
+    await loadPrivateSheetValues({
+      spreadsheetId: "abc123abc123abc123abc123abc123abc12",
+      accessToken: "token-123",
+      sheetTitle: "Sheet1",
+      columns: [1, 2],
+    });
+
+    const batchCall = mocks.fetch.mock.calls.find((c) => String(c[0]).includes(":batchGet"));
+    expect(batchCall).toBeTruthy();
+    const url = String(batchCall?.[0]);
+    expect(url).toContain("ranges=");
+    expect(url).toContain("Sheet1");
+  });
+
+  it("reconstructs rows from selected column bodies", async () => {
+    mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
+    okFetch("http://x");
+    vi.stubGlobal("fetch", mocks.fetch);
+
+    const result = await loadPrivateSheetValues({
+      spreadsheetId: "abc123abc123abc123abc123abc123abc12",
+      accessToken: "token-123",
+      sheetTitle: "Sheet1",
+      columns: [1, 2],
+    });
+
+    expect(result.kind).toBe("success");
+    if (result.kind === "success") {
+      expect(result.sheetData.rows.length).toBeLessThanOrEqual(IMPORT_MAX_ROWS);
+    }
+  });
+
+  it("rejects invalid column sets", async () => {
+    mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
+    const result = await loadPrivateSheetValues({
+      spreadsheetId: "abc123abc123abc123abc123abc123abc12",
+      accessToken: "token-123",
+      sheetTitle: "Sheet1",
+      columns: [],
+    });
+    expect(result.kind).toBe("error");
+  });
+
+  it("rejects more than two columns", async () => {
+    mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
+    const result = await loadPrivateSheetValues({
+      spreadsheetId: "abc123abc123abc123abc123abc123abc12",
+      accessToken: "token-123",
+      sheetTitle: "Sheet1",
+      columns: [0, 1, 2],
     });
     expect(result.kind).toBe("error");
   });

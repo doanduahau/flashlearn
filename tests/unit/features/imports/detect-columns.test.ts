@@ -74,6 +74,47 @@ describe("detectColumns", () => {
   it("ambiguous returns needs_mapping kind for many columns", () => {
     const result = detectColumns(["A", "B", "C", "D", "E"]);
     expect(result.kind).toBe("ambiguous");
+    if (result.kind === "ambiguous") {
+      expect(result.columns).toHaveLength(5);
+      expect(result.columns[0]?.index).toBe(0);
+      expect(result.columns[4]?.index).toBe(4);
+    }
+  });
+
+  it("detects Front/Back located after AZ (BA and BB)", () => {
+    const wide = Array.from({ length: 702 }, () => "");
+    wide[52] = "Front";
+    wide[53] = "Back";
+    const result = detectColumns(wide);
+    expect(result.kind).toBe("mapped");
+    if (result.kind === "mapped") {
+      expect(result.mapping.frontColumn).toBe(52);
+      expect(result.mapping.backColumn).toBe(53);
+    }
+  });
+
+  it("detects Question/Answer located in far columns with leading empties", () => {
+    const wide = Array.from({ length: 702 }, () => "");
+    wide[52] = "Question";
+    wide[53] = "Answer";
+    wide[54] = "Notes";
+    const result = detectColumns(wide);
+    expect(result.kind).toBe("mapped");
+    if (result.kind === "mapped") {
+      expect(result.mapping.frontColumn).toBe(52);
+      expect(result.mapping.backColumn).toBe(53);
+    }
+  });
+
+  it("single column at far index returns that index", () => {
+    const wide = Array.from({ length: 702 }, () => "");
+    wide[53] = "Notes";
+    const result = detectColumns(wide);
+    expect(result.kind).toBe("single_column");
+    if (result.kind === "single_column") {
+      expect(result.columnIndex).toBe(53);
+      expect(result.columnName).toBe("Notes");
+    }
   });
 
   it("case-insensitive matching", () => {

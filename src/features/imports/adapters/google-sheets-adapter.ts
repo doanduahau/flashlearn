@@ -1,7 +1,7 @@
 ﻿import type { DraftFlashcard } from "../types/import-types";
 import type { FlashcardGenerationProvider } from "../types/import-types";
-import { detectColumns, applyMapping } from "../utils/detect-columns";
-import type { ColumnDetectionResult } from "../utils/detect-columns";
+import { applyMapping, detectColumns, type MeaningfulColumn } from "../utils/detect-columns";
+import type { ColumnMapping } from "../utils/detect-columns";
 
 export type GoogleSheetMeta = {
   spreadsheetTitle: string;
@@ -20,13 +20,13 @@ export type GoogleSheetsAdapterResult =
       cards: DraftFlashcard[];
       mapping: { frontColumn: number; backColumn: number };
     }
-  | { kind: "needs_mapping"; columns: string[]; sheetData: SheetData }
+  | { kind: "needs_mapping"; columns: MeaningfulColumn[] }
   | { kind: "single_column_semantic"; text: string; columnName: string }
   | { kind: "error"; message: string };
 
 export function adaptSheetData(
   sheetData: SheetData,
-  preferredMapping?: { frontColumn: number; backColumn: number },
+  preferredMapping?: ColumnMapping,
 ): GoogleSheetsAdapterResult {
   const { headers, rows } = sheetData;
 
@@ -55,7 +55,7 @@ export function adaptSheetData(
     return { kind: "single_column_semantic", text, columnName: detection.columnName };
   }
 
-  return { kind: "needs_mapping", columns: headers.map((h) => h.trim()), sheetData };
+  return { kind: "needs_mapping", columns: detection.columns };
 }
 
 export async function semanticSheetToCards(

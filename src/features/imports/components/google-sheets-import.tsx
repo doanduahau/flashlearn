@@ -6,13 +6,20 @@ import Script from "next/script";
 
 import {
   analyzeSheetText,
+  discoverPrivateSheetHeaders,
   loadPrivateSheetValues,
   openGoogleSheet,
 } from "@/features/imports/server/analyze-google-sheets";
 import { importFlashcards } from "@/features/imports/server/actions";
-import { fetchPublicSpreadsheet } from "@/features/imports/utils/public-sheets";
+import {
+  fetchPublicSheetValues,
+  fetchPublicSpreadsheet,
+} from "@/features/imports/utils/public-sheets";
 import { adaptSheetData } from "@/features/imports/adapters/google-sheets-adapter";
+import { detectColumns } from "@/features/imports/utils/detect-columns";
+import type { MeaningfulColumn } from "@/features/imports/utils/detect-columns";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
+import { columnIndexToLetters } from "@/features/imports/utils/sheets-a1";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { IMPORT_PREVIEW_ROWS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -83,6 +90,17 @@ function getGoogleConfig() {
 
 type Mode = "init" | "picker_loading" | "opening" | "loaded" | "analyzing" | "importing";
 
+type SheetMetaLike = {
+  spreadsheetTitle: string;
+  sheets: Array<{ title: string; sheetId: number; index: number }>;
+};
+
+type RawSheetData = {
+  headers: string[];
+  rows: string[][];
+  rowCount: number;
+};
+
 export function GoogleSheetsImport() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("init");
@@ -93,6 +111,7 @@ export function GoogleSheetsImport() {
   const [frontColumn, setFrontColumn] = useState(0);
   const [backColumn, setBackColumn] = useState(1);
   const [needsMapping, setNeedsMapping] = useState(false);
+  const [meaningfulColumns, setMeaningfulColumns] = useState<MeaningfulColumn[]>([]);
   const [spreadsheetId, setSpreadsheetId] = useState("");
   const [accessToken, setAccessToken] = useState("");
   const [urlInput, setUrlInput] = useState("");
@@ -100,6 +119,7 @@ export function GoogleSheetsImport() {
 
   const tokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
   const gapiLoadedRef = useRef(false);
+  const sheetTitleRef = useRef("");
 
   const config = getGoogleConfig();
   const isConfigured = Boolean(config.clientId && config.apiKey && config.appId);
@@ -111,17 +131,6 @@ export function GoogleSheetsImport() {
     gapiLoadedRef.current = true;
     window.gapi?.load("picker", () => {});
   }, []);
-
-  type SheetMetaLike = {
-    spreadsheetTitle: string;
-    sheets: Array<{ title: string; sheetId: number; index: number }>;
-  };
-
-  type RawSheetData = {
-    headers: string[];
-    rows: string[][];
-    rowCount: number;
-  };
 
   function applyAnalysis(
     meta: SheetMetaLike,
@@ -137,20 +146,21 @@ export function GoogleSheetsImport() {
     }
 
     if (analysis.kind === "needs_mapping") {
+      setMeaningfulColumns(analysis.columns);
+      setNeedsMapping(true);
       setSheetInfo({
         spreadsheetTitle: meta.spreadsheetTitle,
         sheets: meta.sheets,
-        headers: analysis.columns,
+        headers: sheetData.headers,
         rowCount: sheetData.rowCount,
         previewRows: [],
         valid: 0,
         blank: 0,
         partial: 0,
         duplicate: 0,
-        frontColumn: 0,
-        backColumn: 1,
+        frontColumn: analysis.columns[0]?.index ?? 0,
+        backColumn: analysis.columns[1]?.index ?? 1,
       });
-      setNeedsMapping(true);
       setMode("loaded");
       return;
     }
@@ -204,6 +214,84 @@ export function GoogleSheetsImport() {
       setError("Không thể phân tích nội dung.");
       setMode("loaded");
     }
+  }
+
+  async function loadValues(
+    meta: SheetMetaLike,
+    sheetTitle: string,
+    columns: number[],
+  ): Promise<void> {
+    if (columns.length === 0) {
+      setError("Chưa xác định được cột dữ liệu.");
+      setMode("loaded");
+      return;
+    }
+    setMode("opening");
+    setError("");
+    try {
+      let result;
+      if (isPublicFlow) {
+        result = await fetchPublicSheetValues(spreadsheetId, sheetTitle, config.apiKey, columns);
+      } else {
+        result = await loadPrivateSheetValues({
+          spreadsheetId,
+          accessToken,
+          sheetTitle,
+          columns,
+        });
+      }
+      if (result.kind === "error" || result.kind === "auth_required") {
+        setError(result.message);
+        setMode("loaded");
+        return;
+      }
+      applyAnalysis(
+        meta,
+        result.sheetData,
+        columns.length === 2 ? { frontColumn: columns[0]!, backColumn: columns[1]! } : undefined,
+      );
+    } catch {
+      setError("Không thể đọc dữ liệu bảng tính.");
+      setMode("loaded");
+    }
+  }
+
+  function handleDiscovered(meta: SheetMetaLike, headers: string[], sheetTitle: string): void {
+    sheetTitleRef.current = sheetTitle;
+    const detection = detectColumns(headers);
+
+    if (detection.kind === "mapped") {
+      setNeedsMapping(false);
+      void loadValues(meta, sheetTitle, [
+        detection.mapping.frontColumn,
+        detection.mapping.backColumn,
+      ]);
+      return;
+    }
+
+    if (detection.kind === "single_column") {
+      setNeedsMapping(false);
+      void loadValues(meta, sheetTitle, [detection.columnIndex]);
+      return;
+    }
+
+    // ambiguous
+    setMeaningfulColumns(detection.columns);
+    setNeedsMapping(true);
+    setSheetInfo({
+      spreadsheetTitle: meta.spreadsheetTitle,
+      sheets: meta.sheets,
+      headers,
+      rowCount: 0,
+      previewRows: [],
+      valid: 0,
+      blank: 0,
+      partial: 0,
+      duplicate: 0,
+      frontColumn: detection.columns[0]?.index ?? 0,
+      backColumn: detection.columns[1]?.index ?? 1,
+    });
+    setMode("loaded");
   }
 
   function requestToken(): void {
@@ -284,7 +372,7 @@ export function GoogleSheetsImport() {
         setMode("init");
         return;
       }
-      applyAnalysis(result.meta, result.sheetData);
+      handleDiscovered(result.meta, result.headers, result.sheetTitle);
     } catch {
       setError("Không thể mở bảng tính.");
       setMode("init");
@@ -299,7 +387,7 @@ export function GoogleSheetsImport() {
     setMode("opening");
     setError("");
     try {
-      const result = await loadPrivateSheetValues({
+      const result = await discoverPrivateSheetHeaders({
         spreadsheetId,
         accessToken,
         sheetTitle: sheet.title,
@@ -309,11 +397,7 @@ export function GoogleSheetsImport() {
         setMode("loaded");
         return;
       }
-      const meta = {
-        spreadsheetTitle: sheetInfo.spreadsheetTitle,
-        sheets: sheetInfo.sheets,
-      };
-      applyAnalysis(meta, result.sheetData);
+      handleDiscovered(result.meta, result.headers, result.sheetTitle);
     } catch {
       setError("Không thể mở sheet.");
       setMode("loaded");
@@ -338,7 +422,7 @@ export function GoogleSheetsImport() {
         setMode("loaded");
         return;
       }
-      applyAnalysis(result.meta, result.sheetData);
+      handleDiscovered(result.meta, result.headers, result.sheetTitle);
     } catch {
       setError("Không thể mở sheet.");
       setMode("loaded");
@@ -354,43 +438,15 @@ export function GoogleSheetsImport() {
     if (!sheetInfo) return;
     setMode("analyzing");
     setError("");
-    const mapping = { frontColumn, backColumn };
     const meta = {
       spreadsheetTitle: sheetInfo.spreadsheetTitle,
       sheets: sheetInfo.sheets,
     };
-    // Re-run analysis on already-loaded data with the user's chosen mapping.
-    if (isPublicFlow) {
-      const result = await fetchPublicSpreadsheet(
-        `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
-        config.apiKey,
-        selectedSheetIndex,
-      );
-      if (result.kind === "error" || result.kind === "auth_required") {
-        setError(result.message);
-        setMode("loaded");
-        return;
-      }
-      applyAnalysis(meta, result.sheetData, mapping);
-    } else {
-      const sheet = sheetInfo.sheets[selectedSheetIndex];
-      if (!sheet) {
-        setError("Sheet không tồn tại.");
-        setMode("loaded");
-        return;
-      }
-      const result = await loadPrivateSheetValues({
-        spreadsheetId,
-        accessToken,
-        sheetTitle: sheet.title,
-      });
-      if (result.kind === "error" || result.kind === "auth_required") {
-        setError(result.message);
-        setMode("loaded");
-        return;
-      }
-      applyAnalysis(meta, result.sheetData, mapping);
-    }
+    await loadValues(
+      meta,
+      sheetTitleRef.current || sheetInfo.sheets[selectedSheetIndex]?.title || "",
+      [frontColumn, backColumn],
+    );
   }
 
   async function submitImport(): Promise<void> {
@@ -439,7 +495,7 @@ export function GoogleSheetsImport() {
       }
       setSpreadsheetId(extractIdFromUrl(urlInput));
       setIsPublicFlow(true);
-      applyAnalysis(result.meta, result.sheetData);
+      handleDiscovered(result.meta, result.headers, result.sheetTitle);
     } catch {
       setError("Không thể đọc bảng tính.");
       setMode("init");
@@ -540,7 +596,7 @@ export function GoogleSheetsImport() {
             </div>
           )}
 
-          {(needsMapping || sheetInfo.headers.length > 2) && (
+          {needsMapping && meaningfulColumns.length > 0 && (
             <div className="flex flex-wrap gap-3">
               <div className="flex flex-1 flex-col gap-1">
                 <Label htmlFor="gs-front-col">Mặt trước</Label>
@@ -551,9 +607,9 @@ export function GoogleSheetsImport() {
                   onChange={(e) => setFrontColumn(Number(e.target.value))}
                   disabled={isPending}
                 >
-                  {sheetInfo.headers.map((h, i) => (
-                    <option key={i} value={i}>
-                      {h || `Cột ${i + 1}`}
+                  {meaningfulColumns.map((col) => (
+                    <option key={col.index} value={col.index}>
+                      {col.name || `Cột ${columnIndexToLetters(col.index)}`}
                     </option>
                   ))}
                 </select>
@@ -567,9 +623,9 @@ export function GoogleSheetsImport() {
                   onChange={(e) => setBackColumn(Number(e.target.value))}
                   disabled={isPending}
                 >
-                  {sheetInfo.headers.map((h, i) => (
-                    <option key={i} value={i}>
-                      {h || `Cột ${i + 1}`}
+                  {meaningfulColumns.map((col) => (
+                    <option key={col.index} value={col.index}>
+                      {col.name || `Cột ${columnIndexToLetters(col.index)}`}
                     </option>
                   ))}
                 </select>

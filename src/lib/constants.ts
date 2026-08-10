@@ -30,4 +30,4 @@ export const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
 export const PASTE_MAX_CHARS = 50_000;
 export const GEMINI_MAX_OUTPUT_CARDS = 100;
 
-export const GOOGLE_SHEETS_MAX_COLUMNS = 52;
+export const GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS = 702;

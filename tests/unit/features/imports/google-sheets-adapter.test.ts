@@ -69,6 +69,15 @@ describe("adaptSheetData", () => {
       rowCount: 1,
     });
     expect(result.kind).toBe("needs_mapping");
+    if (result.kind === "needs_mapping") {
+      expect(result.columns.map((c) => c.name)).toEqual([
+        "ID",
+        "Topic",
+        "Question",
+        "Answer",
+        "Notes",
+      ]);
+    }
   });
 });
 

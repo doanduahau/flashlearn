@@ -18,3 +18,17 @@ export type ImportSummary = {
 };
 
 export type ImportSource = "excel" | "paste" | "google_sheets" | "word" | "pdf";
+
+export type PasteAnalysisResult =
+  | {
+      kind: "structured";
+      cards: DraftFlashcard[];
+    }
+  | {
+      kind: "semantic_required";
+      text: string;
+    };
+
+export interface FlashcardGenerationProvider {
+  generateCards(input: { text: string }): Promise<DraftFlashcard[]>;
+}

@@ -83,11 +83,13 @@ test.describe("Mobile-first UI — Sets page", () => {
 
     // Create buttons visible
     const importLink = page.getByRole("link", { name: /Nh\u1eadp Excel/ });
+    const pasteLink = page.getByRole("link", { name: /D\u00e1n n\u1ed9i dung/ });
     const manualLink = page.getByRole("link", { name: /Th\u1ee7 c\u00f4ng/ });
     await expect(importLink).toBeVisible();
+    await expect(pasteLink).toBeVisible();
     await expect(manualLink).toBeVisible();
 
-    // Two create buttons share one row and equal height
+    // Create buttons share one row and equal height
     const importBox = await importLink.boundingBox();
     const manualBox = await manualLink.boundingBox();
     expect(importBox).not.toBeNull();
@@ -95,12 +97,12 @@ test.describe("Mobile-first UI — Sets page", () => {
     expect(Math.abs((importBox?.y ?? 0) - (manualBox?.y ?? 0))).toBeLessThan(2);
     expect(Math.abs((importBox?.height ?? 0) - (manualBox?.height ?? 0))).toBeLessThan(2);
 
-    // "Tạo bộ" label is centered above the button pair
+    // "Tạo bộ" label is centered above the button group
     const createLabel = page.getByText("T\u1ea1o b\u1ed9", { exact: true }).first();
     await expect(createLabel).toBeVisible();
     const labelBox = await createLabel.boundingBox();
     expect(labelBox).not.toBeNull();
-    const pairCenter =
+    const groupCenter =
       (Math.min(importBox?.x ?? 0, manualBox?.x ?? 0) +
         Math.max(
           (importBox?.x ?? 0) + (importBox?.width ?? 0),
@@ -108,7 +110,7 @@ test.describe("Mobile-first UI — Sets page", () => {
         )) /
       2;
     const labelCenter = (labelBox?.x ?? 0) + (labelBox?.width ?? 0) / 2;
-    expect(Math.abs(labelCenter - pairCenter)).toBeLessThan(2);
+    expect(Math.abs(labelCenter - groupCenter)).toBeLessThan(2);
 
     // Sets list (tab content) should appear — first set card within reasonable screen area
     const firstCard = page.getByRole("link", { name: /Test Set/ }).first();

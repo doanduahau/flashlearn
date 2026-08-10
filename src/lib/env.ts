@@ -8,6 +8,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -15,6 +16,7 @@ const parsed = envSchema.safeParse({
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 });
 
 if (!parsed.success) {
@@ -31,6 +33,10 @@ export interface SupabaseConfig {
 export interface SupabaseServiceConfig {
   url: string;
   serviceRoleKey: string;
+}
+
+export function getGeminiApiKey(): string | undefined {
+  return env.GEMINI_API_KEY || undefined;
 }
 
 export function getSupabasePublishableConfig(): SupabaseConfig {

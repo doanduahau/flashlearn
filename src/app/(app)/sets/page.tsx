@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { FileUp, ListOrdered, SquarePen } from "lucide-react";
+import { ClipboardPaste, FileUp, ListOrdered, SquarePen } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -12,6 +12,7 @@ import { SetsList, type SetSummary } from "@/features/flashcard-sets/components/
 import { sanitizeSearchQuery } from "@/features/flashcard-sets/utils/search";
 import { ManualSetForm } from "@/features/flashcard-sets/components/manual-set-form";
 import { ImportWizard } from "@/features/imports/components/import-wizard";
+import { PasteImport } from "@/features/imports/components/paste-import";
 import {
   CollectionsList,
   type CollectionSummary,
@@ -30,14 +31,15 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Bộ flashcard" };
 
 type LibraryTab = "regular" | "special";
-type CreateMode = "import" | "manual" | null;
+type CreateMode = "import" | "manual" | "paste" | null;
 
 function tabOf(value: string | string[] | undefined): LibraryTab {
   return value === "special" ? "special" : "regular";
 }
 
 function createModeOf(value: string | string[] | undefined): CreateMode {
-  return value === "import" || value === "manual" ? value : null;
+  if (value === "import" || value === "manual" || value === "paste") return value;
+  return null;
 }
 
 export default async function SetsPage({
@@ -82,6 +84,7 @@ function CreateSetBlock({
 }: Readonly<{ mode: CreateMode; searchParams: RouteSearchParams }>) {
   const importHref = updateSearchParamHref("/sets", searchParams, "create", "import");
   const manualHref = updateSearchParamHref("/sets", searchParams, "create", "manual");
+  const pasteHref = updateSearchParamHref("/sets", searchParams, "create", "paste");
   const closeHref = removeSearchParamHref("/sets", searchParams, "create");
 
   return (
@@ -97,6 +100,17 @@ function CreateSetBlock({
               <Link href={importHref} scroll={false}>
                 <FileUp aria-hidden="true" />
                 Nhập Excel
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="min-h-9 flex-1 sm:min-h-10 sm:flex-none"
+            >
+              <Link href={pasteHref} scroll={false}>
+                <ClipboardPaste aria-hidden="true" />
+                Dán nội dung
               </Link>
             </Button>
             <Button
@@ -129,6 +143,14 @@ function CreateSetBlock({
             </section>
           ) : null}
           {mode === "manual" ? <ManualSetForm /> : null}
+          {mode === "paste" ? (
+            <section
+              aria-label="Dán nội dung"
+              className="mt-3 rounded-xl border border-border-soft bg-surface p-3 sm:rounded-2xl sm:p-5"
+            >
+              <PasteImport />
+            </section>
+          ) : null}
         </>
       )}
     </section>

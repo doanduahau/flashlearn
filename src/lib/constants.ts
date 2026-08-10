@@ -26,3 +26,6 @@ export const STUDY_MAX_SOURCES = 50;
 export const STUDY_MAX_CARDS = 1_000;
 
 export const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
+
+export const PASTE_MAX_CHARS = 50_000;
+export const GEMINI_MAX_OUTPUT_CARDS = 100;

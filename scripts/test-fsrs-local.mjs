@@ -19,6 +19,7 @@ const child = spawn(
     "tests/integration/mastery-snapshot-completeness.integration.test.ts",
     "tests/integration/transition-queue.integration.test.ts",
     "tests/integration/cutover-transition.integration.test.ts",
+    "tests/integration/new-cards.integration.test.ts",
   ],
   {
     stdio: "inherit",

@@ -3,8 +3,7 @@ import { Play } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { MasteryCounts } from "@/features/mastery/components/mastery-counts";
-import { loadMasteryAggregate } from "@/features/mastery/server/load-mastery-aggregate";
+import { DashboardLearningStatus } from "@/features/dashboard/components/dashboard-learning-status";
 import { countDueCards } from "@/features/spaced-repetition/server/due-repository";
 import { countNewCards } from "@/features/spaced-repetition/server/new-cards-repository";
 import { StartSmartReviewButton } from "@/features/smart-review/components/start-smart-review-button";
@@ -37,14 +36,12 @@ export default async function DashboardPage({
   const currentMonth = monthInTimezone(new Date(), timezone);
 
   const evaluationTime = new Date().toISOString();
-  const [todayDetail, monthActivity, streakDates, masteryAggregate, claimsResult] =
-    await Promise.all([
-      loadActivityDetail(supabase, today),
-      loadMonthlyActivity(supabase, currentMonth),
-      loadMonthlyStreakDates(supabase, timezone, currentMonth),
-      loadMasteryAggregate(supabase, { type: "library" }),
-      supabase.auth.getClaims(),
-    ]);
+  const [todayDetail, monthActivity, streakDates, claimsResult] = await Promise.all([
+    loadActivityDetail(supabase, today),
+    loadMonthlyActivity(supabase, currentMonth),
+    loadMonthlyStreakDates(supabase, timezone, currentMonth),
+    supabase.auth.getClaims(),
+  ]);
 
   const userId =
     typeof claimsResult.data?.claims?.sub === "string" ? claimsResult.data.claims.sub : null;
@@ -56,7 +53,7 @@ export default async function DashboardPage({
     try {
       [dueCount, newCardsCount] = await Promise.all([
         countDueCards(supabase, userId, { type: "library" }, evaluationTime),
-        countNewCards(supabase, userId),
+        countNewCards(supabase),
       ]);
     } catch (error) {
       console.error("[dashboard] unable to load learning counts", {
@@ -131,12 +128,9 @@ export default async function DashboardPage({
       ) : dueCount > 0 || newCardsCount > 0 ? (
         <section aria-label="Tóm tắt trạng thái học" className="mt-2 sm:mt-3">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 sm:rounded-3xl sm:px-5 sm:py-3">
-            <MasteryCounts
-              aggregate={{
-                ...masteryAggregate,
-                review: dueCount,
-                untested: newCardsCount,
-              }}
+            <DashboardLearningStatus
+              dueCount={dueCount}
+              newCardsCount={newCardsCount}
               className="min-w-0"
             />
             <div className="flex shrink-0 items-center gap-2">

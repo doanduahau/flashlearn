@@ -203,6 +203,7 @@ test.describe("Smart Review session", () => {
 
     const continuation = page.getByRole("region", { name: "Tiếp tục ôn thông minh" });
     await expect(continuation).toBeVisible();
+    await expect(page.getByRole("region", { name: "Tiếp tục học thẻ mới" })).toHaveCount(0);
     // After completing the first 10-card batch, the 14 untouched cards remain
     // due and the 10 answered cards have new future schedules, so the fresh
     // full FSRS due total is 14 (not a capped batch size).

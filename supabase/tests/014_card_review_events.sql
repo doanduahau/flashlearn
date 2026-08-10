@@ -60,7 +60,7 @@ select is(
   'the incorrect result is recorded'
 );
 select lives_ok(
-  $$select public.submit_quiz_answer(current_setting('review.correct_question_id')::uuid, 0)$$,
+  $$select public.submit_quiz_answer(current_setting('review.correct_question_id')::uuid, (select correct_choice_index from public.quiz_questions where id = current_setting('review.correct_question_id')::uuid))$$,
   'an exact answer retry returns the immutable existing answer'
 );
 select is(

@@ -339,12 +339,13 @@ Types are checked in and must be regenerated whenever the schema changes.
 
 ## Quiz persistence
 
-`quiz_sessions` and `quiz_questions` store immutable question/answer snapshots, source metadata, completion time and server-computed score. `quiz_sessions.origin` is durable contextual metadata with exactly two values:
+`quiz_sessions` and `quiz_questions` store immutable question/answer snapshots, source metadata, completion time and server-computed score. `quiz_sessions.origin` is durable contextual metadata with three values:
 
 - `manual` — the default for all historical rows and every normal Quiz creation.
 - `smart_review` — set only by the server-only, service-role Smart Review wrapper.
+- `new_cards` — set only by the server-only, service-role New Cards wrapper.
 
-The insert trigger ignores a supplied table value and derives the origin from trusted database context; an update trigger rejects later origin changes. Origin does not change question selection, correctness, scoring, review-event creation, streaks, or daily-learning records. It only lets result UX decide whether to offer a fresh Smart Review continuation.
+The insert trigger ignores a supplied table value and derives the origin from trusted database context; an update trigger rejects later origin changes. The values are `manual`, `smart_review`, and `new_cards`. Origin does not change correctness, scoring, review-event creation, streaks, or daily-learning records. It only gives result UX enough durable context to offer the relevant fresh continuation.
 
 Both quiz tables use own-row RLS for reads and revoke direct browser writes. The authenticated-only `create_quiz_session` and `submit_quiz_answer` RPCs use `auth.uid()`, empty `search_path`, source ownership validation and row locking. On final-answer completion, the answer RPC atomically writes or increments the caller's immutable daily activity row.
 
@@ -525,8 +526,8 @@ conflict or freshness rejection triggers a bounded reload+recompute+retry
 skipped (no projection recreated). `reconcileReviewHistory` (pure) reproduces
 any persisted projection, so full replay is deterministic and idempotent.
 
-FSRS is currently shadow infrastructure and does NOT influence Smart Review
-eligibility, Dashboard counts, or Mastery UI.
+FSRS schedule data drives Smart Review timing. Mastery remains an independent
+confidence/presentation projection and is never mutated by schedule reads.
 
 For a Quiz answer, the authoritative answer/question/event/daily-record work is
 one database transaction. Shadow reconciliation is a separate best-effort server
@@ -564,8 +565,8 @@ plausibility checks, a deterministic replay-consistency sample, and an
 aggregate `fsrs_rating` distribution check. The runner never updates or deletes
 `card_review_events`.
 
-FSRS remains shadow-only after backfill: Smart Review, Dashboard, mastery
-colors, and result UX all continue to use Mastery V1.
+Mastery colors remain presentation-only. Smart Review, the Dashboard due count,
+and Smart Review continuation use the FSRS due read model instead.
 
 ## FSRS due read model (Stage C1)
 
@@ -623,6 +624,40 @@ test data is accepted as-is; no schedules are mutated.
 
 Mastery V1 remains for confidence/presentation/colors only. FSRS alone determines
 review eligibility, count, and ordering.
+
+### New Cards learning (D1)
+
+New Cards is a separate lifecycle from Mastery and FSRS due scheduling. A card
+is a **genuine New Card** exactly when it is owned by the authenticated user and
+has neither a `card_learning_schedule` row nor a schedulable
+`card_review_events` fact. A review event is schedulable exactly when
+`fsrs_rating BETWEEN 1 AND 4` or its historical boolean fallback
+`is_correct IS NOT NULL` is present. A `NULL`/`NULL` event is unschedulable and
+does not remove a card from New Cards; the `fsrs_rating` CHECK constraint
+enforces the stored 1..4 range.
+
+`load_new_card_candidates(p_limit)` is a `SECURITY INVOKER` RPC with no user-id
+parameter. It uses `auth.uid()` plus database-side `NOT EXISTS` anti-joins,
+returns the full eligible total plus up to 10 candidates ordered by
+`flashcards.created_at ASC, flashcards.id ASC`, and is executable only by the
+authenticated role. This avoids loading all cards, schedules, and review events
+into application memory. The supporting indexes are `(user_id, created_at, id)`
+on `flashcards`, schedule `UNIQUE(user_id, flashcard_id)`, and a partial
+schedulable-event `(user_id, flashcard_id)` index.
+
+The private service-role wrapper
+`create_owned_quiz_session_from_card_ids_new_cards(user_id, card_ids)` is the
+only creation path for a `new_cards` session. Browser callers send neither a
+user ID nor target IDs: the server action derives a fresh authenticated batch,
+then the raw explicit-card primitive revalidates ownership, active cards,
+target count 1..10, duplicate IDs, and preserves order. The wrapper forces the
+immutable `origin = new_cards`.
+
+Creating or abandoning a New Cards session does not reserve or remove cards.
+Only an answered target creates the normal Quiz review event (Good if correct,
+Again if incorrect) and makes that card leave New Cards. A completed
+`new_cards` result reloads the full genuine-New count before showing `Học tiếp`
+or the finished state.
 
 ### FSRS due-divergence diagnostic
 

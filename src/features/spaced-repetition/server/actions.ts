@@ -27,7 +27,7 @@ export async function startNewCardsLearning(): Promise<StartNewCardsResult> {
 
   let result;
   try {
-    result = await loadNewCardCandidateResult(supabase, userId, NEW_CARDS_BATCH_SIZE);
+    result = await loadNewCardCandidateResult(supabase, NEW_CARDS_BATCH_SIZE);
   } catch {
     console.error("[new_cards] start new cards load failed");
     return { ok: false, error: GENERIC_ERROR };

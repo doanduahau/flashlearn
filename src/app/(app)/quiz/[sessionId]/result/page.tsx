@@ -54,7 +54,7 @@ export default async function QuizResultPage({
       },
       () => {
         if (!userId) return Promise.resolve({ total: 0 });
-        return countNewCards(supabase, userId).then((total) => ({ total }));
+        return countNewCards(supabase).then((total) => ({ total }));
       },
     ),
   ]);

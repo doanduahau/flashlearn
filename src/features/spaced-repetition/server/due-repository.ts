@@ -95,7 +95,8 @@ export async function countDueCards(
     query = query.in("flashcard_id", cardIds);
   }
 
-  const { count } = await query;
+  const { count, error } = await query;
+  if (error) throw new Error("Unable to count FSRS due cards");
   return count ?? 0;
 }
 
@@ -125,7 +126,8 @@ export async function findDueCandidates(
     query = query.limit(normalized);
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) throw new Error("Unable to load FSRS due candidates");
   return (data ?? []).map(toDueCandidate);
 }
 

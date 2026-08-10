@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  quizSessionOrigin,
-  type QuizSessionOrigin,
-} from "@/features/quiz/utils/quiz-session-origin";
+import { quizSessionOrigin } from "@/features/quiz/utils/quiz-session-origin";
 
 describe("quizSessionOrigin", () => {
   it("returns new_cards for 'new_cards'", () => {

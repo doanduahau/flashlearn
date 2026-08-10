@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -520,6 +520,14 @@ export type Database = {
         Returns: {
           imported_count: number
           set_id: string
+        }[]
+      }
+      load_new_card_candidates: {
+        Args: { p_limit?: number }
+        Returns: {
+          created_at: string
+          flashcard_id: string
+          total: number
         }[]
       }
       move_flashcard_set: {

@@ -33,4 +33,24 @@ describe("loadSmartReviewResultContext", () => {
       loadSmartReviewResultContext("smart_review", async () => ({ total: 0 })),
     ).resolves.toEqual({ kind: "smart_review", remainingCount: 0 });
   });
+
+  it("loads a fresh full New Card count only for a persisted new_cards origin", async () => {
+    const loadDueCount = vi.fn();
+    const loadNewCardsCount = vi.fn().mockResolvedValue({ total: 14 });
+
+    await expect(
+      loadSmartReviewResultContext("new_cards", loadDueCount, loadNewCardsCount),
+    ).resolves.toEqual({ kind: "new_cards", remainingCount: 14 });
+    expect(loadDueCount).not.toHaveBeenCalled();
+    expect(loadNewCardsCount).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not load New Card counts for a Smart Review result", async () => {
+    const loadDueCount = vi.fn().mockResolvedValue({ total: 3 });
+    const loadNewCardsCount = vi.fn();
+
+    await loadSmartReviewResultContext("smart_review", loadDueCount, loadNewCardsCount);
+
+    expect(loadNewCardsCount).not.toHaveBeenCalled();
+  });
 });

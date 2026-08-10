@@ -1,7 +1,30 @@
+import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import type { ExtractedDocument, ExtractedDocumentBlock } from "../types/document-types";
 import { DOCUMENT_MAX_EXTRACTED_CHARS, PDF_MAX_PAGES } from "@/lib/constants";
 
 import { PDFParse, PasswordException } from "pdf-parse";
+
+// pdfjs-dist needs a resolvable worker in the Next.js server runtime. With
+// pdf-parse added to serverExternalPackages it loads via native require, so we
+// resolve the on-disk worker and embed it as a data: URL. Text-only extraction
+// does not render pages, so the worker is only used for parsing.
+function configurePdfWorker(): void {
+  try {
+    const require = createRequire(import.meta.url);
+    const mainEntry = require.resolve("pdf-parse");
+    const workerPath = path.join(path.dirname(mainEntry), "pdf.worker.mjs");
+    const workerSource = readFileSync(workerPath, "utf8");
+    const dataUrl = `data:application/javascript;base64,${Buffer.from(workerSource).toString("base64")}`;
+    PDFParse.setWorker(dataUrl);
+  } catch {
+    // If the worker cannot be located, fall back to pdf-parse's default behavior.
+  }
+}
+
+configurePdfWorker();
 
 function detectScanOnly(pageTexts: string[]): boolean {
   if (pageTexts.length === 0) return true;

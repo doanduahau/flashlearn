@@ -174,7 +174,7 @@ test.describe("Smart Review session", () => {
     await expect(summary.getByRole("button", { name: "Ôn ngay" })).toBeVisible();
   });
 
-  test("uses fresh mastery after a batch and starts continuation from fresh candidates", async ({
+  test("uses fresh FSRS due count after a batch and starts continuation from fresh candidates", async ({
     page,
   }) => {
     test.setTimeout(45_000);
@@ -203,9 +203,10 @@ test.describe("Smart Review session", () => {
 
     const continuation = page.getByRole("region", { name: "Tiếp tục ôn thông minh" });
     await expect(continuation).toBeVisible();
-    // The transition queue reports the next actionable batch, not an
-    // arithmetic subtraction of the previous session or raw due backlog.
-    await expect(continuation.getByText("Còn 10 thẻ cần ôn")).toBeVisible();
+    // After completing the first 10-card batch, the 14 untouched cards remain
+    // due and the 10 answered cards have new future schedules, so the fresh
+    // full FSRS due total is 14 (not a capped batch size).
+    await expect(continuation.getByText("Còn 14 thẻ cần ôn")).toBeVisible();
     await expect(continuation.getByText("Còn 18 thẻ cần ôn")).toHaveCount(0);
     await expect(continuation.getByRole("button", { name: "Ôn tiếp" })).toBeVisible();
     expect(
@@ -224,7 +225,7 @@ test.describe("Smart Review session", () => {
     expect(continuedTargets.filter((id) => firstBatchIds.includes(id))).toEqual([]);
   });
 
-  test("shows the finished state when fresh mastery has no review candidates", async ({ page }) => {
+  test("shows the finished state when the fresh FSRS due count is zero", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("smart_review_complete"));
     await importSet(page, "Ôn xong");

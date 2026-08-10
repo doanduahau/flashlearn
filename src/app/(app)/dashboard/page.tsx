@@ -47,12 +47,17 @@ export default async function DashboardPage({
   const userId =
     typeof claimsResult.data?.claims?.sub === "string" ? claimsResult.data.claims.sub : null;
 
-  let dueCount = -1;
+  type DueState = { status: "ok"; count: number } | { status: "error" };
+  let dueState: DueState = { status: "error" };
   if (userId) {
     try {
-      dueCount = await countDueCards(supabase, userId, { type: "library" }, evaluationTime);
-    } catch {
-      dueCount = -1;
+      const count = await countDueCards(supabase, userId, { type: "library" }, evaluationTime);
+      dueState = { status: "ok", count };
+    } catch (error) {
+      console.error("[dashboard] unable to load smart review due count", {
+        name: error instanceof Error ? error.name : "unknown",
+      });
+      dueState = { status: "error" };
     }
   }
 
@@ -110,14 +115,22 @@ export default async function DashboardPage({
         </article>
       </section>
 
-      {dueCount >= 0 ? (
+      {dueState.status === "error" ? (
+        <section
+          role="alert"
+          aria-label="Tóm tắt trạng thái học"
+          className="mt-2 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 text-sm text-danger sm:mt-3 sm:rounded-3xl sm:px-5 sm:py-3"
+        >
+          Không thể tải số thẻ cần ôn.
+        </section>
+      ) : dueState.status === "ok" ? (
         <section aria-label="Tóm tắt trạng thái học" className="mt-2 sm:mt-3">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 sm:rounded-3xl sm:px-5 sm:py-3">
             <MasteryCounts
-              aggregate={{ ...masteryAggregate, review: dueCount }}
+              aggregate={{ ...masteryAggregate, review: dueState.count }}
               className="min-w-0"
             />
-            {dueCount > 0 ? <StartSmartReviewButton /> : null}
+            {dueState.count > 0 ? <StartSmartReviewButton /> : null}
           </div>
         </section>
       ) : null}

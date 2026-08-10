@@ -223,6 +223,27 @@ Tests run malicious operations as a low-privilege `authenticated` role (via
 `set local role authenticated; set local request.jwt.claim.sub = '<uuid>'`), never only
 as `postgres`, so they exercise RLS rather than bypassing it.
 
+## Import architecture (Phase 3 — Input Expansion & Intelligent Import)
+
+Phase 3 supports multiple input sources converging into a single pipeline:
+
+```
+Source Adapter → DraftFlashcard[] → Validation → Preview → Import RPC
+```
+
+Current source: **Excel** (`.xlsx`, `.csv`). Planned: Paste, Google Sheets, Word, PDF.
+
+The architecture principle for Word/PDF is: the user selects the **source**; FlashLearn
+decides whether content is flashcard-like (structured extraction) or continuous
+knowledge (AI generation). No separate "structured" vs "AI" user-facing import modes.
+
+Core domain types in `src/features/imports/`:
+
+- `DraftFlashcard` — source-independent `{ front, back, sourceRow? }`
+- `ImportSource` — `"excel" | "paste" | "google_sheets" | "word" | "pdf"`
+- `validateDraftCards()` — standard validation (blank, partial, duplicate, max count)
+- Source adapters produce `DraftFlashcard[]` for the shared pipeline
+
 ## Atomic file import
 
 `public.import_flashcard_set(text, jsonb)` derives ownership from `auth.uid()` and atomically creates one regular set and ordered cards. It validates 1–2,000 normalized cards before writing. Errors roll back all writes. The security-definer function uses an empty `search_path` and grants EXECUTE only to `authenticated`.

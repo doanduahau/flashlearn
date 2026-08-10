@@ -1,4 +1,8 @@
-export type ImportRow = { front: string; back: string };
+export type DraftFlashcard = {
+  front: string;
+  back: string;
+  sourceRow?: number;
+};
 
 export type ParsedSheet = {
   name: string;
@@ -10,5 +14,7 @@ export type ImportSummary = {
   blank: number;
   partial: number;
   duplicate: number;
-  rows: ImportRow[];
+  rows: DraftFlashcard[];
 };
+
+export type ImportSource = "excel" | "paste" | "google_sheets" | "word" | "pdf";

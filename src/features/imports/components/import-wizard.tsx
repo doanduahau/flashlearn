@@ -4,8 +4,9 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { importFlashcards } from "@/features/imports/server/actions";
-import { summarizeImport } from "@/features/imports/utils/normalize-import-row";
+import { sheetToDraftCards } from "@/features/imports/adapters/excel-adapter";
 import { parseWorkbook, validateImportFile } from "@/features/imports/utils/parse-workbook";
+import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
 import { IMPORT_PREVIEW_ROWS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,15 @@ export function ImportWizard() {
   const summary = useMemo(() => {
     if (!sheet || frontColumn === backColumn) return null;
     try {
-      return summarizeImport(sheet.rows, frontColumn, backColumn);
+      const draftCards = sheetToDraftCards(sheet, frontColumn, backColumn);
+      const validation = validateDraftCards(draftCards);
+      return {
+        valid: validation.valid,
+        blank: validation.blank,
+        partial: validation.partial,
+        duplicate: validation.duplicate,
+        rows: validation.cards,
+      };
     } catch (reason) {
       return reason instanceof Error ? reason.message : "Dữ liệu không hợp lệ.";
     }

@@ -16,6 +16,8 @@ const { findActiveCardIds, findReviewEvents, loadCardMasteries } =
   await import("@/features/mastery/server/load-card-masteries");
 
 const { loadMasterySnapshot } = await import("@/features/mastery/server/load-mastery-snapshot");
+const { buildServiceRoleRepository } =
+  await import("@/features/spaced-repetition/server/service-role-repository");
 
 type Supabase = SupabaseClient<Database>;
 
@@ -99,8 +101,10 @@ if (!supabaseUrl || !serviceKey) {
         user_id: userId,
         flashcard_id: cardId,
         source: "study_recall",
-        is_correct: true,
-        fsrs_rating: 3,
+        is_correct: idx === 1 ? false : true,
+        // Historical binary rows intentionally have no FSRS rating. Both the
+        // Mastery event loader and FSRS fallback semantics must retain them.
+        fsrs_rating: idx < 2 ? null : 3,
         reviewed_at: new Date(Date.now() - idx * 86400000).toISOString(),
       })),
     );
@@ -148,6 +152,26 @@ if (!supabaseUrl || !serviceKey) {
       const noEventCardIds = [cardIds[500], cardIds[900], cardIds[1199]];
       const events = await findReviewEvents(client, noEventCardIds);
       expect(events).toHaveLength(0);
+    });
+
+    it("loads legacy binary correct and incorrect events used by FSRS fallback", async () => {
+      const [correctCardId, incorrectCardId] = [cardIds[0], cardIds[1]];
+      const masteryEvents = await findReviewEvents(client, [correctCardId, incorrectCardId]);
+      const correctnessByCard = new Map(
+        masteryEvents.map((event) => [event.flashcardId, event.isCorrect]),
+      );
+      expect(correctnessByCard.get(correctCardId)).toBe(true);
+      expect(correctnessByCard.get(incorrectCardId)).toBe(false);
+
+      const repository = buildServiceRoleRepository(client);
+      const [correctReplayEvents, incorrectReplayEvents] = await Promise.all([
+        repository.loadAllSchedulableEvents(userId, correctCardId),
+        repository.loadAllSchedulableEvents(userId, incorrectCardId),
+      ]);
+      expect(correctReplayEvents).toHaveLength(1);
+      expect(incorrectReplayEvents).toHaveLength(1);
+      expect(correctReplayEvents[0]).toMatchObject({ isCorrect: true, fsrsRating: null });
+      expect(incorrectReplayEvents[0]).toMatchObject({ isCorrect: false, fsrsRating: null });
     });
   });
 

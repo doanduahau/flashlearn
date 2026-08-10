@@ -40,6 +40,13 @@ type EventWithCardId = {
   fsrsRating: number | null;
 };
 
+export type UntestedHistoryEvent = EventWithCardId & {
+  userId: string;
+  source: string;
+  quizQuestionId: string | null;
+  quizSessionId: string | null;
+};
+
 export type CardTraceInfo = {
   flashcardId: string;
   existsInFlashcards: boolean;
@@ -87,6 +94,32 @@ export type ProductionDiagnosticDataAccess = {
   loadFsrsCardDetails(userId: string, cardIds: string[]): Promise<FsrsOnlyCardDetail[]>;
   loadSchedulableEventsWithCardIds(userId: string, cardIds: string[]): Promise<EventWithCardId[]>;
   loadCardTraceInfo(userId: string, cardIds: string[]): Promise<CardTraceInfo[]>;
+  loadScheduleCardIdsWithProcessedHistory(userId: string): Promise<string[]>;
+  loadFsrsReplayEvents(userId: string, cardIds: string[]): Promise<UntestedHistoryEvent[]>;
+};
+
+export type UntestedHistoryTraceReport = {
+  userId: string;
+  label: string;
+  targetCount: number;
+  activeTargetCount: number;
+  masteryLoadedEventCardCount: number;
+  masteryLoadedEventCount: number;
+  zeroEventDerivations: number;
+  eventBearingDerivations: number;
+  resultingUntested: number;
+  fsrsSchedulableEventCardCount: number;
+  fsrsSchedulableEventCount: number;
+  eventOwnership: { matches: number; mismatches: number };
+  legacyShape: {
+    ratingNull: number;
+    correct: number;
+    incorrect: number;
+    nullCorrectness: number;
+    quizSource: number;
+    quizQuestionPresent: number;
+    quizSessionPresent: number;
+  };
 };
 
 export type ReplaySampleResult = {
@@ -537,5 +570,66 @@ export async function runActiveLoaderTrace(
     });
   }
 
+  return reports;
+}
+
+/**
+ * Compares the actual Mastery event invocation with the schedulable event
+ * stream used by FSRS replay. Identifiers remain in-memory only; callers
+ * receive aggregate counts.
+ */
+export async function runUntestedHistoryTrace(
+  data: ProductionDiagnosticDataAccess,
+  evaluationTime: string,
+): Promise<UntestedHistoryTraceReport[]> {
+  const userIds = await data.loadUsersWithHistory();
+  const reports: UntestedHistoryTraceReport[] = [];
+
+  for (let index = 0; index < userIds.length; index += 1) {
+    const userId = userIds[index];
+    const trace = createMasteryPipelineTrace();
+    const [snapshot, scheduleCardIds] = await Promise.all([
+      data.loadMasterySnapshot(userId, evaluationTime, trace),
+      data.loadScheduleCardIdsWithProcessedHistory(userId),
+    ]);
+    const masteryMap = buildMasteryMap(snapshot);
+    const targetIds = new Set(
+      scheduleCardIds.filter((cardId) => masteryMap.get(cardId)?.status === "untested"),
+    );
+    if (targetIds.size === 0) continue;
+
+    const masteryEventIds = trace.reviewEventCardIds.filter((id) => targetIds.has(id));
+    const masteryEventCards = new Set(masteryEventIds);
+    const derivations = trace.derivations.filter((entry) => targetIds.has(entry.flashcardId));
+    const fsrsEvents = await data.loadFsrsReplayEvents(userId, [...targetIds]);
+    const fsrsEventCards = new Set(fsrsEvents.map((event) => event.flashcardId));
+
+    reports.push({
+      userId,
+      label: `User ${index + 1}`,
+      targetCount: targetIds.size,
+      activeTargetCount: countTargetIds(targetIds, trace.activeCardIds),
+      masteryLoadedEventCardCount: masteryEventCards.size,
+      masteryLoadedEventCount: masteryEventIds.length,
+      zeroEventDerivations: derivations.filter((entry) => entry.eventCount === 0).length,
+      eventBearingDerivations: derivations.filter((entry) => entry.eventCount > 0).length,
+      resultingUntested: derivations.filter((entry) => entry.status === "untested").length,
+      fsrsSchedulableEventCardCount: fsrsEventCards.size,
+      fsrsSchedulableEventCount: fsrsEvents.length,
+      eventOwnership: {
+        matches: fsrsEvents.filter((event) => event.userId === userId).length,
+        mismatches: fsrsEvents.filter((event) => event.userId !== userId).length,
+      },
+      legacyShape: {
+        ratingNull: fsrsEvents.filter((event) => event.fsrsRating === null).length,
+        correct: fsrsEvents.filter((event) => event.isCorrect === true).length,
+        incorrect: fsrsEvents.filter((event) => event.isCorrect === false).length,
+        nullCorrectness: fsrsEvents.filter((event) => event.isCorrect === null).length,
+        quizSource: fsrsEvents.filter((event) => event.source === "quiz").length,
+        quizQuestionPresent: fsrsEvents.filter((event) => event.quizQuestionId !== null).length,
+        quizSessionPresent: fsrsEvents.filter((event) => event.quizSessionId !== null).length,
+      },
+    });
+  }
   return reports;
 }

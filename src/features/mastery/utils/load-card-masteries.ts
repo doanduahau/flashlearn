@@ -34,11 +34,18 @@ export async function loadCardMasteriesWithRepository(
   }
 
   const masteries = activeCardIds.map((flashcardId) => {
+    const events = eventsByCardId.get(flashcardId) ?? [];
     pipelineTrace?.derivedMasteryCardIds.push(flashcardId);
-    return {
+    const mastery = {
       flashcardId,
-      ...deriveFlashcardMastery(eventsByCardId.get(flashcardId) ?? [], evaluationTime),
+      ...deriveFlashcardMastery(events, evaluationTime),
     };
+    pipelineTrace?.derivations.push({
+      flashcardId,
+      eventCount: events.length,
+      status: mastery.status,
+    });
+    return mastery;
   });
   pipelineTrace?.returnedMasteryCardIds.push(...masteries.map((mastery) => mastery.flashcardId));
   return masteries;

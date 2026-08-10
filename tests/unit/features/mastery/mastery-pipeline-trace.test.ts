@@ -4,6 +4,7 @@ import {
   buildMasteryMap,
   runActiveLoaderTrace,
   runMasteryPipelineTrace,
+  runUntestedHistoryTrace,
   type ProductionDiagnosticDataAccess,
 } from "@/features/spaced-repetition/utils/run-production-diagnostic";
 import {
@@ -67,6 +68,7 @@ describe("Mastery pipeline instrumentation", () => {
       derivedMasteryCardIds: [],
       returnedMasteryCardIds: [],
       snapshotMasteryCardIds: [],
+      derivations: [],
     };
     const snapshot = await loadMasterySnapshotWithRepository(
       new Repository(targetCardIds, targetCardIds, [
@@ -99,6 +101,10 @@ describe("Mastery pipeline instrumentation", () => {
       derivedMasteryCardIds: targetCardIds,
       returnedMasteryCardIds: targetCardIds,
       snapshotMasteryCardIds: targetCardIds,
+      derivations: [
+        { flashcardId: "target-a", eventCount: 1, status: "review" },
+        { flashcardId: "target-b", eventCount: 1, status: "learning" },
+      ],
     });
   });
 
@@ -119,6 +125,8 @@ describe("Mastery pipeline instrumentation", () => {
       loadFsrsCardDetails: async () => [],
       loadSchedulableEventsWithCardIds: async () => [],
       loadCardTraceInfo: async () => [],
+      loadScheduleCardIdsWithProcessedHistory: async () => [],
+      loadFsrsReplayEvents: async () => [],
     };
 
     await expect(runMasteryPipelineTrace(data, NOW)).resolves.toEqual([
@@ -165,6 +173,8 @@ describe("Mastery pipeline instrumentation", () => {
       loadFsrsCardDetails: async () => [],
       loadSchedulableEventsWithCardIds: async () => [],
       loadCardTraceInfo: async () => [],
+      loadScheduleCardIdsWithProcessedHistory: async () => [],
+      loadFsrsReplayEvents: async () => [],
       probeActiveCardIds: async (_cardIds, inBatchSize) => {
         const trace = createActiveCardLoaderTrace();
         trace.batches.push({
@@ -217,6 +227,86 @@ describe("Mastery pipeline instrumentation", () => {
             errorBatches: 0,
           },
         ],
+      },
+    ]);
+  });
+
+  it("traces untested schedule cards through the real Mastery event invocation", async () => {
+    const data: ProductionDiagnosticDataAccess = {
+      loadUsersWithHistory: async () => ["user-a"],
+      loadMasterySnapshot: async (_userId, evaluationTime, trace) => {
+        trace?.activeCardIds.push("legacy-correct", "legacy-incorrect");
+        trace?.derivedMasteryCardIds.push("legacy-correct", "legacy-incorrect");
+        trace?.derivations.push(
+          { flashcardId: "legacy-correct", eventCount: 0, status: "untested" },
+          { flashcardId: "legacy-incorrect", eventCount: 0, status: "untested" },
+        );
+        return {
+          evaluationTime,
+          masteries: [
+            {
+              flashcardId: "legacy-correct",
+              status: "untested",
+              score: null,
+              reviewCount: 0,
+              correctCount: 0,
+              incorrectCount: 0,
+              lastReviewedAt: null,
+            },
+            {
+              flashcardId: "legacy-incorrect",
+              status: "untested",
+              score: null,
+              reviewCount: 0,
+              correctCount: 0,
+              incorrectCount: 0,
+              lastReviewedAt: null,
+            },
+          ],
+          aggregate: { total: 2, untested: 2, review: 0, learning: 0, strong: 0 },
+          reviewCandidates: { total: 0, candidates: [] },
+        };
+      },
+      loadFsrsDueCardIds: async () => [],
+      loadFsrsCardDetails: async () => [],
+      loadSchedulableEventsWithCardIds: async () => [],
+      loadCardTraceInfo: async () => [],
+      loadScheduleCardIdsWithProcessedHistory: async () => ["legacy-correct", "legacy-incorrect"],
+      loadFsrsReplayEvents: async () => [
+        {
+          flashcardId: "legacy-correct",
+          id: "event-a",
+          reviewedAt: NOW,
+          isCorrect: true,
+          fsrsRating: null,
+          userId: "user-a",
+          source: "quiz",
+          quizQuestionId: "question-a",
+          quizSessionId: "session-a",
+        },
+        {
+          flashcardId: "legacy-incorrect",
+          id: "event-b",
+          reviewedAt: NOW,
+          isCorrect: false,
+          fsrsRating: null,
+          userId: "user-a",
+          source: "quiz",
+          quizQuestionId: "question-b",
+          quizSessionId: "session-b",
+        },
+      ],
+    };
+    await expect(runUntestedHistoryTrace(data, NOW)).resolves.toMatchObject([
+      {
+        targetCount: 2,
+        activeTargetCount: 2,
+        masteryLoadedEventCount: 0,
+        zeroEventDerivations: 2,
+        resultingUntested: 2,
+        fsrsSchedulableEventCount: 2,
+        eventOwnership: { matches: 2, mismatches: 0 },
+        legacyShape: { ratingNull: 2, correct: 1, incorrect: 1 },
       },
     ]);
   });

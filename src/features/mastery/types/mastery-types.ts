@@ -59,6 +59,7 @@ export type MasteryPipelineTrace = {
   derivedMasteryCardIds: string[];
   returnedMasteryCardIds: string[];
   snapshotMasteryCardIds: string[];
+  derivations: Array<{ flashcardId: string; eventCount: number; status: MasteryStatus }>;
 };
 
 export function createMasteryPipelineTrace(): MasteryPipelineTrace {
@@ -70,5 +71,6 @@ export function createMasteryPipelineTrace(): MasteryPipelineTrace {
     derivedMasteryCardIds: [],
     returnedMasteryCardIds: [],
     snapshotMasteryCardIds: [],
+    derivations: [],
   };
 }

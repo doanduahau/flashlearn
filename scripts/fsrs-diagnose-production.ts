@@ -18,9 +18,11 @@ import {
   runProductionDiagnostic,
   runActiveLoaderTrace,
   runMasteryPipelineTrace,
+  runUntestedHistoryTrace,
   runMissingCardTrace,
   type ActiveLoaderTraceReport,
   type MasteryPipelineTraceReport,
+  type UntestedHistoryTraceReport,
   type ProductionDiagnosticDataAccess,
   type ProductionDiagnosticResult,
   type TraceMissingReport,
@@ -61,29 +63,40 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
     }
   };
 
-  const findReviewEvents = async (cardIds: readonly string[]): Promise<CardReviewEventRow[]> => {
+  // The product invocation relies on card_review_events RLS for this owner
+  // filter. The diagnostic uses service_role, so it applies the same owner
+  // scope explicitly while preserving the loader's selected columns/order.
+  const findReviewEvents = async (
+    userId: string,
+    cardIds: readonly string[],
+  ): Promise<CardReviewEventRow[]> => {
     const events: CardReviewEventRow[] = [];
-    let start = 0;
-    while (true) {
-      const { data } = await client
-        .from("card_review_events")
-        .select("flashcard_id, is_correct, reviewed_at")
-        .in("flashcard_id", [...cardIds])
-        .order("reviewed_at", { ascending: true })
-        .range(start, start + SCOPE_ID_PAGE_SIZE - 1);
-      const page = data ?? [];
-      events.push(
-        ...page.map(
-          (event: { flashcard_id: string; is_correct: boolean | null; reviewed_at: string }) => ({
+    const uniqueIds = [...new Set(cardIds)];
+    for (let offset = 0; offset < uniqueIds.length; offset += ACTIVE_CARD_IN_BATCH_SIZE) {
+      const batch = uniqueIds.slice(offset, offset + ACTIVE_CARD_IN_BATCH_SIZE);
+      let start = 0;
+      while (true) {
+        const { data, error } = await client
+          .from("card_review_events")
+          .select("flashcard_id, is_correct, reviewed_at")
+          .eq("user_id", userId)
+          .in("flashcard_id", batch)
+          .order("reviewed_at", { ascending: true })
+          .range(start, start + SCOPE_ID_PAGE_SIZE - 1);
+        if (error) throw new Error("Unable to load review events for mastery diagnostic");
+        const page = data ?? [];
+        events.push(
+          ...page.map((event) => ({
             flashcardId: event.flashcard_id,
             isCorrect: event.is_correct,
             reviewedAt: event.reviewed_at,
-          }),
-        ),
-      );
-      if (page.length === 0) return events;
-      start += SCOPE_ID_PAGE_SIZE;
+          })),
+        );
+        if (page.length === 0) break;
+        start += page.length;
+      }
     }
+    return events;
   };
 
   const loadMasterySnapshot = async (
@@ -97,7 +110,7 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
         findActiveCardIdsInScope: () => findActiveCardIdsInScope(userId),
         findActiveCardIds: (cardIds) =>
           findActiveCardIdsWithOptions(client, cardIds, { trace: activeLoaderTrace }),
-        findReviewEvents,
+        findReviewEvents: (cardIds) => findReviewEvents(userId, cardIds),
       },
       evaluationTime,
       undefined,
@@ -198,6 +211,75 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
     return results;
   };
 
+  const loadScheduleCardIdsWithProcessedHistory = async (userId: string): Promise<string[]> => {
+    const ids: string[] = [];
+    let start = 0;
+    while (true) {
+      const { data, error } = await client
+        .from("card_learning_schedule")
+        .select("flashcard_id")
+        .eq("user_id", userId)
+        .gte("processed_event_count", 1)
+        .order("flashcard_id", { ascending: true })
+        .range(start, start + SCOPE_ID_PAGE_SIZE - 1);
+      if (error) throw new Error("Unable to load schedule cards for diagnostic");
+      const page = data ?? [];
+      ids.push(...page.map((row) => row.flashcard_id));
+      if (page.length < SCOPE_ID_PAGE_SIZE) return ids;
+      start += page.length;
+    }
+  };
+
+  const loadFsrsReplayEvents = async (userId: string, cardIds: string[]) => {
+    if (cardIds.length === 0) return [];
+    const all: Array<{
+      flashcardId: string;
+      id: string;
+      reviewedAt: string;
+      isCorrect: boolean | null;
+      fsrsRating: number | null;
+      userId: string;
+      source: string;
+      quizQuestionId: string | null;
+      quizSessionId: string | null;
+    }> = [];
+    for (let offset = 0; offset < cardIds.length; offset += ACTIVE_CARD_IN_BATCH_SIZE) {
+      const batch = cardIds.slice(offset, offset + ACTIVE_CARD_IN_BATCH_SIZE);
+      let start = 0;
+      while (true) {
+        const { data, error } = await client
+          .from("card_review_events")
+          .select(
+            "id, user_id, flashcard_id, reviewed_at, is_correct, fsrs_rating, source, quiz_question_id, quiz_session_id",
+          )
+          .eq("user_id", userId)
+          .in("flashcard_id", batch)
+          .or(SCHEDULABLE_EVENT_OR_PREDICATE)
+          .order("reviewed_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(start, start + SCOPE_ID_PAGE_SIZE - 1);
+        if (error) throw new Error("Unable to load schedulable replay events for diagnostic");
+        const page = data ?? [];
+        all.push(
+          ...page.map((row) => ({
+            flashcardId: row.flashcard_id,
+            id: row.id,
+            reviewedAt: row.reviewed_at,
+            isCorrect: row.is_correct,
+            fsrsRating: row.fsrs_rating,
+            userId: row.user_id,
+            source: row.source,
+            quizQuestionId: row.quiz_question_id,
+            quizSessionId: row.quiz_session_id,
+          })),
+        );
+        if (page.length < SCOPE_ID_PAGE_SIZE) break;
+        start += page.length;
+      }
+    }
+    return all;
+  };
+
   return {
     loadUsersWithHistory,
     loadMasterySnapshot,
@@ -216,6 +298,8 @@ async function buildDataAccess(client: Supabase): Promise<ProductionDiagnosticDa
         candidates.map((candidate) => candidate.flashcardId),
       ),
     loadFsrsCardDetails,
+    loadScheduleCardIdsWithProcessedHistory,
+    loadFsrsReplayEvents,
     loadSchedulableEventsWithCardIds: async (userId, cardIds) => {
       if (cardIds.length === 0) return [];
       const all: Array<{
@@ -575,6 +659,44 @@ function formatActiveLoaderTrace(reports: readonly ActiveLoaderTraceReport[]): s
   return lines.join("\n");
 }
 
+function formatUntestedHistoryTrace(reports: readonly UntestedHistoryTraceReport[]): string {
+  const lines = ["", "=== MASTERY UNTESTED-HISTORY EVENT TRACE ===", ""];
+  if (reports.length === 0) lines.push("  No schedule-backed Mastery entries are untested.");
+  for (const report of reports) {
+    lines.push(
+      `  ${report.label}:`,
+      `    Target cards: ${report.targetCount}`,
+      `    Present in activeCardIds: ${report.activeTargetCount}`,
+      "",
+      "    Mastery findReviewEvents:",
+      `      target cards with >=1 loaded event: ${report.masteryLoadedEventCardCount}`,
+      `      total loaded events for targets: ${report.masteryLoadedEventCount}`,
+      "    Mastery derivation:",
+      `      target cards receiving zero events: ${report.zeroEventDerivations}`,
+      `      target cards receiving >=1 event: ${report.eventBearingDerivations}`,
+      `      resulting untested: ${report.resultingUntested}`,
+      "    FSRS/replay:",
+      `      target cards with >=1 schedulable event: ${report.fsrsSchedulableEventCardCount}`,
+      `      total schedulable events for targets: ${report.fsrsSchedulableEventCount}`,
+      "    Event ownership:",
+      `      event owner matches schedule user: ${report.eventOwnership.matches}`,
+      `      event owner differs: ${report.eventOwnership.mismatches}`,
+      "    Legacy row shape:",
+      `      fsrs_rating null: ${report.legacyShape.ratingNull}`,
+      `      binary correct: ${report.legacyShape.correct}`,
+      `      binary incorrect: ${report.legacyShape.incorrect}`,
+      `      is_correct null: ${report.legacyShape.nullCorrectness}`,
+      `      source=quiz: ${report.legacyShape.quizSource}`,
+      `      quiz question present: ${report.legacyShape.quizQuestionPresent}`,
+      `      quiz session present: ${report.legacyShape.quizSessionPresent}`,
+      "",
+      "    (Read-only aggregate counts only; no IDs, content, or user IDs printed.)",
+      "",
+    );
+  }
+  return lines.join("\n");
+}
+
 async function main(): Promise<void> {
   const identity = resolveProductionIdentity(process.env, ALLOWED_PRODUCTION_PROJECT_REFS);
   const evaluationTime = new Date().toISOString();
@@ -585,6 +707,16 @@ async function main(): Promise<void> {
   const traceMode = process.argv.includes("--trace-missing");
   const masteryPipelineTraceMode = process.argv.includes("--trace-mastery-pipeline");
   const activeLoaderTraceMode = process.argv.includes("--trace-active-loader");
+  const untestedHistoryTraceMode = process.argv.includes("--trace-untested-history");
+
+  if (untestedHistoryTraceMode) {
+    console.log("FSRS PRODUCTION MASTERY UNTESTED-HISTORY EVENT TRACE");
+    console.log(`Project: ${identity.projectRef}`);
+    console.log(`Evaluation time (UTC): ${evaluationTime}`);
+    console.log(formatUntestedHistoryTrace(await runUntestedHistoryTrace(data, evaluationTime)));
+    console.log("READ-ONLY — NO WRITES PERFORMED");
+    return;
+  }
 
   if (activeLoaderTraceMode) {
     console.log(`FSRS PRODUCTION ACTIVE CARD LOADER TRACE`);

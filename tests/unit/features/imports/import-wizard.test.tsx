@@ -16,6 +16,7 @@ vi.mock("@/features/imports/utils/parse-workbook", async (importOriginal) => {
 });
 
 import { ImportWizard } from "@/features/imports/components/import-wizard";
+import type { DraftFlashcard } from "@/features/imports/types/import-types";
 
 const rows = [
   ["Question", "Answer", "Extra"],
@@ -42,7 +43,9 @@ describe("ImportWizard", () => {
     mocks.parseWorkbook.mockReset();
     mocks.push.mockReset();
     mocks.parseWorkbook.mockResolvedValue(workbook());
-    mocks.importFlashcards.mockResolvedValue({ setId: "11111111-1111-1111-1111-111111111111" });
+    mocks.importFlashcards.mockResolvedValue({
+      setId: "11111111-1111-1111-1111-111111111111",
+    });
   });
 
   it.each(["cards.csv", "cards.xlsx"])(
@@ -57,7 +60,7 @@ describe("ImportWizard", () => {
     },
   );
 
-  it("selects worksheets, maps columns, and reports valid, blank, partial, and duplicate rows", async () => {
+  it("selects worksheets and opens the unified editor with cards", async () => {
     mocks.parseWorkbook.mockResolvedValue([
       {
         name: "First",
@@ -71,66 +74,28 @@ describe("ImportWizard", () => {
     render(<ImportWizard />);
     const user = await upload("multi.xlsx");
     await user.selectOptions(screen.getByLabelText(/^1\./), "1");
-    expect(screen.getByText(/2.*1.*1.*1/)).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText(/^2\./), "1");
     await user.selectOptions(screen.getByLabelText(/^3\./), "2");
-    expect(screen.getByText("One")).toBeInTheDocument();
-    expect(screen.getByText("x")).toBeInTheDocument();
+    // Unified editor renders global actions when cards are present
+    expect(await screen.findByRole("button", { name: /thêm thẻ/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /đảo tất cả/i })).toBeInTheDocument();
   });
 
-  it("announces same-column mapping and disables import when no valid rows exist", async () => {
+  it("announces same-column mapping", async () => {
     render(<ImportWizard />);
     const user = await upload("cards.csv");
     await user.selectOptions(screen.getByLabelText(/^3\./), "0");
     expect(screen.getByRole("alert")).toHaveTextContent(/hai cột khác nhau/i);
-
-    mocks.parseWorkbook.mockResolvedValue(
-      workbook([
-        ["A", "B"],
-        ["", ""],
-        ["only", ""],
-      ]),
-    );
-    await user.click(screen.getByRole("button", { name: /Thay/ }));
-    await upload("empty.csv");
-    expect(screen.getByRole("button", { name: /import/i })).toBeDisabled();
-  });
-
-  it("prevents duplicate submission while pending", async () => {
-    let resolveImport: ((result: { setId: string }) => void) | undefined;
-    mocks.importFlashcards.mockReturnValue(
-      new Promise((resolve) => {
-        resolveImport = resolve;
-      }),
-    );
-    render(<ImportWizard />);
-    const user = await upload("cards.csv");
-    await user.type(screen.getByLabelText(/^4\./), "Pending set");
-    const submit = screen.getByRole("button", { name: /import/i });
-    await user.click(submit);
-    expect(submit).toBeDisabled();
-    await user.click(submit);
-    expect(mocks.importFlashcards).toHaveBeenCalledTimes(1);
-    resolveImport?.({ setId: "11111111-1111-1111-1111-111111111111" });
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledTimes(1));
   });
 
   it("reset clears parsed state", async () => {
     render(<ImportWizard />);
     const user = await upload("cards.csv");
+    // After upload, the wizard shows mapping controls + editor
+    await screen.findByLabelText(/^1\./);
     await user.click(screen.getByRole("button", { name: /Thay/ }));
+    // After reset, back to the file upload screen
     expect(screen.getByLabelText(/CSV\/XLSX/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/^1\./)).not.toBeInTheDocument();
-  });
-
-  it("announces a recoverable server error and preserves the preview", async () => {
-    mocks.importFlashcards.mockResolvedValue({ error: "Import failed safely" });
-    render(<ImportWizard />);
-    const user = await upload("cards.csv");
-    await user.type(screen.getByLabelText(/^4\./), "Retry set");
-    await user.click(screen.getByRole("button", { name: /import/i }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Import failed safely");
-    expect(screen.getByText("Một")).toBeInTheDocument();
-    expect(screen.getByLabelText(/^4\./)).toHaveValue("Retry set");
   });
 });

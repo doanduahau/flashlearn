@@ -1,26 +1,23 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 
 import { importFlashcards } from "@/features/imports/server/actions";
 import { sheetToDraftCards } from "@/features/imports/adapters/excel-adapter";
 import { parseWorkbook, validateImportFile } from "@/features/imports/utils/parse-workbook";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
-import { IMPORT_PREVIEW_ROWS } from "@/lib/constants";
+import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ParsedSheet } from "@/features/imports/types/import-types";
 
 export function ImportWizard() {
-  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [sheets, setSheets] = useState<ParsedSheet[]>([]);
   const [sheetIndex, setSheetIndex] = useState(0);
   const [frontColumn, setFrontColumn] = useState(0);
   const [backColumn, setBackColumn] = useState(1);
-  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const sheet = sheets[sheetIndex];
@@ -47,7 +44,6 @@ export function ImportWizard() {
     setSheetIndex(0);
     setFrontColumn(0);
     setBackColumn(1);
-    setName("");
     setError("");
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -69,17 +65,6 @@ export function ImportWizard() {
     } catch {
       setError("Không thể đọc tệp này. Hãy dùng CSV hoặc XLSX hợp lệ.");
     }
-  }
-  function submit(): void {
-    if (!summary || typeof summary === "string") {
-      setError(typeof summary === "string" ? summary : "Chọn hai cột khác nhau.");
-      return;
-    }
-    startTransition(async () => {
-      const result = await importFlashcards({ name, cards: summary.rows });
-      if ("error" in result) setError(result.error);
-      else router.push(`/sets/${result.setId}`);
-    });
   }
   const options = headers.map((header, index) => (
     <option key={index} value={index}>
@@ -153,19 +138,6 @@ export function ImportWizard() {
                 {options}
               </select>
             </div>
-            <Button type="button" variant="outline" onClick={reset}>
-              Thay tệp
-            </Button>
-          </div>
-          <div className="rounded-2xl border border-border-soft bg-surface p-5">
-            <Label htmlFor="set-name">4. Tên bộ flashcard</Label>
-            <Input
-              id="set-name"
-              className="mt-1"
-              value={name}
-              maxLength={120}
-              onChange={(event) => setName(event.target.value)}
-            />
           </div>
           {hasSameColumns ? (
             <p role="alert" className="text-danger">
@@ -176,40 +148,18 @@ export function ImportWizard() {
             <p role="alert" className="text-danger">
               {summary}
             </p>
-          ) : summary ? (
-            <section className="rounded-2xl border border-border-soft bg-surface p-5">
-              <h2 className="font-semibold">5. Xem trước</h2>
-              <p className="mt-2 text-sm text-text-secondary">
-                Hợp lệ: {summary.valid} · Trống: {summary.blank} · Thiếu một mặt: {summary.partial}{" "}
-                · Trùng: {summary.duplicate}
-              </p>
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr>
-                      <th>Mặt trước</th>
-                      <th>Mặt sau</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.rows.slice(0, IMPORT_PREVIEW_ROWS).map((row, index) => (
-                      <tr key={`${row.front}-${row.back}-${index}`} className="border-t">
-                        <td className="p-2">{row.front}</td>
-                        <td className="p-2">{row.back}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <Button
-                className="mt-5"
-                type="button"
-                disabled={isPending || !name.trim() || summary.valid === 0}
-                onClick={submit}
-              >
-                {isPending ? "Đang import…" : "Xác nhận import"}
+          ) : null}
+          {summary && typeof summary !== "string" ? (
+            <UnifiedDraftEditor
+              key={`excel-${sheetIndex}-${frontColumn}-${backColumn}`}
+              sourceCards={summary.rows}
+              setCardCount={summary.rows.length}
+              sourceMetadata={[{ label: "Nguồn", value: "Excel" }]}
+            >
+              <Button type="button" variant="outline" onClick={reset}>
+                Thay tệp
               </Button>
-            </section>
+            </UnifiedDraftEditor>
           ) : null}
         </>
       )}

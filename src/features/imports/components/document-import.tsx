@@ -11,6 +11,7 @@ import type {
   ExtractedDocumentBlock,
 } from "@/features/imports/types/document-types";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
+import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
 import { DOCUMENT_MAX_BYTES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 
@@ -56,6 +57,7 @@ export function DocumentImport() {
   const [generatedCards, setGeneratedCards] = useState<DraftFlashcard[] | null>(null);
   const [genWarnings, setGenWarnings] = useState<string[]>([]);
   const [genLimitExceeded, setGenLimitExceeded] = useState(false);
+  const [genKey, setGenKey] = useState(0);
   const [error, setError] = useState("");
   const [fileName, setFileName] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -125,6 +127,7 @@ export function DocumentImport() {
           setGeneratedCards(result.cards);
           setGenWarnings(result.warnings);
           setGenLimitExceeded(result.limitExceeded);
+          setGenKey((k) => k + 1);
         }
       } catch {
         setError("Không thể tạo thẻ. Hãy thử lại.");
@@ -217,45 +220,28 @@ export function DocumentImport() {
           )}
 
           {generatedCards && generatedCards.length > 0 && (
-            <div className="flex flex-col gap-3 rounded-xl border border-border-soft bg-surface p-3">
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-text-secondary">
-                  {generatedCards.length} thẻ đã tạo
-                </span>
-                {genLimitExceeded && (
-                  <span className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-text-primary">
-                    Tài liệu này tạo ra nhiều thẻ hơn mức tối đa cho phép. Không thể tiếp tục
-                    import; vui lòng tách nội dung thành nhiều tài liệu.
-                  </span>
-                )}
-                {genWarnings.length > 0 && (
-                  <span className="text-xs text-text-secondary">{genWarnings.join(", ")}</span>
-                )}
-              </div>
-              <div className="max-h-64 overflow-y-auto rounded-lg border border-border-soft">
-                <table className="w-full text-left text-xs sm:text-sm">
-                  <thead className="sticky top-0 bg-surface-subtle">
-                    <tr className="text-xs text-text-secondary">
-                      <th className="px-3 py-2 font-medium sm:px-4">Mặt trước</th>
-                      <th className="px-3 py-2 font-medium sm:px-4">Mặt sau</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {generatedCards.map((card, i) => (
-                      <tr key={i} className="border-t border-border-soft">
-                        <td className="px-3 py-2 sm:px-4">{card.front}</td>
-                        <td className="px-3 py-2 sm:px-4">{card.back}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <UnifiedDraftEditor
+              key={`doc-${genKey}`}
+              sourceCards={generatedCards}
+              setCardCount={generatedCards.length}
+              sourceMetadata={[
+                { label: "Tệp", value: fileName },
+                { label: "Nguồn", value: extraction.sourceType === "docx" ? "Word" : "PDF" },
+              ]}
+              warnings={genWarnings}
+              limitExceeded={genLimitExceeded}
+            >
+              <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
+                Chọn tệp khác
+              </Button>
+            </UnifiedDraftEditor>
           )}
 
-          <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
-            Chọn tệp khác
-          </Button>
+          {!generatedCards && (
+            <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
+              Chọn tệp khác
+            </Button>
+          )}
         </div>
       )}
 

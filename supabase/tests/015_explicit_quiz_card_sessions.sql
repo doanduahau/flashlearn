@@ -70,17 +70,16 @@ select is(
 set local role service_role;
 
 select lives_ok(
-  $$select public.create_owned_quiz_session_from_card_ids('aaaaaaaa-5555-5555-5555-555555555555'::uuid, array[
+  $$select set_config('explicit.session_id', public.create_owned_quiz_session_from_card_ids('aaaaaaaa-5555-5555-5555-555555555555'::uuid, array[
     '00000000-5555-5555-5555-000000000006'::uuid,
     '00000000-5555-5555-5555-000000000001'::uuid,
     '00000000-5555-5555-5555-000000000005'::uuid,
     '00000000-5555-5555-5555-000000000003'::uuid,
     '00000000-5555-5555-5555-000000000007'::uuid,
     '00000000-5555-5555-5555-000000000002'::uuid
-  ])$$,
+  ])::text, false)$$,
   'creates an explicit multi-set quiz session'
 );
-select set_config('explicit.session_id', (select id::text from public.quiz_sessions limit 1), false);
 select is((select actual_question_count from public.quiz_sessions where id = current_setting('explicit.session_id')::uuid), 6, 'six explicit target cards create six questions');
 select is((select origin from public.quiz_sessions where id = current_setting('explicit.session_id')::uuid), 'smart_review', 'the trusted explicit-card wrapper persists Smart Review origin');
 select is((select count(*) from public.quiz_questions where session_id = current_setting('explicit.session_id')::uuid), 6::bigint, 'only target cards become questions');

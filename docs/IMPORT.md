@@ -403,15 +403,18 @@ Subscriptions, billing, content-hash cross-session dedup, production event parti
 
 ### 015 root cause
 
-`select plan(34)` vs 16 actual assertions. Tests 9-12, 16 fail because `create_owned_quiz_session_from_card_ids` schema changed in `20260810120000` migration — the test references `quiz_questions` columns (`choices`, `source_flashcard_id`) from the newer explicit-session schema, causing plan mismatch and assertion failures when columns/multi-set logic diverged. **Classification: implementation drift — test needs updating, not code changing.**
+**Actual:** `select id from public.quiz_sessions limit 1` without ordering. E2E tests leave `quiz_sessions` rows in the local database. The test's transaction sees those pre-existing rows, and `limit 1` picks a stale E2E session (10 questions, origin `manual`) instead of the test's own newly created session. Tests 9-12, 16 assertions use wrong session → wrong values + UUID parse error. Fix: store the return value of `create_owned_quiz_session_from_card_ids` directly via `set_config(explicit.session_id, function_call::text)`. Plan(34) was correct; all 34 assertions preserved.
 
 ### 019 root cause
 
-Line 48: `select projection_revision from public.card_learning_schedule` — no WHERE clause. With `card_learning_schedule`'s `unique(user_id, flashcard_id)` constraint and the `upsert_card_learning_schedule` function's `ON CONFLICT` behavior in the hardened migration (20260810180000), the table may have additional rows or the subquery returns multiple rows when RLS is bypassed during `service_role`/`postgres` connections. **Classification: test stale — needs WHERE clause filtering and plan count fixing.**
+**Actual:** `select projection_revision from public.card_learning_schedule` without WHERE clause. E2E tests and other pgTAP suites leave rows in `card_learning_schedule`. The test's transaction sees pre-existing rows, causing the unscoped subquery to return multiple rows → "more than one row returned". Fix: add `where user_id = ... and flashcard_id = ...` to all 10 unscoped queries and the 1 unscoped UPDATE. Plan(29) was correct; all 29 assertions preserved.
 
-### 3H.2–3H.5 Planned
+### 3H.2–3H.5 Status
 
-- 3H.2: Security / reliability fixes (FIX NOW items + BEFORE PUBLIC BETA items)
+- 3H.2: Security / reliability fixes (FIX NOW items + BEFORE PUBLIC BETA items) ✅
+- 3H.3: Full database test green ✅ — all 23 files PASS, 408 tests, 0 failures
+- 3H.4: Production readiness (env docs, deployment checklist, operational hardening)
+- 3H.5: Deploy + production smoke test
 - 3H.3: Full test green (`npm run db:test` all PASS)
 - 3H.4: Production readiness (env docs, deployment checklist, operational hardening)
 - 3H.5: Deploy + production smoke test

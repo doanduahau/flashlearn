@@ -45,22 +45,22 @@ create or replace function pg_temp.ups(
 $$;
 
 select is(pg_temp.ups((-1)::bigint), 0::bigint, 'initial projection insert creates revision zero');
-select is((select projection_revision from public.card_learning_schedule), 0::bigint, 'negative sentinel is not persisted');
+select is((select projection_revision from public.card_learning_schedule where user_id = 'aaaaaaaa-1919-1919-1919-191919191919' and flashcard_id = 'aaaaaaaa-0000-4000-8000-000000000001'), 0::bigint, 'negative sentinel is not persisted');
 
 select is(pg_temp.ups(0::bigint), 0::bigint, 'an exact complete duplicate is a no-op');
-select is((select projection_revision from public.card_learning_schedule), 0::bigint, 'exact duplicate does not increment revision');
+select is((select projection_revision from public.card_learning_schedule where user_id = 'aaaaaaaa-1919-1919-1919-191919191919' and flashcard_id = 'aaaaaaaa-0000-4000-8000-000000000001'), 0::bigint, 'exact duplicate does not increment revision');
 
 select is(pg_temp.ups(0::bigint, p_scheduled_days => 2), 1::bigint, 'changed scheduled_days is not a no-op');
-select is((select scheduled_days from public.card_learning_schedule), 2::double precision, 'changed scheduled_days persists');
+select is((select scheduled_days from public.card_learning_schedule where user_id = 'aaaaaaaa-1919-1919-1919-191919191919' and flashcard_id = 'aaaaaaaa-0000-4000-8000-000000000001'), 2::double precision, 'changed scheduled_days persists');
 select is(pg_temp.ups(1::bigint, p_scheduled_days => 2, p_learning_steps => 1), 2::bigint, 'changed learning_steps is not a no-op');
-select is((select learning_steps from public.card_learning_schedule), 1, 'changed learning_steps persists');
+select is((select learning_steps from public.card_learning_schedule where user_id = 'aaaaaaaa-1919-1919-1919-191919191919' and flashcard_id = 'aaaaaaaa-0000-4000-8000-000000000001'), 1, 'changed learning_steps persists');
 select is(pg_temp.ups(2::bigint, p_scheduled_days => 2, p_learning_steps => 1, p_last_review => '2026-08-09 12:04:00+00'), 3::bigint, 'changed last_review is not a no-op');
-select is((select last_review from public.card_learning_schedule), '2026-08-09 12:04:00+00'::timestamptz, 'changed last_review persists');
+select is((select last_review from public.card_learning_schedule where user_id = 'aaaaaaaa-1919-1919-1919-191919191919' and flashcard_id = 'aaaaaaaa-0000-4000-8000-000000000001'), '2026-08-09 12:04:00+00'::timestamptz, 'changed last_review persists');
 select is(pg_temp.ups(3::bigint, p_scheduled_days => 2, p_learning_steps => 1, p_last_review => '2026-08-09 12:04:00+00', p_algorithm => 'fsrs-6-alt'), 4::bigint, 'changed algorithm is not a no-op');
-select is((select algorithm from public.card_learning_schedule), 'fsrs-6-alt', 'changed algorithm persists');
+select is((select algorithm from public.card_learning_schedule where user_id = 'aaaaaaaa-1919-1919-1919-191919191919' and flashcard_id = 'aaaaaaaa-0000-4000-8000-000000000001'), 'fsrs-6-alt', 'changed algorithm persists');
 select is(pg_temp.ups(4::bigint, p_scheduled_days => 2, p_learning_steps => 1, p_last_review => '2026-08-09 12:04:00+00', p_algorithm => 'fsrs-6-alt', p_implementation => 'ts-fsrs@5.4.2'), 5::bigint, 'changed implementation is not a no-op');
 select is(pg_temp.ups(5::bigint, p_scheduled_days => 2, p_learning_steps => 1, p_last_review => '2026-08-09 12:04:00+00', p_algorithm => 'fsrs-6-alt', p_implementation => 'ts-fsrs@5.4.2', p_parameter_set => 'flashlearn-v2'), 6::bigint, 'changed parameter_set is not a no-op');
-select is((select parameter_set from public.card_learning_schedule), 'flashlearn-v2', 'changed parameter_set persists');
+select is((select parameter_set from public.card_learning_schedule where user_id = 'aaaaaaaa-1919-1919-1919-191919191919' and flashcard_id = 'aaaaaaaa-0000-4000-8000-000000000001'), 'flashlearn-v2', 'changed parameter_set persists');
 
 -- Two writers based on revision 6 compete: only the first can mutate.
 select is(pg_temp.ups(6::bigint, p_scheduled_days => 2, p_learning_steps => 1, p_last_review => '2026-08-09 12:04:00+00', p_algorithm => 'fsrs-6-alt', p_implementation => 'ts-fsrs@5.4.2', p_parameter_set => 'flashlearn-v2', p_reps => 3), 7::bigint, 'first competing CAS writer mutates');
@@ -69,7 +69,7 @@ select throws_ok(
   '22023', 'cas conflict: expected revision 6, current is 7',
   'second competing CAS writer receives a conflict'
 );
-select is((select reps from public.card_learning_schedule), 3, 'failed competing write leaves the prior projection unchanged');
+select is((select reps from public.card_learning_schedule where user_id = 'aaaaaaaa-1919-1919-1919-191919191919' and flashcard_id = 'aaaaaaaa-0000-4000-8000-000000000001'), 3, 'failed competing write leaves the prior projection unchanged');
 
 -- A later event invalidates an older complete replay.
 insert into public.card_review_events (id, user_id, flashcard_id, source, is_correct, reviewed_at)
@@ -91,9 +91,10 @@ select is(pg_temp.ups(8::bigint, p_scheduled_days => 2, p_learning_steps => 1, p
 
 -- A cursor-time mismatch in a pre-existing projection is semantic state, not a no-op.
 update public.card_learning_schedule
-set last_processed_reviewed_at = '2026-08-09 12:19:00+00';
+set last_processed_reviewed_at = '2026-08-09 12:19:00+00'
+where user_id = 'aaaaaaaa-1919-1919-1919-191919191919' and flashcard_id = 'aaaaaaaa-0000-4000-8000-000000000001';
 select is(pg_temp.ups(9::bigint, p_scheduled_days => 2, p_learning_steps => 1, p_last_review => '2026-08-09 12:20:00+00', p_event_count => 6, p_cursor_at => '2026-08-09 12:20:00+00', p_cursor_id => '00000000-0000-4000-8000-000000000105', p_algorithm => 'fsrs-6-alt', p_implementation => 'ts-fsrs@5.4.2', p_parameter_set => 'flashlearn-v2', p_reps => 3), 10::bigint, 'changed cursor timestamp is not a no-op');
-select is((select last_processed_reviewed_at from public.card_learning_schedule), '2026-08-09 12:20:00+00'::timestamptz, 'changed cursor timestamp is repaired');
+select is((select last_processed_reviewed_at from public.card_learning_schedule where user_id = 'aaaaaaaa-1919-1919-1919-191919191919' and flashcard_id = 'aaaaaaaa-0000-4000-8000-000000000001'), '2026-08-09 12:20:00+00'::timestamptz, 'changed cursor timestamp is repaired');
 
 -- Foreign, wrong-card, and non-schedulable cursor IDs can never become A1's cursor.
 select throws_ok($$select pg_temp.ups(10::bigint, p_scheduled_days => 2, p_learning_steps => 1, p_last_review => '2026-08-09 12:20:00+00', p_event_count => 6, p_cursor_at => '2026-08-09 12:30:00+00', p_cursor_id => '00000000-0000-4000-8000-000000000301', p_algorithm => 'fsrs-6-alt', p_implementation => 'ts-fsrs@5.4.2', p_parameter_set => 'flashlearn-v2', p_reps => 3)$$, '22023', 'stale projection: final event id mismatch', 'foreign cursor event is rejected');

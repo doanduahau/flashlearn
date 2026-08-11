@@ -188,3 +188,85 @@ classification (`kind` + `confidence`). Gemini does NOT generate flashcards.
 - OCR PDFs
 - Use Gemini Vision
 - Summarize, rewrite, or modify source content
+
+---
+
+# Document flashcard generation (Phase 3F)
+
+Stage 3F generates `DraftFlashcard[]` from `AnalyzedDocument` output. It is
+**generation only** — no import, no persistence, no DB writes.
+
+```
+AnalyzedDocument
+      ↓
+Section Processing (in order)
+      ↓
+flashcard_like  →  deterministic conversion   (0 AI)
+prose           →  Gemini grounded generation  (bounded AI)
+mixed           →  hybrid (deterministic + AI)
+      ↓
+DraftFlashcard[]  →  validateDraftCards
+      ↓
+Stage 3G Preview/Edit (planned)
+```
+
+## Core principle: AI as fallback, not default
+
+Structured knowledge converted safely via deterministic rules never calls AI.
+Semantic prose is sent to Gemini with grounded, source-only prompts. Mixed
+sections extract structured pairs deterministically and send only the prose
+remainder to AI.
+
+## Section processing rules
+
+- **flashcard_like**: tables with recognized pair headers (Question/Answer,
+  Q/A, Term/Definition, etc.) are converted row-by-row; header rows are
+  skipped. Headerless 2-column tables produce cards from every row. Zero
+  Gemini generation calls.
+- **prose**: full block text is sent to the existing
+  `GeminiFlashcardGenerationProvider` (Phase 3B) with grounded prompts.
+  Each prose section generates at most `GEMINI_MAX_OUTPUT_CARDS` (100).
+- **mixed**: tables are extracted deterministically; prose blocks are sent
+  to Gemini. Source order is preserved (deterministic cards from table A,
+  then AI cards from prose B, then deterministic from table C, etc.).
+- **empty**: produces no cards.
+
+## Gemini generation
+
+- Reuses Phase 3B `GeminiFlashcardGenerationProvider` and
+  `gemini-flash-lite-latest` model.
+- Prompt explicitly requires: use only source content, no outside
+  knowledge, preserve source language, one concept per card, concise
+  front/back, no fabrication.
+- Structured JSON response (`{ cards: [{ front, back }] }`).
+- Retries: bounded (1 attempt per request, per Phase 3B).
+- Bounded: at most 10 AI generation requests per document.
+
+## Deduplication
+
+Exact-match deduplication is applied after all sections are processed
+(normalized whitespace, case-sensitive). No fuzzy semantic dedup, no
+AI dedup call.
+
+## Metrics (ephemeral, no persistence)
+
+- `sourceChars`, `deterministicChars`, `aiInputChars`
+- `deterministicCards`, `aiGeneratedCards`, `aiRequests`
+
+Primary efficiency signal: `aiInputChars / sourceChars`.
+
+## Partial failure
+
+If one AI generation section fails, deterministic cards from other
+sections survive. The result carries `warnings` indicating partial
+processing. No cards are imported automatically; 3G manages the
+user-facing preview/edit.
+
+## 3F does NOT
+
+- Import or persist flashcard sets
+- Write to database
+- Reclassify sections (uses 3E `AnalyzedDocument` directly)
+- OCR PDFs
+- Use Gemini Vision
+- Persist original files, prompts, or responses

@@ -4,11 +4,13 @@ import { useRef, useState, useTransition } from "react";
 
 import { extractDocument } from "@/features/imports/server/extract-document";
 import { analyzeDocument } from "@/features/imports/server/analyze-document";
+import { generateDocumentCards } from "@/features/imports/server/generate-document-cards";
 import type {
   AnalyzedDocument,
   ExtractedDocument,
   ExtractedDocumentBlock,
 } from "@/features/imports/types/document-types";
+import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { DOCUMENT_MAX_BYTES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 
@@ -51,6 +53,8 @@ function renderBlock(block: ExtractedDocumentBlock) {
 export function DocumentImport() {
   const [extraction, setExtraction] = useState<ExtractedDocument | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzedDocument | null>(null);
+  const [generatedCards, setGeneratedCards] = useState<DraftFlashcard[] | null>(null);
+  const [genWarnings, setGenWarnings] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [fileName, setFileName] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -59,6 +63,8 @@ export function DocumentImport() {
   function reset() {
     setExtraction(null);
     setAnalysis(null);
+    setGeneratedCards(null);
+    setGenWarnings([]);
     setError("");
     setFileName("");
     if (inputRef.current) inputRef.current.value = "";
@@ -99,6 +105,26 @@ export function DocumentImport() {
         }
       } catch {
         setError("Không thể đọc tệp. Hãy thử lại.");
+      }
+    });
+  }
+
+  async function handleGenerate(): Promise<void> {
+    if (!analysis) return;
+    setError("");
+    setGeneratedCards(null);
+    setGenWarnings([]);
+    startTransition(async () => {
+      try {
+        const result = await generateDocumentCards(analysis);
+        if ("error" in result) {
+          setError(result.error);
+        } else {
+          setGeneratedCards(result.cards);
+          setGenWarnings(result.warnings);
+        }
+      } catch {
+        setError("Không thể tạo thẻ. Hãy thử lại.");
       }
     });
   }
@@ -179,6 +205,43 @@ export function DocumentImport() {
             <p className="text-sm text-text-secondary">
               PDF này không có văn bản có thể đọc. FlashLearn hiện chưa hỗ trợ PDF scan/ảnh.
             </p>
+          )}
+
+          {analysis && !generatedCards && (
+            <Button onClick={() => void handleGenerate()} disabled={isPending}>
+              {isPending ? "Đang tạo..." : "Tạo thẻ"}
+            </Button>
+          )}
+
+          {generatedCards && generatedCards.length > 0 && (
+            <div className="flex flex-col gap-3 rounded-xl border border-border-soft bg-surface p-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-text-secondary">
+                  {generatedCards.length} thẻ đã tạo
+                </span>
+                {genWarnings.length > 0 && (
+                  <span className="text-xs text-text-secondary">{genWarnings.join(", ")}</span>
+                )}
+              </div>
+              <div className="max-h-64 overflow-y-auto rounded-lg border border-border-soft">
+                <table className="w-full text-left text-xs sm:text-sm">
+                  <thead className="sticky top-0 bg-surface-subtle">
+                    <tr className="text-xs text-text-secondary">
+                      <th className="px-3 py-2 font-medium sm:px-4">Mặt trước</th>
+                      <th className="px-3 py-2 font-medium sm:px-4">Mặt sau</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {generatedCards.map((card, i) => (
+                      <tr key={i} className="border-t border-border-soft">
+                        <td className="px-3 py-2 sm:px-4">{card.front}</td>
+                        <td className="px-3 py-2 sm:px-4">{card.back}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
 
           <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>

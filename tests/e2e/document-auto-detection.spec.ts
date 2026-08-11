@@ -119,3 +119,82 @@ test.describe("Document auto-detection (3E)", () => {
     expect(after - before).toBe(0);
   });
 });
+
+async function generationCalls(page: import("@playwright/test").Page): Promise<number> {
+  const res = await page.request.get("/api/test/generation-count");
+  const body = (await res.json()) as { calls?: number };
+  return body.calls ?? 0;
+}
+
+test.describe("Document generation (3F)", () => {
+  test.describe.configure({ mode: "serial" });
+
+  test("generates deterministic cards from a structured DOCX with zero AI generation", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await signUpAndConfirm(page, uniqueEmail("gen_structured"));
+
+    const genBefore = await generationCalls(page);
+
+    const fileInput = await openDocumentImport(page);
+    await fileInput.setInputFiles(STRUCTURED_DOCX);
+
+    // Wait for analysis to complete
+    await expect(page.getByText("mục thẻ")).toBeVisible();
+
+    // Click Tạo thẻ
+    await page.getByRole("button", { name: "Tạo thẻ" }).click();
+
+    // Generation result visible
+    await expect(page.getByText("thẻ đã tạo")).toBeVisible();
+
+    // Zero generation AI calls (structured = deterministic)
+    const genAfter = await generationCalls(page);
+    expect(genAfter - genBefore).toBe(0);
+  });
+
+  test("generates cards from a prose DOCX using the mocked generation provider", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await signUpAndConfirm(page, uniqueEmail("gen_prose"));
+
+    const genBefore = await generationCalls(page);
+
+    const fileInput = await openDocumentImport(page);
+    await fileInput.setInputFiles(PROSE_DOCX);
+
+    await expect(page.getByText("mục văn bản")).toBeVisible();
+
+    await page.getByRole("button", { name: "Tạo thẻ" }).click();
+
+    await expect(page.getByText("thẻ đã tạo")).toBeVisible();
+
+    // Prose = mocked AI generation = exactly 1 call
+    const genAfter = await generationCalls(page);
+    expect(genAfter - genBefore).toBe(1);
+  });
+
+  test("generates cards from a mixed document with hybrid processing", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await signUpAndConfirm(page, uniqueEmail("gen_mixed"));
+
+    const genBefore = await generationCalls(page);
+
+    const fileInput = await openDocumentImport(page);
+    await fileInput.setInputFiles(MIXED_DOCX);
+
+    // Mixed doc shows both badges
+    await expect(page.getByText("mục văn bản")).toBeVisible();
+    await expect(page.getByText("mục thẻ")).toBeVisible();
+
+    await page.getByRole("button", { name: "Tạo thẻ" }).click();
+
+    await expect(page.getByText("thẻ đã tạo")).toBeVisible();
+
+    // Mixed = deterministic table + AI for prose = 1 gen call
+    const genAfter = await generationCalls(page);
+    expect(genAfter - genBefore).toBe(1);
+  });
+});

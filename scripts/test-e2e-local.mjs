@@ -37,6 +37,9 @@ const localEnv = {
   // Use the test-only classifier mock so E2E never calls real Gemini.
   FLASHLEARN_CLASSIFIER_MOCK: "1",
   FLASHLEARN_CLASSIFIER_COUNT_FILE: "test-results/classifier-count.txt",
+  // Use the test-only generation mock so E2E never calls real Gemini.
+  FLASHLEARN_GENERATION_MOCK: "1",
+  FLASHLEARN_GENERATION_COUNT_FILE: "test-results/generation-count.txt",
 };
 await runNpm(["run", "build"], localEnv);
 const child = spawn(

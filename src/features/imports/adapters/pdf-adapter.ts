@@ -100,7 +100,10 @@ export async function extractPdf(fileBuffer: ArrayBuffer): Promise<ExtractedDocu
   }
 
   try {
-    textResult = await parser.getText({ first: PDF_MAX_PAGES });
+    textResult = await parser.getText({
+      first: PDF_MAX_PAGES,
+      disableNormalization: true,
+    });
   } catch (err) {
     if (err instanceof PasswordException) {
       await destroyParser(parser);

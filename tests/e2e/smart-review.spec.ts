@@ -10,8 +10,8 @@ const SMART_REVIEW_24_CSV = "tests/fixtures/smart-review-24-cards.csv";
 async function importSet(page: Page, name: string, csv = QUIZ_CSV): Promise<void> {
   await page.goto("/import");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(csv);
-  await page.getByLabel(/^4\./).fill(name);
-  await page.getByRole("button", { name: /Xác nhận import/i }).click();
+  await page.getByLabel("Tên bộ").fill(name);
+  await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
 }
 

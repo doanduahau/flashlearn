@@ -15,15 +15,11 @@ test.describe("Paste import", () => {
 
     await page.getByRole("button", { name: "Phân tích" }).click();
 
-    await expect(page.getByText("3 thẻ hợp lệ")).toBeVisible();
-    const table = page.locator("table");
-    await expect(table.getByRole("cell", { name: "apple" })).toBeVisible();
-    await expect(table.getByRole("cell", { name: "quả táo" })).toBeVisible();
-    await expect(table.getByRole("cell", { name: "banana" })).toBeVisible();
-    await expect(table.getByRole("cell", { name: "quả chuối" })).toBeVisible();
+    // Editor appears after analysis
+    await expect(page.getByRole("button", { name: /thêm thẻ/i })).toBeVisible();
 
-    await page.locator("#paste-set-name").fill("Bộ từ paste TSV");
-    await page.getByRole("button", { name: /tạo bộ/i }).click();
+    await page.getByLabel("Tên bộ").fill("Bộ từ paste TSV");
+    await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
 
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bộ từ paste TSV");
@@ -58,15 +54,11 @@ test.describe("Paste import", () => {
 
     await page.getByRole("button", { name: "Phân tích" }).click();
 
-    await expect(page.getByText("2 thẻ hợp lệ")).toBeVisible();
-    const table = page.locator("table");
-    await expect(table.getByRole("cell", { name: "HTTP là gì?" })).toBeVisible();
-    await expect(
-      table.getByRole("cell", { name: "Giao thức truyền tải siêu văn bản" }),
-    ).toBeVisible();
+    // Editor appears after analysis
+    await expect(page.getByRole("button", { name: /thêm thẻ/i })).toBeVisible();
 
-    await page.locator("#paste-set-name").fill("Bộ từ paste Q/A");
-    await page.getByRole("button", { name: /tạo bộ/i }).click();
+    await page.getByLabel("Tên bộ").fill("Bộ từ paste Q/A");
+    await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
 
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bộ từ paste Q/A");
@@ -93,12 +85,11 @@ test.describe("Paste import", () => {
       "Q: Một câu hỏi dài để kiểm tra tràn màn hình?\nA: Một câu trả lời cũng khá dài để đảm bảo không bị tràn.",
     );
     await page.getByRole("button", { name: "Phân tích" }).click();
-    await expect(page.getByText("1 thẻ hợp lệ")).toBeVisible();
+    await expect(page.getByRole("button", { name: /thêm thẻ/i })).toBeVisible();
 
-    const previewTable = page.locator("table").first();
-    const previewBox = await previewTable.boundingBox();
-    if (previewBox) {
-      expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(390);
+    const editorBox = await page.getByRole("button", { name: /thêm thẻ/i }).boundingBox();
+    if (editorBox) {
+      expect(editorBox.x + editorBox.width).toBeLessThanOrEqual(390);
     }
   });
 

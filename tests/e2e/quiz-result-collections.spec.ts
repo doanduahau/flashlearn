@@ -25,8 +25,8 @@ test.describe("Quiz result collections", () => {
 
     await page.goto("/import");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(QUIZ_CSV);
-    await page.getByLabel(/^4\./).fill(SET_NAME);
-    await page.getByRole("button", { name: /Xác nhận import/i }).click();
+    await page.getByLabel("Tên bộ").fill(SET_NAME);
+    await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
 
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
     setId = new URL(page.url()).pathname.split("/").pop() ?? "";

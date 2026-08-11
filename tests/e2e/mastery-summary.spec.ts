@@ -7,7 +7,7 @@ const PAGINATION_CSV = "tests/fixtures/pagination-cards.csv";
 
 async function createSetWithCard(page: Page, name: string) {
   await page.goto("/sets?create=manual");
-  await page.getByLabel("Tên bộ flashcard").fill(name);
+  await page.getByLabel("Tên bộ").fill(name);
   await page.getByLabel("Mặt trước").fill("Trước");
   await page.getByLabel("Mặt sau").fill("Sau");
   await page.getByRole("button", { name: "Tạo bộ" }).click();
@@ -74,8 +74,8 @@ test.describe("Mastery summary", () => {
 
     await page.goto("/import");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(PAGINATION_CSV);
-    await page.getByLabel(/^4\./).fill("Bộ phân trang");
-    await page.getByRole("button", { name: /Xác nhận import/i }).click();
+    await page.getByLabel("Tên bộ").fill("Bộ phân trang");
+    await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
 
     // 21 cards imported; only 20 are rendered on page 1.

@@ -242,8 +242,8 @@ function collectionIdFromHref(href: string | null): string {
 async function importSet(page: Page, name: string): Promise<string> {
   await page.goto("/import");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(IMPORT_CSV);
-  await page.getByLabel(/^4\./).fill(name);
-  await page.getByRole("button", { name: /Xác nhận import/i }).click();
+  await page.getByLabel("Tên bộ").fill(name);
+  await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
   return new URL(page.url()).pathname.split("/").pop() ?? "";
 }

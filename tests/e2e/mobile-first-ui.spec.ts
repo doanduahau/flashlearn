@@ -12,7 +12,7 @@ const DESKTOP = { width: 1280, height: 800 };
 async function seedSetsForQuiz(page: import("@playwright/test").Page, count = 13): Promise<void> {
   for (let i = 1; i <= count; i++) {
     await page.goto("/sets?create=manual");
-    await page.getByLabel("Tên bộ flashcard").fill(`Bộ quiz ${i}`);
+    await page.getByLabel("Tên bộ").fill(`Bộ quiz ${i}`);
     await page.getByLabel("Mặt trước").fill(`Trước ${i}`);
     await page.getByLabel("Mặt sau").fill(`Sau ${i}`);
     await page.getByRole("button", { name: "Tạo bộ" }).click();
@@ -73,7 +73,7 @@ test.describe("Mobile-first UI — Sets page", () => {
 
     // Create one set so list is non-empty
     await page.goto("/sets?create=manual");
-    await page.getByLabel("Tên bộ flashcard").fill("Test Set");
+    await page.getByLabel("Tên bộ").fill("Test Set");
     await page.getByLabel("Mặt trước").fill("Trước");
     await page.getByLabel("Mặt sau").fill("Sau");
     await page.getByRole("button", { name: "Tạo bộ" }).click();
@@ -153,7 +153,7 @@ test.describe("Mobile-first UI — Study page", () => {
     await signUpAndConfirm(page, uniqueEmail("study_mob"));
 
     await page.goto("/sets?create=manual");
-    await page.getByLabel("Tên bộ flashcard").fill("Học thử");
+    await page.getByLabel("Tên bộ").fill("Học thử");
     await page.getByLabel("Mặt trước").fill("Q");
     await page.getByLabel("Mặt sau").fill("A");
     await page.getByRole("button", { name: "Tạo bộ" }).click();
@@ -184,7 +184,7 @@ test.describe("Mobile-first UI — Study page", () => {
     await signUpAndConfirm(page, uniqueEmail("study_overlap"));
 
     await page.goto("/sets?create=manual");
-    await page.getByLabel("Tên bộ flashcard").fill("Học thử 2");
+    await page.getByLabel("Tên bộ").fill("Học thử 2");
     await page.getByLabel("Mặt trước").fill("Q");
     await page.getByLabel("Mặt sau").fill("A");
     await page.getByRole("button", { name: "Tạo bộ" }).click();

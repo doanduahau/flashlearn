@@ -12,8 +12,8 @@ const DAY_DETAIL_INLINE = 'span[role="dialog"][aria-label="Chi tiết hoạt đ�
 async function completeTenQuestionQuiz(page: Page): Promise<void> {
   await page.goto("/import");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(QUIZ_CSV);
-  await page.getByLabel(/^4\./).fill("Bộ lịch hoạt động");
-  await page.getByRole("button", { name: /Xác nhận import/i }).click();
+  await page.getByLabel("Tên bộ").fill("Bộ lịch hoạt động");
+  await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
 
   await page.goto("/quiz");

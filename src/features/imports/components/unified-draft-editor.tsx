@@ -246,7 +246,9 @@ export function UnifiedDraftEditor({
     try {
       const draftCards = cards.filter(isCardValid).map(toDraftCard);
       const action = onImport ?? importFlashcards;
-      const result = await action(name, draftCards);
+      const result = await (onImport
+        ? onImport(name, draftCards)
+        : importFlashcards({ name, cards: draftCards }));
       if ("error" in result) {
         setError(result.error);
       } else {

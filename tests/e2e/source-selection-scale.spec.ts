@@ -8,7 +8,7 @@ test("Study and Quiz source selection scales across pages on mobile", async ({ p
 
   for (let index = 1; index <= 13; index += 1) {
     await page.goto("/sets?create=manual");
-    await page.getByLabel("Tên bộ flashcard").fill(`Nguồn lớn ${index}`);
+    await page.getByLabel("Tên bộ").fill(`Nguồn lớn ${index}`);
     await page.getByLabel("Mặt trước").fill(`Mặt trước ${index}`);
     await page.getByLabel("Mặt sau").fill(`Mặt sau ${index}`);
     await page.getByRole("button", { name: "Tạo bộ" }).click();

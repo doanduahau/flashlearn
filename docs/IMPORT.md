@@ -413,8 +413,8 @@ Subscriptions, billing, content-hash cross-session dedup, production event parti
 
 - 3H.2: Security / reliability fixes (FIX NOW items + BEFORE PUBLIC BETA items) ✅
 - 3H.3: Full database test green ✅ — all 23 files PASS, 408 tests, 0 failures
-- 3H.4: Production readiness (env docs, deployment checklist, operational hardening)
-- 3H.5: Deploy + production smoke test
+- 3H.4: Production readiness ✅ — `docs/DEPLOYMENT.md` rewritten with full env contract, deployment order, smoke matrix, rollback procedures, commercial-readiness classification
+- 3H.5: Deploy + production smoke test (see `docs/DEPLOYMENT.md` §7–§11)
 - 3H.3: Full test green (`npm run db:test` all PASS)
 - 3H.4: Production readiness (env docs, deployment checklist, operational hardening)
 - 3H.5: Deploy + production smoke test

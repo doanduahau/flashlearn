@@ -56,4 +56,33 @@ describe("env validation", () => {
 
     await expect(loadEnv()).rejects.toThrow(/Invalid environment variables/);
   });
+
+  it("refuses the configured production Supabase project from local development by default", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://rtrllrlilupoesikeypt.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_test_key");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-test-key");
+
+    const envModule = await loadEnv();
+
+    expect(() => envModule.getSupabasePublishableConfig()).toThrow(
+      /Refusing to use the production Supabase project from local development/,
+    );
+    expect(() => envModule.getSupabaseServiceConfig()).toThrow(
+      /Refusing to use the production Supabase project from local development/,
+    );
+  });
+
+  it("allows an explicit local diagnostic override without changing production behavior", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://rtrllrlilupoesikeypt.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_test_key");
+    vi.stubEnv("NEXT_PUBLIC_ALLOW_PRODUCTION_SUPABASE_FROM_LOCAL", "1");
+
+    const envModule = await loadEnv();
+
+    expect(envModule.getSupabasePublishableConfig().url).toBe(
+      "https://rtrllrlilupoesikeypt.supabase.co",
+    );
+  });
 });

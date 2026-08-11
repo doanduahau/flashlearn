@@ -195,6 +195,7 @@ export function UnifiedDraftEditor({
   const [cards, setCards] = useState<EditableDraftCard[]>(initialCards);
   const [name, setName] = useState("");
   const [importing, setImporting] = useState(false);
+  const importInFlightRef = useRef(false);
   const [error, setError] = useState("");
 
   const canAdd = cards.length < IMPORT_MAX_ROWS;
@@ -247,12 +248,12 @@ export function UnifiedDraftEditor({
   }
 
   async function handleImport() {
-    if (!hasValidCards) return;
+    if (!hasValidCards || importInFlightRef.current) return;
+    importInFlightRef.current = true;
     setError("");
     setImporting(true);
     try {
       const draftCards = cards.map(toDraftCard);
-      const action = onImport ?? importFlashcards;
       const result = await (onImport
         ? onImport(name, draftCards)
         : importFlashcards({ name, cards: draftCards }));
@@ -264,6 +265,7 @@ export function UnifiedDraftEditor({
     } catch {
       setError("Không thể tạo bộ. Vui lòng thử lại.");
     } finally {
+      importInFlightRef.current = false;
       setImporting(false);
     }
   }

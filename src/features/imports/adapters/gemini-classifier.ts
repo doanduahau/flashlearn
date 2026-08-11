@@ -4,6 +4,7 @@ import { readFileSync, appendFileSync, writeFileSync, existsSync } from "node:fs
 
 import { GoogleGenAI, Type } from "@google/genai";
 
+import { GEMINI_RETRY_ATTEMPTS } from "./gemini-retry-policy";
 import type { SectionKind } from "../types/document-types";
 import { getGeminiApiKey } from "@/lib/env";
 
@@ -118,7 +119,7 @@ export class GeminiDocumentClassifier implements DocumentClassifier {
       config: {
         responseMimeType: "application/json",
         responseSchema: CLASSIFICATION_SCHEMA,
-        httpOptions: { retryOptions: { attempts: 1 } },
+        httpOptions: { retryOptions: { attempts: GEMINI_RETRY_ATTEMPTS } },
       },
     });
 

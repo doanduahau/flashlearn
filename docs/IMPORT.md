@@ -339,7 +339,9 @@ FlashLearn uses a **single canonical validation chain** with no duplicate enforc
 | `importPayloadSchema` (Zod)          | Server boundary: name, card front/back presence + length    | `SET_NAME_MAX_LENGTH` (120), `CARD_TEXT_MAX_LENGTH` (50000), `IMPORT_MAX_ROWS` (2000) |
 | `import_flashcard_set` (RPC)         | Atomic DB persistence: auth ownership, transactional insert | 1–2000 cards, validates per field in PL/pgSQL                                         |
 
-- `IMPORT_MAX_ROWS` is defined once in `src/lib/constants.ts` and reused at all three layers.
+- `IMPORT_MAX_ROWS` is defined in `src/lib/constants.ts` for the TypeScript boundaries. The
+  database RPC mirrors the same numeric `2000` guard as an intentional defense-in-depth
+  cross-layer contract; SQL does not import application code.
 - The client-side `UnifiedDraftEditor` blocks import when any card is invalid (empty front/back or over-length) — it does NOT filter silently. The server-side Zod validator is the authoritative gate.
 - No third validator exists. No rules are duplicated inconsistently.
 
@@ -375,12 +377,12 @@ reliability, AI cost/bounds, performance, mobile, privacy, DB test debt, observa
 | E2E import specs       | 11/11 PASS (unified-editor 6, paste-import 5)                          |
 | E2E full suite         | infrastructure transient (stream closed early); prior baseline 114/114 |
 
-### FIX NOW (2 findings)
+### Historical retry recommendation (rejected by product policy)
 
-| ID  | Issue                                                                                                               | Location                   |
-| --- | ------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| R9  | `retryOptions: { attempts: 1 }` = ZERO Gemini retries. Transient failures kill generation. Change to `attempts: 3`. | `gemini-provider.ts:74`    |
-| R10 | Same zero-retry in Gemini classifier.                                                                               | `gemini-classifier.ts:121` |
+| ID  | Issue                                                                                                                                            | Location                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| R9  | `retryOptions: { attempts: 1 }` is an intentional physical-provider-call bound. It must not be raised without explicit attempt-aware accounting. | `gemini-provider.ts:74`    |
+| R10 | The classifier uses the same intentional `attempts: 1` bound.                                                                                    | `gemini-classifier.ts:121` |
 
 ### BEFORE PUBLIC BETA (9 findings)
 
@@ -413,3 +415,26 @@ Line 48: `select projection_revision from public.card_learning_schedule` — no 
 - 3H.3: Full test green (`npm run db:test` all PASS)
 - 3H.4: Production readiness (env docs, deployment checklist, operational hardening)
 - 3H.5: Deploy + production smoke test
+
+## 3H.2 Security and reliability fixes
+
+- Gemini generation and classification intentionally retain `retryOptions: { attempts: 1 }`.
+  This bounds one logical AI request to one SDK attempt and avoids hidden retry amplification.
+- `ImportWizard` uses explicit parsing state plus an in-flight ref. Its file control is disabled
+  while parsing, duplicate change/drop events are ignored, and both success and failure restore
+  the control for a later file.
+- `UnifiedDraftEditor` keeps its disabled pending button and adds an in-flight ref so same-tick
+  double clicks cannot create concurrent browser import requests. This is client reliability only;
+  server-side import idempotency remains a public-beta item.
+- Local development refuses the configured production Supabase project by default. The non-secret
+  `NEXT_PUBLIC_ALLOW_PRODUCTION_SUPABASE_FROM_LOCAL=1` override exists only for deliberate local diagnostics;
+  production deployments and local Supabase E2E are unaffected.
+- The E2E-only `FLASHLEARN_CLASSIFIER_*` and `FLASHLEARN_GENERATION_*` variables are documented in
+  `.env.example`. The instrumentation routes return 404 unless their matching server environment
+  mock flag is `1`; their file paths always come from trusted server environment variables.
+- The 2,000-card guard remains a mirrored TypeScript/Zod/database RPC invariant. Invalid editable
+  cards block final persistence and the database remains the final atomic guard.
+- 015 and 019 pgTAP failures remain deliberately deferred to 3H.3. No 3H.2 change alters their
+  current failure signatures.
+- The editable list remains non-virtualized. Revisit virtualization only when measured scale or
+  responsiveness data justifies it.

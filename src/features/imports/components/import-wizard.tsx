@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState } from "react";
 
-import { importFlashcards } from "@/features/imports/server/actions";
 import { sheetToDraftCards } from "@/features/imports/adapters/excel-adapter";
 import { parseWorkbook, validateImportFile } from "@/features/imports/utils/parse-workbook";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
@@ -14,12 +13,13 @@ import type { ParsedSheet } from "@/features/imports/types/import-types";
 
 export function ImportWizard() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const parsingRef = useRef(false);
   const [sheets, setSheets] = useState<ParsedSheet[]>([]);
   const [sheetIndex, setSheetIndex] = useState(0);
   const [frontColumn, setFrontColumn] = useState(0);
   const [backColumn, setBackColumn] = useState(1);
   const [error, setError] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const [isParsing, setIsParsing] = useState(false);
   const sheet = sheets[sheetIndex];
   const headers = sheet?.rows[0] ?? [];
   const hasSameColumns = Boolean(sheet) && frontColumn === backColumn;
@@ -48,12 +48,14 @@ export function ImportWizard() {
     if (inputRef.current) inputRef.current.value = "";
   }
   async function selectFile(file: File | undefined): Promise<void> {
-    if (!file) return;
+    if (!file || parsingRef.current) return;
     const validation = validateImportFile(file);
     if (validation) {
       setError(validation);
       return;
     }
+    parsingRef.current = true;
+    setIsParsing(true);
     try {
       const parsed = await parseWorkbook(file);
       if (!parsed.length || !parsed.some((item) => item.rows.length > 1)) throw new Error();
@@ -64,6 +66,9 @@ export function ImportWizard() {
       setError("");
     } catch {
       setError("Không thể đọc tệp này. Hãy dùng CSV hoặc XLSX hợp lệ.");
+    } finally {
+      parsingRef.current = false;
+      setIsParsing(false);
     }
   }
   const options = headers.map((header, index) => (
@@ -87,12 +92,19 @@ export function ImportWizard() {
             className="mx-auto mt-4 max-w-sm"
             type="file"
             accept=".xlsx,.csv"
+            disabled={isParsing}
+            aria-busy={isParsing}
             onChange={(event) => void selectFile(event.target.files?.[0])}
             onDrop={(event) => {
               event.preventDefault();
               void selectFile(event.dataTransfer.files[0]);
             }}
           />
+          {isParsing ? (
+            <p role="status" className="mt-3 text-sm text-text-secondary">
+              {"\u0110ang \u0111\u1ecdc t\u1ec7p..."}
+            </p>
+          ) : null}
         </section>
       ) : (
         <>

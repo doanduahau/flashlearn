@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -16,8 +16,6 @@ vi.mock("@/features/imports/utils/parse-workbook", async (importOriginal) => {
 });
 
 import { ImportWizard } from "@/features/imports/components/import-wizard";
-import type { DraftFlashcard } from "@/features/imports/types/import-types";
-
 const rows = [
   ["Question", "Answer", "Extra"],
   ["Một", "One", "x"],
@@ -97,5 +95,46 @@ describe("ImportWizard", () => {
     // After reset, back to the file upload screen
     expect(screen.getByLabelText(/CSV\/XLSX/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/^1\./)).not.toBeInTheDocument();
+  });
+
+  it("processes one file at a time and allows another file after parsing completes", async () => {
+    let resolveParse: ((result: ReturnType<typeof workbook>) => void) | undefined;
+    mocks.parseWorkbook.mockReturnValue(
+      new Promise((resolve) => {
+        resolveParse = resolve;
+      }),
+    );
+    render(<ImportWizard />);
+
+    const input = screen.getByLabelText(/CSV\/XLSX/i);
+    fireEvent.change(input, { target: { files: [new File(["first"], "first.csv")] } });
+    fireEvent.change(input, { target: { files: [new File(["second"], "second.csv")] } });
+
+    expect(mocks.parseWorkbook).toHaveBeenCalledTimes(1);
+    expect(input).toBeDisabled();
+    expect(screen.getByText("\u0110ang \u0111\u1ecdc t\u1ec7p...")).toBeInTheDocument();
+
+    resolveParse?.(workbook());
+    await screen.findByLabelText(/^1\./);
+    expect(screen.queryByText("\u0110ang \u0111\u1ecdc t\u1ec7p...")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Thay/ }));
+    const replacement = screen.getByLabelText(/CSV\/XLSX/i);
+    fireEvent.change(replacement, { target: { files: [new File(["third"], "third.csv")] } });
+    await waitFor(() => expect(mocks.parseWorkbook).toHaveBeenCalledTimes(2));
+  });
+
+  it("recovers the file control after a parsing failure", async () => {
+    mocks.parseWorkbook.mockRejectedValueOnce(new Error("bad workbook"));
+    render(<ImportWizard />);
+
+    const input = screen.getByLabelText(/CSV\/XLSX/i);
+    fireEvent.change(input, { target: { files: [new File(["broken"], "broken.csv")] } });
+    await screen.findByRole("alert");
+
+    expect(input).not.toBeDisabled();
+    mocks.parseWorkbook.mockResolvedValueOnce(workbook());
+    fireEvent.change(input, { target: { files: [new File(["replacement"], "replacement.csv")] } });
+    expect(await screen.findByLabelText(/^1\./)).toBeInTheDocument();
   });
 });

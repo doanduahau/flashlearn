@@ -2,6 +2,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
+import { GEMINI_RETRY_ATTEMPTS } from "./gemini-retry-policy";
 import type { DraftFlashcard } from "../types/import-types";
 import type { FlashcardGenerationProvider } from "../types/import-types";
 import { CARD_TEXT_MAX_LENGTH, GEMINI_MAX_OUTPUT_CARDS } from "@/lib/constants";
@@ -71,7 +72,7 @@ export class GeminiFlashcardGenerationProvider implements FlashcardGenerationPro
         responseMimeType: "application/json",
         responseSchema: GEMINI_RESPONSE_SCHEMA,
         httpOptions: {
-          retryOptions: { attempts: 1 },
+          retryOptions: { attempts: GEMINI_RETRY_ATTEMPTS },
         },
       },
     });

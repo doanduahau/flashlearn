@@ -1,3 +1,5 @@
+import { FLASHLEARN_PRODUCTION_SUPABASE_PROJECT_REF } from "../../src/lib/supabase/production-project";
+
 // Shared production Supabase identity guard for admin diagnostics scripts.
 // Kept free of any write-capable imports so read-only runners (e.g. the
 // production comparison command) can reuse the exact same hardened validation
@@ -7,7 +9,9 @@
 // production Supabase project ref before any runner will do anything. Keeping
 // it empty fail-closes: runners refuse any project that is not explicitly
 // allowlisted here. The ref is a public project identifier, not a secret.
-export const ALLOWED_PRODUCTION_PROJECT_REFS = new Set(["rtrllrlilupoesikeypt"]);
+export const ALLOWED_PRODUCTION_PROJECT_REFS = new Set([
+  FLASHLEARN_PRODUCTION_SUPABASE_PROJECT_REF,
+]);
 
 export type ProductionIdentity = {
   url: string;

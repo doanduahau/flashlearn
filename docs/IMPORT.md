@@ -329,6 +329,20 @@ Document ────────────┤
 - **Final edited order/value is authoritative** — cards are imported in the exact order and with the exact values shown in the editor
 - **Server-side validation remains canonical** — `importPayloadSchema` Zod validation is the final gate before the RPC
 
+## Validation architecture
+
+FlashLearn uses a **single canonical validation chain** with no duplicate enforcement:
+
+| Layer                                | What                                                        | Limits enforced                                                                       |
+| ------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `validateDraftCards()` (client util) | Adapter/preview validation: blank, partial, duplicate       | `IMPORT_MAX_ROWS` (2000)                                                              |
+| `importPayloadSchema` (Zod)          | Server boundary: name, card front/back presence + length    | `SET_NAME_MAX_LENGTH` (120), `CARD_TEXT_MAX_LENGTH` (50000), `IMPORT_MAX_ROWS` (2000) |
+| `import_flashcard_set` (RPC)         | Atomic DB persistence: auth ownership, transactional insert | 1–2000 cards, validates per field in PL/pgSQL                                         |
+
+- `IMPORT_MAX_ROWS` is defined once in `src/lib/constants.ts` and reused at all three layers.
+- The client-side `UnifiedDraftEditor` blocks import when any card is invalid (empty front/back or over-length) — it does NOT filter silently. The server-side Zod validator is the authoritative gate.
+- No third validator exists. No rules are duplicated inconsistently.
+
 ## Internal model
 
 ```ts

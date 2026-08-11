@@ -170,7 +170,12 @@ Single canonical release gate. All must PASS:
 npm run check      # lint + typecheck + unit tests + build
 npm run test:e2e   # full E2E suite (requires local Supabase + Playwright)
 npm run db:test    # all 23 pgTAP files (requires local Supabase)
+npm run test:pdf-runtime-isolation # production-build /sets with PDF runtime blocked
 ```
+
+The PDF isolation gate builds the application and runs `next start` locally. It
+blocks `pdf-parse` at runtime while exercising Manual, Excel, Paste, Sheets, and
+DOCX paths, proving that only an actual PDF upload may initialize the PDF stack.
 
 Also verify:
 

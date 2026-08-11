@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "node scripts/test-e2e-local.mjs",
+    "test:pdf-runtime-isolation": "node scripts/test-production-pdf-isolation.mjs",
     "fsrs:test:local": "node scripts/test-fsrs-local.mjs",
     "test:e2e:auth:no-confirm": "node scripts/test-e2e-auth-no-confirm.mjs",
     "prepare": "husky",
@@ -30,6 +31,7 @@
     "fsrs:diagnose:production": "tsx scripts/fsrs-diagnose-production.ts"
   },
   "dependencies": {
+    "@napi-rs/canvas": "0.1.80",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

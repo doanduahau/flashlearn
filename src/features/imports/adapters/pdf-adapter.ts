@@ -5,13 +5,19 @@ import path from "node:path";
 import type { ExtractedDocument, ExtractedDocumentBlock } from "../types/document-types";
 import { DOCUMENT_MAX_EXTRACTED_CHARS, PDF_MAX_PAGES } from "@/lib/constants";
 
-import { PDFParse, PasswordException } from "pdf-parse";
+type PdfRuntime = typeof import("pdf-parse");
 
-// pdfjs-dist needs a resolvable worker in the Next.js server runtime. With
-// pdf-parse added to serverExternalPackages it loads via native require, so we
-// resolve the on-disk worker and embed it as a data: URL. Text-only extraction
-// does not render pages, so the worker is only used for parsing.
-function configurePdfWorker(): void {
+// `extract-document` is registered with /sets for every import mode. Keep this
+// runtime import inside PDF extraction so pdfjs-dist's optional rendering
+// dependencies are never evaluated for Manual, Excel, Paste, Sheets, or DOCX.
+// pdf-parse remains external so its worker can be resolved from disk only here.
+async function loadPdfRuntime(): Promise<PdfRuntime> {
+  const pdfRuntime = await import("pdf-parse");
+  configurePdfWorker(pdfRuntime.PDFParse);
+  return pdfRuntime;
+}
+
+function configurePdfWorker(PDFParse: PdfRuntime["PDFParse"]): void {
   try {
     const require = createRequire(import.meta.url);
     const mainEntry = require.resolve("pdf-parse");
@@ -24,14 +30,13 @@ function configurePdfWorker(): void {
   }
 }
 
-configurePdfWorker();
-
 function detectScanOnly(pageTexts: string[]): boolean {
   if (pageTexts.length === 0) return true;
   return pageTexts.every((p) => p.replace(/\s/g, "").length < 10);
 }
 
 export async function extractPdf(fileBuffer: ArrayBuffer): Promise<ExtractedDocument> {
+  const { PDFParse, PasswordException } = await loadPdfRuntime();
   const data = new Uint8Array(fileBuffer);
   const parser = new PDFParse({ data, verbosity: 0 });
 

@@ -94,6 +94,18 @@ Not supported:
 These are enforced server-side; oversized documents are rejected, never silently
 truncated.
 
+## PDF runtime isolation (3H.5)
+
+`/sets` registers document server actions for every import mode, so PDF runtime
+dependencies must not be imported at module scope. `pdf-parse` is loaded only
+inside `extractPdf()` after a validated PDF upload; Manual, Excel, Paste, Google
+Sheets, and DOCX do not initialize `pdfjs-dist`.
+
+`@napi-rs/canvas` is an explicit production dependency of the text-extraction
+runtime. `pdfjs-dist` uses it to provide the Node DOM geometry globals it needs
+when a PDF is actually parsed. FlashLearn does not render PDF pages and does not
+install global PDF polyfills for unrelated routes.
+
 ## Common document model
 
 `ExtractedDocument` is a source-independent intermediate model:

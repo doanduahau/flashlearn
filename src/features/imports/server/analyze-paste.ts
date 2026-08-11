@@ -22,10 +22,8 @@ export async function analyzePasteContent(rawText: unknown): Promise<AnalyzeResu
   let supabase;
   try {
     supabase = await createClient();
-  } catch (e) {
-    return {
-      error: `Không thể kết nối đến máy chủ. ${e instanceof Error ? e.message : ""}`,
-    };
+  } catch {
+    return { error: "Không thể kết nối đến máy chủ. Vui lòng thử lại." };
   }
 
   const { data: claims } = await supabase.auth.getClaims();

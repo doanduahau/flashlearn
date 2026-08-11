@@ -15,10 +15,8 @@ export async function importFlashcards(
   let supabase;
   try {
     supabase = await createClient();
-  } catch (e) {
-    return {
-      error: `Không thể kết nối đến máy chủ. ${e instanceof Error ? e.message : ""}`,
-    };
+  } catch {
+    return { error: "Không thể kết nối đến máy chủ. Vui lòng thử lại." };
   }
 
   const { data: claims } = await supabase.auth.getClaims();
@@ -33,9 +31,7 @@ export async function importFlashcards(
       return { error: "Không thể import bộ flashcard. Không có dữ liệu nào được lưu." };
     revalidatePath("/sets");
     return { setId: data[0].set_id };
-  } catch (e) {
-    return {
-      error: `Không thể tạo bộ. ${e instanceof Error ? e.message : ""}`,
-    };
+  } catch {
+    return { error: "Không thể tạo bộ flashcard. Vui lòng thử lại." };
   }
 }

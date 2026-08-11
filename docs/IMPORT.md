@@ -355,3 +355,61 @@ type EditableDraftCard = {
 
 Cards are converted from `DraftFlashcard[]` on entry and back to `DraftFlashcard[]` on import.
 Stable UUIDs enable drag-and-drop reordering without index-key bugs.
+
+---
+
+# Phase 3H — Hardening & Production Readiness
+
+## 3H.1 Hardening Audit & Baseline (COMPLETED 2026-08-11)
+
+Audit across: security (11 import surfaces), test-only routes, local-vs-production safety,
+reliability, AI cost/bounds, performance, mobile, privacy, DB test debt, observability.
+
+### Baseline (at audit time)
+
+| Check                  | Result                                                                 |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `npm run check`        | PASS (lint 0 / typecheck clean / 851 unit tests / build clean)         |
+| 007 pgTAP              | 12/12 PASS                                                             |
+| Full `npm run db:test` | 015 (5/16 fail), 019 (1/29 fail), all others PASS                      |
+| E2E import specs       | 11/11 PASS (unified-editor 6, paste-import 5)                          |
+| E2E full suite         | infrastructure transient (stream closed early); prior baseline 114/114 |
+
+### FIX NOW (2 findings)
+
+| ID  | Issue                                                                                                               | Location                   |
+| --- | ------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| R9  | `retryOptions: { attempts: 1 }` = ZERO Gemini retries. Transient failures kill generation. Change to `attempts: 3`. | `gemini-provider.ts:74`    |
+| R10 | Same zero-retry in Gemini classifier.                                                                               | `gemini-classifier.ts:121` |
+
+### BEFORE PUBLIC BETA (9 findings)
+
+| ID          | Issue                                                                                                                                                       |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GS-1        | Google OAuth access token in React state — document that it's transient browser-memory only                                                                 |
+| GS-2        | Google Picker API Key must have HTTP referrer + API restrictions in Google Cloud Console (operational checklist)                                            |
+| R4          | `ImportWizard` file input never disables during parsing; `useTransition`'s `startTransition` never called                                                   |
+| R29         | RPC migration hardcodes `2000` vs. `IMPORT_MAX_ROWS` constant — drift risk                                                                                  |
+| R35         | No server-side idempotency key on import; slight double-submit risk via React batching race                                                                 |
+| P15/P16/P17 | `UnifiedDraftEditor` renders all cards simultaneously, no `React.memo` — unusable on mobile at 2000 cards; add virtualization/react-window when count > 100 |
+| T1          | Mock env vars (`FLASHLEARN_CLASSIFIER_MOCK`, `FLASHLEARN_GENERATION_MOCK`) not documented in `.env.example`                                                 |
+| L1          | No dev-vs-production guard: connecting to production Supabase from local dev has no warning                                                                 |
+
+### WHEN SCALE DEMANDS (9 findings)
+
+Subscriptions, billing, content-hash cross-session dedup, production event partitioning, idempotency, debounce wrapper, stale-key edge cases, hardcoded limits that match constants.
+
+### 015 root cause
+
+`select plan(34)` vs 16 actual assertions. Tests 9-12, 16 fail because `create_owned_quiz_session_from_card_ids` schema changed in `20260810120000` migration — the test references `quiz_questions` columns (`choices`, `source_flashcard_id`) from the newer explicit-session schema, causing plan mismatch and assertion failures when columns/multi-set logic diverged. **Classification: implementation drift — test needs updating, not code changing.**
+
+### 019 root cause
+
+Line 48: `select projection_revision from public.card_learning_schedule` — no WHERE clause. With `card_learning_schedule`'s `unique(user_id, flashcard_id)` constraint and the `upsert_card_learning_schedule` function's `ON CONFLICT` behavior in the hardened migration (20260810180000), the table may have additional rows or the subquery returns multiple rows when RLS is bypassed during `service_role`/`postgres` connections. **Classification: test stale — needs WHERE clause filtering and plan count fixing.**
+
+### 3H.2–3H.5 Planned
+
+- 3H.2: Security / reliability fixes (FIX NOW items + BEFORE PUBLIC BETA items)
+- 3H.3: Full test green (`npm run db:test` all PASS)
+- 3H.4: Production readiness (env docs, deployment checklist, operational hardening)
+- 3H.5: Deploy + production smoke test

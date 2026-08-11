@@ -103,7 +103,7 @@ function SortableCard({
         type="button"
         {...attributes}
         {...listeners}
-        className="hidden cursor-grab touch-manipulation self-center p-1 text-text-secondary sm:block"
+        className="cursor-grab touch-manipulation self-center p-2 text-text-secondary sm:p-1"
         aria-label={`Di chuyển thẻ ${index + 1}`}
         title="Kéo để sắp xếp"
       >

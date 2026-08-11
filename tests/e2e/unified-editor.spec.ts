@@ -108,6 +108,10 @@ test.describe("Unified editor (3G)", () => {
     ).toBeVisible();
     await expect(page.getByRole("button", { name: /xóa thẻ 1/i })).toBeVisible();
 
+    // Drag handle visible and reorder reachable on mobile
+    const handleA = page.getByRole("button", { name: "Di chuyển thẻ 1" });
+    await expect(handleA).toBeVisible();
+
     // Fill set name and import (proves import works on mobile)
     await page.getByLabel("Tên bộ").fill("Bộ mobile");
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();

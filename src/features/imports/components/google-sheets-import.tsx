@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Script from "next/script";
 
 import {
@@ -10,7 +9,6 @@ import {
   loadPrivateSheetValues,
   openGoogleSheet,
 } from "@/features/imports/server/analyze-google-sheets";
-import { importFlashcards } from "@/features/imports/server/actions";
 import {
   fetchPublicSheetValues,
   fetchPublicSpreadsheet,
@@ -103,11 +101,9 @@ type RawSheetData = {
 };
 
 export function GoogleSheetsImport() {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>("init");
   const [error, setError] = useState("");
   const [sheetInfo, setSheetInfo] = useState<SheetInfo | null>(null);
-  const [name, setName] = useState("");
   const [selectedSheetIndex, setSelectedSheetIndex] = useState(0);
   const [frontColumn, setFrontColumn] = useState(0);
   const [backColumn, setBackColumn] = useState(1);
@@ -453,27 +449,6 @@ export function GoogleSheetsImport() {
       sheetTitleRef.current || sheetInfo.sheets[selectedSheetIndex]?.title || "",
       [frontColumn, backColumn],
     );
-  }
-
-  async function submitImport(): Promise<void> {
-    if (!sheetInfo || sheetInfo.previewRows.length === 0) {
-      setError("Chưa có thẻ nào để import.");
-      return;
-    }
-    setMode("importing");
-    setError("");
-    try {
-      const result = await importFlashcards({ name, cards: sheetInfo.previewRows });
-      if ("error" in result) {
-        setError(result.error);
-        setMode("loaded");
-        return;
-      }
-      router.push(`/sets/${result.setId}`);
-    } catch {
-      setError("Không thể tạo bộ.");
-      setMode("loaded");
-    }
   }
 
   async function handlePasteUrl(): Promise<void> {

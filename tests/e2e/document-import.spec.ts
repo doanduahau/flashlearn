@@ -58,6 +58,9 @@ test.describe("Document import", () => {
     expect(hBox).toBeTruthy();
     expect(pBox).toBeTruthy();
     if (hBox && pBox) expect(hBox.y).toBeLessThan(pBox.y);
+
+    // 3E: analysis summary appears (section-level classification)
+    await expect(page.getByText(/mục/)).toBeVisible();
   });
 
   test("extracts a text-based PDF with page-aware metadata", async ({ page }) => {
@@ -77,6 +80,9 @@ test.describe("Document import", () => {
     await expect(page.getByText(/He dieu hanh la phan mem quan ly tai nguyen/i)).toBeVisible();
     // Page number tag
     await expect(page.getByText("trang 1")).toBeVisible();
+
+    // 3E: analysis summary appears
+    await expect(page.getByText(/mục/)).toBeVisible();
   });
 
   test("rejects a scan-only PDF with a clear unsupported message", async ({ page }) => {

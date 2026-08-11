@@ -25,3 +25,30 @@ export type ExtractedDocument = {
   extractedPageCount?: number;
   pagesWithoutText?: number;
 };
+
+export type SectionKind = "flashcard_like" | "prose" | "mixed" | "empty";
+
+export type DetectionMethod = "deterministic" | "ai";
+
+export type AnalyzedDocumentSection = {
+  index: number;
+  heading?: string;
+  blocks: ExtractedDocumentBlock[];
+  kind: SectionKind;
+  confidence: number;
+  detectedBy: DetectionMethod;
+  reason?: string;
+};
+
+export type AnalyzedDocument = {
+  sourceType: "docx" | "pdf";
+  title?: string;
+  sections: AnalyzedDocumentSection[];
+  totalCharacters: number;
+  analysis: {
+    deterministicSections: number;
+    aiSections: number;
+    sourceChars: number;
+    aiInputChars: number;
+  };
+};

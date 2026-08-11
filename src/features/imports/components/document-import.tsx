@@ -3,7 +3,9 @@
 import { useRef, useState, useTransition } from "react";
 
 import { extractDocument } from "@/features/imports/server/extract-document";
+import { analyzeDocument } from "@/features/imports/server/analyze-document";
 import type {
+  AnalyzedDocument,
   ExtractedDocument,
   ExtractedDocumentBlock,
 } from "@/features/imports/types/document-types";
@@ -48,6 +50,7 @@ function renderBlock(block: ExtractedDocumentBlock) {
 
 export function DocumentImport() {
   const [extraction, setExtraction] = useState<ExtractedDocument | null>(null);
+  const [analysis, setAnalysis] = useState<AnalyzedDocument | null>(null);
   const [error, setError] = useState("");
   const [fileName, setFileName] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -55,6 +58,7 @@ export function DocumentImport() {
 
   function reset() {
     setExtraction(null);
+    setAnalysis(null);
     setError("");
     setFileName("");
     if (inputRef.current) inputRef.current.value = "";
@@ -64,6 +68,7 @@ export function DocumentImport() {
     if (!file) return;
     setFileName(file.name);
     setError("");
+    setAnalysis(null);
 
     if (file.size > DOCUMENT_MAX_BYTES) {
       setError(`Tệp quá lớn. Tối đa ${Math.round(DOCUMENT_MAX_BYTES / (1024 * 1024))} MB.`);
@@ -81,6 +86,16 @@ export function DocumentImport() {
           setExtraction(null);
         } else {
           setExtraction(result.document);
+
+          // Auto-analyze after extraction
+          try {
+            const analysisResult = await analyzeDocument(result.document);
+            if ("document" in analysisResult) {
+              setAnalysis(analysisResult.document);
+            }
+          } catch {
+            // Analysis is optional; extraction result remains visible.
+          }
         }
       } catch {
         setError("Không thể đọc tệp. Hãy thử lại.");
@@ -121,6 +136,26 @@ export function DocumentImport() {
               <span className="text-xs text-text-secondary">
                 ({extraction.pagesWithoutText} trang không có văn bản)
               </span>
+            )}
+
+            {analysis && analysis.sections.length > 0 && (
+              <div className="flex flex-wrap gap-2 text-xs">
+                {analysis.sections.some((s) => s.kind === "flashcard_like") && (
+                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-primary-foreground">
+                    {analysis.sections.filter((s) => s.kind === "flashcard_like").length} mục thẻ
+                  </span>
+                )}
+                {analysis.sections.some((s) => s.kind === "prose") && (
+                  <span className="rounded-full bg-surface px-2 py-0.5">
+                    {analysis.sections.filter((s) => s.kind === "prose").length} mục văn bản
+                  </span>
+                )}
+                {analysis.sections.some((s) => s.kind === "mixed") && (
+                  <span className="rounded-full bg-surface px-2 py-0.5">
+                    {analysis.sections.filter((s) => s.kind === "mixed").length} mục hỗn hợp
+                  </span>
+                )}
+              </div>
             )}
           </div>
 

@@ -39,9 +39,13 @@ type SemanticResult =
   | { kind: "error"; message: string };
 
 async function requireAuth(): Promise<boolean> {
-  const supabase = await createClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  return Boolean(claims?.claims);
+  try {
+    const supabase = await createClient();
+    const { data: claims } = await supabase.auth.getClaims();
+    return Boolean(claims?.claims);
+  } catch {
+    return false;
+  }
 }
 
 function authHeaders(accessToken: string): Record<string, string> {

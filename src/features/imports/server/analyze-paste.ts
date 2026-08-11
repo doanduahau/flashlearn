@@ -19,7 +19,15 @@ type AnalyzeResult =
   | { error: string };
 
 export async function analyzePasteContent(rawText: unknown): Promise<AnalyzeResult> {
-  const supabase = await createClient();
+  let supabase;
+  try {
+    supabase = await createClient();
+  } catch (e) {
+    return {
+      error: `Không thể kết nối đến máy chủ. ${e instanceof Error ? e.message : ""}`,
+    };
+  }
+
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims) return { error: "Phiên đăng nhập đã hết hạn." };
 

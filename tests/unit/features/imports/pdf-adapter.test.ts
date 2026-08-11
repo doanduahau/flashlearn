@@ -1,8 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { mockPDFParseClass } = vi.hoisted(() => {
+const { mockPDFParseClass, mockSetWorker, mockGetWorkerData } = vi.hoisted(() => {
   const fn = vi.fn();
-  return { mockPDFParseClass: fn };
+  const setWorker = vi.fn();
+  Object.assign(fn, { setWorker });
+  return {
+    mockPDFParseClass: fn,
+    mockSetWorker: setWorker,
+    mockGetWorkerData: vi.fn(() => "data:text/javascript;base64,worker"),
+  };
 });
 
 vi.mock("pdf-parse", () => ({
@@ -13,6 +19,8 @@ vi.mock("pdf-parse", () => ({
     }
   },
 }));
+
+vi.mock("pdf-parse/worker", () => ({ getData: mockGetWorkerData }));
 
 import { extractPdf, PdfProcessingError } from "@/features/imports/adapters/pdf-adapter";
 
@@ -50,6 +58,8 @@ describe("extractPdf", () => {
       expect(result.blocks[0].text).toContain("Hệ điều hành");
     }
     expect(result.totalCharacters).toBeGreaterThan(0);
+    expect(mockGetWorkerData).toHaveBeenCalledTimes(1);
+    expect(mockSetWorker).toHaveBeenCalledWith("data:text/javascript;base64,worker");
   });
 
   it("extracts text from a multi-page PDF with page numbers", async () => {

@@ -1,11 +1,8 @@
-import { createRequire } from "node:module";
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import type { ExtractedDocument, ExtractedDocumentBlock } from "../types/document-types";
 import { DOCUMENT_MAX_EXTRACTED_CHARS, PDF_MAX_PAGES } from "@/lib/constants";
 
 type PdfRuntime = typeof import("pdf-parse");
+type PdfWorkerRuntime = typeof import("pdf-parse/worker");
 
 export type PdfProcessingStage =
   "pdf.runtime_import" | "pdf.parser_construct" | "pdf.document_load" | "pdf.text_extract";
@@ -49,21 +46,18 @@ async function loadPdfRuntime(): Promise<PdfRuntimeLoad> {
 
   return {
     runtime: pdfRuntime,
-    workerConfigured: configurePdfWorker(pdfRuntime.PDFParse),
+    workerConfigured: await configurePdfWorker(pdfRuntime.PDFParse),
   };
 }
 
-function configurePdfWorker(PDFParse: PdfRuntime["PDFParse"]): boolean {
+async function configurePdfWorker(PDFParse: PdfRuntime["PDFParse"]): Promise<boolean> {
   try {
-    const require = createRequire(import.meta.url);
-    const mainEntry = require.resolve("pdf-parse");
-    const workerPath = path.join(path.dirname(mainEntry), "pdf.worker.mjs");
-    const workerSource = readFileSync(workerPath, "utf8");
-    const dataUrl = `data:application/javascript;base64,${Buffer.from(workerSource).toString("base64")}`;
-    PDFParse.setWorker(dataUrl);
+    const workerRuntime: PdfWorkerRuntime = await import("pdf-parse/worker");
+    PDFParse.setWorker(workerRuntime.getData());
     return true;
   } catch {
-    // If the worker cannot be located, fall back to pdf-parse's default behavior.
+    // Keep the parser's native fallback, and expose the failed configuration in
+    // the safe server-side diagnostic if document loading also fails.
     return false;
   }
 }

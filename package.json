@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "test:e2e": "node scripts/test-e2e-local.mjs",
     "test:pdf-runtime-isolation": "node scripts/test-production-pdf-isolation.mjs",
+    "test:pdf-worker-runtime": "node scripts/test-production-pdf-worker.mjs",
     "fsrs:test:local": "node scripts/test-fsrs-local.mjs",
     "test:e2e:auth:no-confirm": "node scripts/test-e2e-auth-no-confirm.mjs",
     "prepare": "husky",

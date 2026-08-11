@@ -34,6 +34,9 @@ const localEnv = {
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
   SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
   MAILPIT_URL: mailpitUrl,
+  // Use the test-only classifier mock so E2E never calls real Gemini.
+  FLASHLEARN_CLASSIFIER_MOCK: "1",
+  FLASHLEARN_CLASSIFIER_COUNT_FILE: "test-results/classifier-count.txt",
 };
 await runNpm(["run", "build"], localEnv);
 const child = spawn(

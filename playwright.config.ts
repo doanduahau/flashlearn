@@ -3,7 +3,11 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   testIgnore: "**/auth-no-confirm.spec.ts",
-  fullyParallel: true,
+  // E2E shares a single local Supabase + app server and a file-backed test
+  // classifier counter; a single worker keeps cross-file state isolated and
+  // deterministic.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: true,
   retries: 0,
   reporter: "list",

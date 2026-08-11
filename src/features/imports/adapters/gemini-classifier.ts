@@ -1,5 +1,7 @@
 import "server-only";
 
+import { readFileSync, appendFileSync, writeFileSync, existsSync } from "node:fs";
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 import type { SectionKind } from "../types/document-types";
@@ -51,10 +53,59 @@ export interface DocumentClassifier {
   ): Promise<{ kind: SectionKind; confidence: number; deterministic: false; reason?: string }>;
 }
 
+// Test-only mock boundary. When FLASHLEARN_CLASSIFIER_MOCK=1 the classifier
+// returns a fixed result instead of calling Gemini, and increments a file-backed
+// counter so E2E tests can assert exact AI-call counts without hitting the real
+// API. A file is used (rather than module state) because Next.js bundles server
+// actions and route handlers into separate chunks that do not share module
+// instances.
+const MOCK_ENABLED = (process.env.FLASHLEARN_CLASSIFIER_MOCK ?? "").trim() === "1";
+
+export const mockClassifierCount = {
+  get calls(): number {
+    const path = process.env.FLASHLEARN_CLASSIFIER_COUNT_FILE;
+    if (!path) return 0;
+    try {
+      const raw = existsSync(path) ? readFileSync(path, "utf8") : "";
+      return raw.split("\n").filter((l) => l.trim() !== "").length;
+    } catch {
+      return 0;
+    }
+  },
+  increment(): void {
+    const path = process.env.FLASHLEARN_CLASSIFIER_COUNT_FILE;
+    if (!path) return;
+    try {
+      appendFileSync(path, "1\n", "utf8");
+    } catch {
+      // Best effort; test instrumentation only.
+    }
+  },
+  reset(): void {
+    const path = process.env.FLASHLEARN_CLASSIFIER_COUNT_FILE;
+    if (!path) return;
+    try {
+      writeFileSync(path, "", "utf8");
+    } catch {
+      // Best effort; test instrumentation only.
+    }
+  },
+};
+
 export class GeminiDocumentClassifier implements DocumentClassifier {
   async classify(
     text: string,
   ): Promise<{ kind: SectionKind; confidence: number; deterministic: false; reason?: string }> {
+    if (MOCK_ENABLED) {
+      mockClassifierCount.increment();
+      return {
+        kind: "mixed",
+        confidence: 0.8,
+        deterministic: false,
+        reason: "mock classifier",
+      };
+    }
+
     const apiKey = getGeminiApiKey();
     if (!apiKey) throw new Error("GEMINI_API_KEY not configured.");
 

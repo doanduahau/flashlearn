@@ -56,6 +56,10 @@ function parseMammothHtml(html: string): { blocks: ExtractedDocumentBlock[]; cha
 
     const content = body.slice(contentStart, closeIndex);
     segments.push({ tag: tagName, html: content });
+
+    // Advance past the closing tag so nested block tags (e.g. <p> inside
+    // <table>) are not re-parsed as separate segments.
+    BLOCK_TAG_RE.lastIndex = closeIndex + closeTag.length;
   }
 
   for (const seg of segments) {

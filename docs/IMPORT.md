@@ -110,3 +110,81 @@ pagesWithoutText?   — PDF only
 
 Library-specific types do not leak into domain code; the extractors are isolated
 behind the server boundary.
+
+---
+
+# Document auto-detection (Phase 3E)
+
+Stage 3E adds section-level classification of extracted document content. It is
+**analysis only** — no flashcard generation, no import, no persistence.
+
+```
+ExtractedDocument
+      ↓
+Section Builder
+      ↓
+Deterministic Classifier
+      ↓
+┌───────────────────────────────┐
+│                               │
+High confidence             Low confidence
+│                               │
+deterministic result         Gemini classification
+│                               │
+└───────────────────────────────┘
+      ↓
+AnalyzedDocument
+      ↓
+Stage 3F generation (planned)
+```
+
+## Core principle: AI as fallback, not default
+
+High-confidence deterministic content is never sent to AI. Only genuinely ambiguous
+sections fall back to Gemini classification. Structured tables and obvious prose are
+classified deterministically with zero AI calls.
+
+## Section kinds
+
+- **flashcard_like** — content already resembling explicit knowledge pairs (Q/A
+  tables, term/definition pairs, two-column structured data).
+- **prose** — continuous explanatory/narrative educational text.
+- **mixed** — contains both structured pairs AND substantial prose where treating
+  the whole section as one type would lose quality.
+- **empty** — no meaningful textual knowledge.
+
+## Classification process
+
+1. **Section building:** blocks are grouped by headings. Content before the first
+   heading forms its own section. Tables stay in their current section.
+2. **Deterministic classification:** each section is measured for table headers
+   (Question/Answer, Q/A, Term/Definition, Front/Back, etc.), paragraph dominance,
+   and mixed patterns. Confidence is scored 0–1.
+3. **Fallback threshold:** `DETERMINISTIC_CONFIDENCE_THRESHOLD = 0.65`. Sections
+   below this threshold only are sent to Gemini for classification.
+4. **Bounded AI:** at most 10 sections per document may use AI classification.
+   Sections are processed sequentially (bounded concurrency).
+
+## Gemini classifier
+
+Reuses the existing `gemini-flash-lite-latest` model and `@google/genai` SDK from
+Phase 3B. Gemini receives only the ambiguous section text and returns a structured
+classification (`kind` + `confidence`). Gemini does NOT generate flashcards.
+
+## Privacy and cost
+
+- Only ambiguous section content is sent to Gemini. High-confidence deterministic
+  sections stay local.
+- No document file, extracted content, or analyzed document is persisted.
+- No original file persistence (same principle as Stage 3D).
+- `sourceChars` and `aiInputChars` are tracked ephemerally for efficiency inspection.
+
+## 3E does NOT
+
+- Generate flashcards (that is Stage 3F)
+- Map `DraftFlashcard[]`
+- Import or persist anything
+- Modify database
+- OCR PDFs
+- Use Gemini Vision
+- Summarize, rewrite, or modify source content

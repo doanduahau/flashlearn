@@ -14,7 +14,7 @@ vi.mock("pdf-parse", () => ({
   },
 }));
 
-import { extractPdf } from "@/features/imports/adapters/pdf-adapter";
+import { extractPdf, PdfProcessingError } from "@/features/imports/adapters/pdf-adapter";
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -100,5 +100,16 @@ describe("extractPdf", () => {
     const result = await extractPdf(new ArrayBuffer(100));
     expect(result.title).toBe("Document Title");
     expect(result.pageCount).toBe(1);
+  });
+
+  it("labels text extraction failures without exposing a raw runtime error", async () => {
+    const instance = createMockInstance([{ num: 1, text: "Content" }]);
+    instance.getText.mockRejectedValue(new Error("DOMMatrix is not defined"));
+
+    await expect(extractPdf(new ArrayBuffer(100))).rejects.toMatchObject({
+      name: "PdfProcessingError",
+      stage: "pdf.text_extract",
+    } satisfies Partial<PdfProcessingError>);
+    expect(instance.destroy).toHaveBeenCalledTimes(1);
   });
 });

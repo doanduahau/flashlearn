@@ -7,17 +7,53 @@ import { DOCUMENT_MAX_EXTRACTED_CHARS, PDF_MAX_PAGES } from "@/lib/constants";
 
 type PdfRuntime = typeof import("pdf-parse");
 
+export type PdfProcessingStage =
+  "pdf.runtime_import" | "pdf.parser_construct" | "pdf.document_load" | "pdf.text_extract";
+
+/**
+ * Carries a stage to the server action without exposing the underlying runtime
+ * error to the browser. The action turns this into a safe, metadata-only log.
+ */
+export class PdfProcessingError extends Error {
+  readonly originalError: unknown;
+  readonly workerConfigured: boolean | undefined;
+
+  constructor(
+    readonly stage: PdfProcessingStage,
+    originalError: unknown,
+    options?: { workerConfigured?: boolean },
+  ) {
+    super("PDF_PROCESSING_FAILED");
+    this.name = "PdfProcessingError";
+    this.originalError = originalError;
+    this.workerConfigured = options?.workerConfigured;
+  }
+}
+
+type PdfRuntimeLoad = {
+  runtime: PdfRuntime;
+  workerConfigured: boolean;
+};
+
 // `extract-document` is registered with /sets for every import mode. Keep this
 // runtime import inside PDF extraction so pdfjs-dist's optional rendering
 // dependencies are never evaluated for Manual, Excel, Paste, Sheets, or DOCX.
 // pdf-parse remains external so its worker can be resolved from disk only here.
-async function loadPdfRuntime(): Promise<PdfRuntime> {
-  const pdfRuntime = await import("pdf-parse");
-  configurePdfWorker(pdfRuntime.PDFParse);
-  return pdfRuntime;
+async function loadPdfRuntime(): Promise<PdfRuntimeLoad> {
+  let pdfRuntime: PdfRuntime;
+  try {
+    pdfRuntime = await import("pdf-parse");
+  } catch (error) {
+    throw new PdfProcessingError("pdf.runtime_import", error);
+  }
+
+  return {
+    runtime: pdfRuntime,
+    workerConfigured: configurePdfWorker(pdfRuntime.PDFParse),
+  };
 }
 
-function configurePdfWorker(PDFParse: PdfRuntime["PDFParse"]): void {
+function configurePdfWorker(PDFParse: PdfRuntime["PDFParse"]): boolean {
   try {
     const require = createRequire(import.meta.url);
     const mainEntry = require.resolve("pdf-parse");
@@ -25,8 +61,18 @@ function configurePdfWorker(PDFParse: PdfRuntime["PDFParse"]): void {
     const workerSource = readFileSync(workerPath, "utf8");
     const dataUrl = `data:application/javascript;base64,${Buffer.from(workerSource).toString("base64")}`;
     PDFParse.setWorker(dataUrl);
+    return true;
   } catch {
     // If the worker cannot be located, fall back to pdf-parse's default behavior.
+    return false;
+  }
+}
+
+async function destroyParser(parser: { destroy: () => Promise<void> }): Promise<void> {
+  try {
+    await parser.destroy();
+  } catch {
+    // Preserve the original parser failure for safe diagnostic classification.
   }
 }
 
@@ -36,22 +82,38 @@ function detectScanOnly(pageTexts: string[]): boolean {
 }
 
 export async function extractPdf(fileBuffer: ArrayBuffer): Promise<ExtractedDocument> {
-  const { PDFParse, PasswordException } = await loadPdfRuntime();
+  const { runtime, workerConfigured } = await loadPdfRuntime();
+  const { PDFParse, PasswordException } = runtime;
   const data = new Uint8Array(fileBuffer);
-  const parser = new PDFParse({ data, verbosity: 0 });
+  let parser: InstanceType<PdfRuntime["PDFParse"]>;
+  try {
+    parser = new PDFParse({ data, verbosity: 0 });
+  } catch (error) {
+    throw new PdfProcessingError("pdf.parser_construct", error, { workerConfigured });
+  }
 
   let info;
   let textResult;
   try {
     info = await parser.getInfo();
+  } catch (err) {
+    if (err instanceof PasswordException) {
+      await destroyParser(parser);
+      throw new PDFEncryptedError();
+    }
+    await destroyParser(parser);
+    throw new PdfProcessingError("pdf.document_load", err, { workerConfigured });
+  }
+
+  try {
     textResult = await parser.getText({ first: PDF_MAX_PAGES });
   } catch (err) {
     if (err instanceof PasswordException) {
-      await parser.destroy();
+      await destroyParser(parser);
       throw new PDFEncryptedError();
     }
-    await parser.destroy();
-    throw err;
+    await destroyParser(parser);
+    throw new PdfProcessingError("pdf.text_extract", err, { workerConfigured });
   }
 
   const pages = textResult.pages ?? [];
@@ -65,7 +127,7 @@ export async function extractPdf(fileBuffer: ArrayBuffer): Promise<ExtractedDocu
   const pagesWithText = pageTexts.filter((p) => p.length > 0).length;
 
   if (isScanOnly) {
-    await parser.destroy();
+    await destroyParser(parser);
     return {
       sourceType: "pdf",
       title: info?.info?.Title,
@@ -99,7 +161,7 @@ export async function extractPdf(fileBuffer: ArrayBuffer): Promise<ExtractedDocu
 
   const pagesWithoutText = pages.length - pagesWithText;
 
-  await parser.destroy();
+  await destroyParser(parser);
 
   return {
     sourceType: "pdf",

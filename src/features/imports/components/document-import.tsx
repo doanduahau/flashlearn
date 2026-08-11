@@ -55,6 +55,7 @@ export function DocumentImport() {
   const [analysis, setAnalysis] = useState<AnalyzedDocument | null>(null);
   const [generatedCards, setGeneratedCards] = useState<DraftFlashcard[] | null>(null);
   const [genWarnings, setGenWarnings] = useState<string[]>([]);
+  const [genLimitExceeded, setGenLimitExceeded] = useState(false);
   const [error, setError] = useState("");
   const [fileName, setFileName] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -114,6 +115,7 @@ export function DocumentImport() {
     setError("");
     setGeneratedCards(null);
     setGenWarnings([]);
+    setGenLimitExceeded(false);
     startTransition(async () => {
       try {
         const result = await generateDocumentCards(analysis);
@@ -122,6 +124,7 @@ export function DocumentImport() {
         } else {
           setGeneratedCards(result.cards);
           setGenWarnings(result.warnings);
+          setGenLimitExceeded(result.limitExceeded);
         }
       } catch {
         setError("Không thể tạo thẻ. Hãy thử lại.");
@@ -219,6 +222,12 @@ export function DocumentImport() {
                 <span className="text-sm font-medium text-text-secondary">
                   {generatedCards.length} thẻ đã tạo
                 </span>
+                {genLimitExceeded && (
+                  <span className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-text-primary">
+                    Tài liệu này tạo ra nhiều thẻ hơn mức tối đa cho phép. Không thể tiếp tục
+                    import; vui lòng tách nội dung thành nhiều tài liệu.
+                  </span>
+                )}
                 {genWarnings.length > 0 && (
                   <span className="text-xs text-text-secondary">{genWarnings.join(", ")}</span>
                 )}

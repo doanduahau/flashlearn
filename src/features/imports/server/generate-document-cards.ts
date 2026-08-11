@@ -15,6 +15,7 @@ import { GeminiFlashcardGenerationProvider } from "@/features/imports/adapters/g
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
 import {
   DOCUMENT_GENERATION_MAX_AI_REQUESTS,
+  DOCUMENT_GENERATION_MAX_INPUT_CHARS,
   GEMINI_MAX_OUTPUT_CARDS,
   IMPORT_MAX_ROWS,
 } from "@/lib/constants";
@@ -48,6 +49,12 @@ const genCounter = {
 
 async function mockGenerateCards(_input: { text: string }): Promise<DraftFlashcard[]> {
   genCounter.increment();
+  const failPath = process.env.FLASHLEARN_GENERATION_MOCK_FAIL_FILE;
+  const shouldFail =
+    failPath && existsSync(failPath) && readFileSync(failPath, "utf8").trim() === "1";
+  if (shouldFail) {
+    throw new Error("Mock generation failure");
+  }
   return [
     { front: "Mock question from document", back: "Mock answer from document" },
     { front: "Another mock question", back: "Another mock answer" },
@@ -70,8 +77,16 @@ type GenerationResult =
       cards: DraftFlashcard[];
       metrics: GenerationMetrics;
       warnings: string[];
+      limitExceeded: boolean;
     }
   | { error: string };
+
+type ProviderWithStats = {
+  generateCards(input: { text: string }): Promise<DraftFlashcard[]>;
+  generateCardsWithStats?(input: {
+    text: string;
+  }): Promise<{ cards: DraftFlashcard[]; discardedCount: number }>;
+};
 
 // ─── Deterministic conversion helpers ─────────────────────────────────────
 
@@ -130,6 +145,47 @@ function blockText(block: ExtractedDocumentBlock): string {
   return "";
 }
 
+// ─── Semantic chunking ────────────────────────────────────────────────────
+
+const CHUNK_LIMIT = DOCUMENT_GENERATION_MAX_INPUT_CHARS;
+
+type ChunkResult = {
+  chunks: string[];
+  oversizedBlocks: string[];
+};
+
+/**
+ * Groups prose block texts into chunks no larger than CHUNK_LIMIT, splitting on
+ * block boundaries (never inside a block). A single block that alone exceeds the
+ * limit is returned as oversized rather than silently cut.
+ */
+function chunkProseBlocks(blocks: string[]): ChunkResult {
+  const chunks: string[] = [];
+  const oversizedBlocks: string[] = [];
+  let current: string | null = null;
+
+  for (const block of blocks) {
+    if (block.length > CHUNK_LIMIT) {
+      if (current) {
+        chunks.push(current);
+        current = null;
+      }
+      oversizedBlocks.push(block);
+      continue;
+    }
+    const candidate: string = current ? `${current}\n\n${block}` : block;
+    if (candidate.length > CHUNK_LIMIT) {
+      if (current) chunks.push(current);
+      current = block;
+    } else {
+      current = candidate;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return { chunks, oversizedBlocks };
+}
+
 // ─── Section processors ───────────────────────────────────────────────────
 
 function processFlashcardLike(section: AnalyzedDocumentSection): {
@@ -150,49 +206,110 @@ function processFlashcardLike(section: AnalyzedDocumentSection): {
   return { cards, chars };
 }
 
+async function generateProseChunk(
+  text: string,
+  provider: ProviderWithStats,
+): Promise<{ cards: DraftFlashcard[]; discarded: number }> {
+  if (provider.generateCardsWithStats) {
+    const result = await provider.generateCardsWithStats({ text });
+    return {
+      cards: result.cards.slice(0, GEMINI_MAX_OUTPUT_CARDS),
+      discarded: result.discardedCount,
+    };
+  }
+  const cards = await provider.generateCards({ text });
+  return { cards: cards.slice(0, GEMINI_MAX_OUTPUT_CARDS), discarded: 0 };
+}
+
 async function processProse(
   section: AnalyzedDocumentSection,
-  provider: FlashcardGenerationProvider,
-): Promise<{ cards: DraftFlashcard[]; aiInputChars: number }> {
-  const text = section.blocks
-    .map(blockText)
-    .filter((t) => t.length > 0)
-    .join("\n\n");
-  if (text.length === 0) return { cards: [], aiInputChars: 0 };
-  const cards = await provider.generateCards({ text });
-  return { cards: cards.slice(0, GEMINI_MAX_OUTPUT_CARDS), aiInputChars: text.length };
+  provider: ProviderWithStats,
+): Promise<{
+  cards: DraftFlashcard[];
+  aiInputChars: number;
+  warnings: string[];
+}> {
+  const texts = section.blocks.map(blockText).filter((t) => t.length > 0);
+  if (texts.length === 0) return { cards: [], aiInputChars: 0, warnings: [] };
+
+  const { chunks, oversizedBlocks } = chunkProseBlocks(texts);
+  const warnings: string[] = [];
+  const cards: DraftFlashcard[] = [];
+  let aiInputChars = 0;
+
+  for (const chunk of chunks) {
+    aiInputChars += chunk.length;
+    const result = await generateProseChunk(chunk, provider);
+    cards.push(...result.cards);
+    if (result.discarded > 0) {
+      warnings.push(`Bỏ qua ${result.discarded} thẻ AI không hợp lệ trong một mục văn bản.`);
+    }
+  }
+
+  for (const oversized of oversizedBlocks) {
+    warnings.push(
+      `Một đoạn văn quá dài để xử lý (${oversized.length} ký tự). Không thể tạo thẻ cho đoạn này.`,
+    );
+  }
+
+  return { cards, aiInputChars, warnings };
 }
 
 async function processMixed(
   section: AnalyzedDocumentSection,
-  provider: FlashcardGenerationProvider,
-): Promise<{ cards: DraftFlashcard[]; aiInputChars: number; detPre: number; aiPre: number }> {
+  provider: ProviderWithStats,
+): Promise<{
+  cards: DraftFlashcard[];
+  aiInputChars: number;
+  detPre: number;
+  aiPre: number;
+  warnings: string[];
+}> {
+  const warnings: string[] = [];
+  const allCards: DraftFlashcard[] = [];
   let aiInputChars = 0;
   let detPre = 0;
   let aiPre = 0;
-  const allCards: DraftFlashcard[] = [];
-  const proseBlocks: string[] = [];
+
+  // Walk blocks in ORIGINAL order. Group adjacent prose blocks, but emit
+  // deterministic table cards at the position where the table appears.
+  let proseGroup: string[] = [];
+
+  const flushProse = async (): Promise<void> => {
+    if (proseGroup.length === 0) return;
+    const { chunks, oversizedBlocks } = chunkProseBlocks(proseGroup);
+    for (const chunk of chunks) {
+      aiInputChars += chunk.length;
+      const result = await generateProseChunk(chunk, provider);
+      allCards.push(...result.cards);
+      aiPre += result.cards.length;
+      if (result.discarded > 0) {
+        warnings.push(`Bỏ qua ${result.discarded} thẻ AI không hợp lệ trong một mục hỗn hợp.`);
+      }
+    }
+    for (const oversized of oversizedBlocks) {
+      warnings.push(
+        `Một đoạn văn quá dài để xử lý (${oversized.length} ký tự) trong mục hỗn hợp. Không thể tạo thẻ cho đoạn này.`,
+      );
+    }
+    proseGroup = [];
+  };
 
   for (const block of section.blocks) {
     if (block.type === "table") {
+      await flushProse();
       const tableCards = convertTable(block);
       allCards.push(...tableCards);
       detPre += tableCards.length;
     } else {
       const text = blockText(block);
-      if (text.length > 0) proseBlocks.push(text);
+      if (text.length > 0) proseGroup.push(text);
     }
   }
 
-  if (proseBlocks.length > 0) {
-    const text = proseBlocks.join("\n\n");
-    aiInputChars += text.length;
-    const genCards = await provider.generateCards({ text });
-    allCards.push(...genCards.slice(0, GEMINI_MAX_OUTPUT_CARDS));
-    aiPre += genCards.length;
-  }
+  await flushProse();
 
-  return { cards: allCards, aiInputChars, detPre, aiPre };
+  return { cards: allCards, aiInputChars, detPre, aiPre, warnings };
 }
 
 // ─── Deduplication ────────────────────────────────────────────────────────
@@ -224,7 +341,7 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
     return { error: "Dữ liệu phân tích không hợp lệ." };
   }
 
-  const provider: FlashcardGenerationProvider = GEN_MOCK_ENABLED
+  const provider: ProviderWithStats = GEN_MOCK_ENABLED
     ? { generateCards: mockGenerateCards }
     : new GeminiFlashcardGenerationProvider();
 
@@ -264,6 +381,7 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
         allCards.push(...result.cards);
         metrics.aiInputChars += result.aiInputChars;
         aiCardCount += result.cards.length;
+        warnings.push(...result.warnings);
       } catch {
         warnings.push("Không thể tạo thẻ cho một mục văn bản (AI không khả dụng).");
       }
@@ -283,6 +401,7 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
         metrics.aiInputChars += result.aiInputChars;
         detCardCount += result.detPre;
         aiCardCount += result.aiPre;
+        warnings.push(...result.warnings);
       } catch {
         const det = processFlashcardLike(section);
         allCards.push(...det.cards);
@@ -296,7 +415,23 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
   }
 
   const deduped = deduplicateCards(allCards);
-  const validated = validateDraftCards(deduped.slice(0, IMPORT_MAX_ROWS));
+
+  // No silent truncation: if the document exceeds the canonical limit, surface it.
+  if (deduped.length > IMPORT_MAX_ROWS) {
+    metrics.deterministicCards = detCardCount;
+    metrics.aiGeneratedCards = aiCardCount;
+    return {
+      cards: deduped,
+      metrics,
+      warnings: [
+        ...warnings,
+        `Tài liệu tạo ra ${deduped.length} thẻ, vượt quá mức tối đa ${IMPORT_MAX_ROWS}. Không thể tiếp tục import.`,
+      ],
+      limitExceeded: true,
+    };
+  }
+
+  const validated = validateDraftCards(deduped);
 
   metrics.deterministicCards = detCardCount;
   metrics.aiGeneratedCards = aiCardCount;
@@ -305,5 +440,6 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
     cards: validated.cards,
     metrics,
     warnings: warnings.length > 0 ? warnings : [],
+    limitExceeded: false,
   };
 }

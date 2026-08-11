@@ -47,7 +47,14 @@ ${text}`;
 }
 
 export class GeminiFlashcardGenerationProvider implements FlashcardGenerationProvider {
-  async generateCards({ text }: { text: string }): Promise<DraftFlashcard[]> {
+  async generateCards(input: { text: string }): Promise<DraftFlashcard[]> {
+    const result = await this.generateCardsWithStats(input);
+    return result.cards;
+  }
+
+  async generateCardsWithStats(input: {
+    text: string;
+  }): Promise<{ cards: DraftFlashcard[]; discardedCount: number }> {
     const apiKey = getGeminiApiKey();
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not configured.");
@@ -55,7 +62,7 @@ export class GeminiFlashcardGenerationProvider implements FlashcardGenerationPro
 
     const genAI = new GoogleGenAI({ apiKey });
 
-    const prompt = buildPrompt(text);
+    const prompt = buildPrompt(input.text);
 
     const result = await genAI.models.generateContent({
       model: MODEL_ID,
@@ -91,13 +98,23 @@ export class GeminiFlashcardGenerationProvider implements FlashcardGenerationPro
     }
 
     const draftCards: DraftFlashcard[] = [];
+    let discardedCount = 0;
     for (const card of cards) {
-      if (!card || typeof card !== "object") continue;
+      if (!card || typeof card !== "object") {
+        discardedCount += 1;
+        continue;
+      }
       const c = card as Record<string, unknown>;
       const front = typeof c.front === "string" ? c.front.trim() : "";
       const back = typeof c.back === "string" ? c.back.trim() : "";
-      if (!front || !back) continue;
-      if (front.length > CARD_TEXT_MAX_LENGTH || back.length > CARD_TEXT_MAX_LENGTH) continue;
+      if (!front || !back) {
+        discardedCount += 1;
+        continue;
+      }
+      if (front.length > CARD_TEXT_MAX_LENGTH || back.length > CARD_TEXT_MAX_LENGTH) {
+        discardedCount += 1;
+        continue;
+      }
       draftCards.push({ front, back });
     }
 
@@ -105,6 +122,6 @@ export class GeminiFlashcardGenerationProvider implements FlashcardGenerationPro
       throw new Error("AI không tạo được thẻ nào từ nội dung này.");
     }
 
-    return draftCards;
+    return { cards: draftCards, discardedCount };
   }
 }

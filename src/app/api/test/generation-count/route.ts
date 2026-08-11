@@ -24,9 +24,21 @@ function resetCount(): void {
   }
 }
 
+function setFailFlag(enable: boolean): void {
+  const path = process.env.FLASHLEARN_GENERATION_MOCK_FAIL_FILE;
+  if (!path) return;
+  try {
+    writeFileSync(path, enable ? "1" : "", "utf8");
+  } catch {
+    /* best effort */
+  }
+}
+
 export async function GET(req: Request) {
   if (!MOCK_ENABLED) return NextResponse.json({ error: "not found" }, { status: 404 });
   const url = new URL(req.url);
   if (url.searchParams.get("reset") === "1") resetCount();
+  if (url.searchParams.get("fail") === "1") setFailFlag(true);
+  if (url.searchParams.get("fail") === "0") setFailFlag(false);
   return NextResponse.json({ calls: readCount() });
 }

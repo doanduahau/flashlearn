@@ -197,4 +197,33 @@ test.describe("Document generation (3F)", () => {
     const genAfter = await generationCalls(page);
     expect(genAfter - genBefore).toBe(1);
   });
+
+  test("reports a recoverable generation error when AI generation fails", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await signUpAndConfirm(page, uniqueEmail("gen_failure"));
+
+    // Enable the mock generation failure flag.
+    await page.request.get("/api/test/generation-count?fail=1");
+
+    try {
+      const fileInput = await openDocumentImport(page);
+      await fileInput.setInputFiles(MIXED_DOCX);
+
+      // Mixed doc analysis completes.
+      await expect(page.getByText("mục văn bản")).toBeVisible();
+
+      // Trigger generation; AI fails but deterministic table cards survive.
+      await page.getByRole("button", { name: "Tạo thẻ" }).click();
+
+      // Deterministic cards are still shown (table cards survive).
+      await expect(page.getByText("thẻ đã tạo")).toBeVisible();
+      // A clear warning is visible.
+      await expect(page.getByText(/AI không khả dụng|Không thể tạo thẻ/)).toBeVisible();
+
+      // No flashcard set is created (no navigation to /sets/[id]).
+      await expect(page).toHaveURL(/\/sets\?create=document$/);
+    } finally {
+      await page.request.get("/api/test/generation-count?fail=0");
+    }
+  });
 });

@@ -21,6 +21,7 @@ import type { MeaningfulColumn } from "@/features/imports/utils/detect-columns";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
 import { columnIndexToLetters } from "@/features/imports/utils/sheets-a1";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
+import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
 import { IMPORT_PREVIEW_ROWS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,6 +117,7 @@ export function GoogleSheetsImport() {
   const [accessToken, setAccessToken] = useState("");
   const [urlInput, setUrlInput] = useState("");
   const [isPublicFlow, setIsPublicFlow] = useState(false);
+  const [fullCards, setFullCards] = useState<DraftFlashcard[] | null>(null);
 
   const tokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
   const gapiLoadedRef = useRef(false);
@@ -140,12 +142,14 @@ export function GoogleSheetsImport() {
     const analysis = adaptSheetData(sheetData, preferredMapping);
 
     if (analysis.kind === "error") {
+      setFullCards(null);
       setError(analysis.message);
       setMode("loaded");
       return;
     }
 
     if (analysis.kind === "needs_mapping") {
+      setFullCards(null);
       setMeaningfulColumns(analysis.columns);
       setNeedsMapping(true);
       setSheetInfo({
@@ -171,6 +175,7 @@ export function GoogleSheetsImport() {
     }
 
     const validation = validateDraftCards(analysis.cards);
+    setFullCards(validation.cards);
     setSheetInfo({
       spreadsheetTitle: meta.spreadsheetTitle,
       sheets: meta.sheets,
@@ -195,6 +200,7 @@ export function GoogleSheetsImport() {
     try {
       const result = await analyzeSheetText({ text });
       if (result.kind === "success") {
+        setFullCards(result.cards);
         if (sheetInfo) {
           setSheetInfo({
             ...sheetInfo,
@@ -640,75 +646,24 @@ export function GoogleSheetsImport() {
             })()}
           </Button>
 
-          {sheetInfo.previewRows.length > 0 && (
-            <>
-              <div className="flex flex-wrap gap-2 text-sm text-text-secondary">
-                <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary-foreground">
-                  {sheetInfo.valid} thẻ hợp lệ
-                </span>
-                {sheetInfo.blank > 0 && (
-                  <span className="rounded-full bg-surface px-3 py-1 text-xs">
-                    {sheetInfo.blank} dòng trống
-                  </span>
-                )}
-                {sheetInfo.partial > 0 && (
-                  <span className="rounded-full bg-surface px-3 py-1 text-xs">
-                    {sheetInfo.partial} thiếu
-                  </span>
-                )}
-                {sheetInfo.duplicate > 0 && (
-                  <span className="rounded-full bg-surface px-3 py-1 text-xs">
-                    {sheetInfo.duplicate} trùng
-                  </span>
-                )}
-              </div>
-
-              <div className="max-h-64 overflow-auto rounded-xl border border-border-soft bg-surface sm:max-h-80">
-                <table className="w-full text-left text-sm">
-                  <thead className="sticky top-0 bg-surface-subtle">
-                    <tr className="text-xs text-text-secondary">
-                      <th className="px-3 py-2 font-medium sm:px-4">Mặt trước</th>
-                      <th className="px-3 py-2 font-medium sm:px-4">Mặt sau</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sheetInfo.previewRows.map((card, i) => (
-                      <tr key={i} className="border-t border-border-soft">
-                        <td className="px-3 py-2 sm:px-4">{card.front}</td>
-                        <td className="px-3 py-2 sm:px-4">{card.back}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {sheetInfo.valid > IMPORT_PREVIEW_ROWS && (
-                  <p className="px-3 py-2 text-xs text-text-secondary">
-                    Hiển thị {IMPORT_PREVIEW_ROWS} / {sheetInfo.valid} thẻ
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="gs-set-name">Tên bộ</Label>
-                <Input
-                  id="gs-set-name"
-                  placeholder="Nhập tên bộ flashcard"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={isPending}
-                />
-              </div>
-
-              <Button
-                onClick={submitImport}
-                disabled={!name.trim() || sheetInfo.previewRows.length === 0 || isPending}
-              >
-                {(() => {
-                  const m: string = mode;
-                  return m === "importing" ? "Đang import..." : "Tạo bộ";
-                })()}
-              </Button>
-            </>
-          )}
+          {fullCards && fullCards.length > 0 ? (
+            <UnifiedDraftEditor
+              key={`sheets-${selectedSheetIndex}-${frontColumn}-${backColumn}`}
+              sourceCards={fullCards}
+              setCardCount={fullCards.length}
+              sourceMetadata={[
+                { label: "Bảng tính", value: sheetInfo.spreadsheetTitle },
+                ...(sheetInfo.sheets.length > 1
+                  ? [
+                      {
+                        label: "Tab",
+                        value: sheetInfo.sheets[selectedSheetIndex]?.title ?? "",
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          ) : null}
         </>
       )}
 

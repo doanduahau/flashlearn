@@ -270,3 +270,74 @@ user-facing preview/edit.
 - OCR PDFs
 - Use Gemini Vision
 - Persist original files, prompts, or responses
+
+---
+
+# Unified Preview/Edit (Phase 3G)
+
+Stage 3G provides a single reusable draft editor for all import sources. It
+accepts `DraftFlashcard[]` from any source and lets the user edit, reorder,
+add, delete, and swap cards before final atomic import.
+
+```
+Excel ───────────────┐
+Paste ───────────────┤
+Google Sheets ───────┤
+Document ────────────┤
+                     ↓
+             DraftFlashcard[]
+                     ↓
+            UnifiedDraftEditor
+                     ↓
+       edit / add / delete / reorder
+          swap one / swap all
+                     ↓
+            canonical validation
+                     ↓
+         existing atomic import path
+                     ↓
+              Flashcard Set
+```
+
+## Integrated sources
+
+- **Excel** — after file parsing and column mapping, cards flow into the editor
+- **Paste** — after structured analysis or Gemini generation, cards flow into the editor
+- **Google Sheets** — after column detection and mapping, cards flow into the editor
+- **Document (.docx / PDF)** — after extraction → analysis → generation, cards flow into the editor
+
+## Editor actions
+
+| Action            | Behavior                                                   |
+| ----------------- | ---------------------------------------------------------- |
+| Edit Front / Back | Inline textareas per card, multiline                       |
+| Delete            | Per-card ✕ button, no confirmation                         |
+| Add               | "+ Thêm thẻ" appends empty card, disabled at canonical max |
+| Reorder           | Drag-and-drop via @dnd-kit (pointer, touch, keyboard)      |
+| Swap one          | Per-card ⇆ button, exchanges front/back                    |
+| Swap all          | Global ⇄ button, reverses every card, idempotent           |
+
+## Rules
+
+- **No AI/deterministic provenance UI** — cards show only content, not implementation source
+- **Editing triggers zero AI** — no classifier calls, no generation calls during edit
+- **Invalid cards block import** — empty front/back or over-length cards disable the import button. Cards are never silently filtered before persistence.
+- **Warnings may allow partial-success import** — 3F warnings are shown but don't block import when valid cards exist
+- **> canonical maximum blocks import** — 3F `limitExceeded` shows a clear blocker banner, import unavailable
+- **State is transient** — no draft tables, no editor-state persistence, no Supabase Storage
+- **Final persistence is atomic** — uses the existing `import_flashcard_set` RPC via `importFlashcards`
+- **Final edited order/value is authoritative** — cards are imported in the exact order and with the exact values shown in the editor
+- **Server-side validation remains canonical** — `importPayloadSchema` Zod validation is the final gate before the RPC
+
+## Internal model
+
+```ts
+type EditableDraftCard = {
+  id: string; // stable ephemeral UUID, never persisted
+  front: string;
+  back: string;
+};
+```
+
+Cards are converted from `DraftFlashcard[]` on entry and back to `DraftFlashcard[]` on import.
+Stable UUIDs enable drag-and-drop reordering without index-key bugs.

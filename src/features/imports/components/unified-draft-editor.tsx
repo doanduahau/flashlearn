@@ -5,13 +5,19 @@ import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragEndEvent,
+  KeyboardSensor,
   PointerSensor,
   TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
@@ -202,6 +208,7 @@ export function UnifiedDraftEditor({
     useSensor(TouchSensor, {
       activationConstraint: { delay: 150, tolerance: 5 },
     }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -244,7 +251,7 @@ export function UnifiedDraftEditor({
     setError("");
     setImporting(true);
     try {
-      const draftCards = cards.filter(isCardValid).map(toDraftCard);
+      const draftCards = cards.map(toDraftCard);
       const action = onImport ?? importFlashcards;
       const result = await (onImport
         ? onImport(name, draftCards)

@@ -8,10 +8,12 @@ import { MatchBoard } from "@/features/match/components/match-board";
 import { loadMatchCards } from "@/features/match/server/actions";
 import type { MatchCard, MatchQuestionCount } from "@/features/match/types/match-types";
 import { buildMatchSession } from "@/features/match/utils/match-session";
+import { commitCoverageAndResetScope } from "@/features/practice-coverage/server/actions";
 
 type MatchSessionProps = {
   sessionHref: string;
   questionCount: MatchQuestionCount;
+  scopeEligibleIds: string[];
 };
 
 function mulberry32(a: number): () => number {
@@ -24,7 +26,7 @@ function mulberry32(a: number): () => number {
   };
 }
 
-export function MatchSession({ sessionHref, questionCount }: MatchSessionProps) {
+export function MatchSession({ sessionHref, questionCount, scopeEligibleIds }: MatchSessionProps) {
   const [cards, setCards] = useState<MatchCard[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sessionKey, setSessionKey] = useState(() => Math.floor(Math.random() * 2 ** 32));
@@ -57,6 +59,11 @@ export function MatchSession({ sessionHref, questionCount }: MatchSessionProps) 
     const random = mulberry32(sessionKey);
     return buildMatchSession(cards, questionCount, random);
   }, [cards, questionCount, sessionKey]);
+
+  async function handleComplete(sessionCardIds: string[]): Promise<void> {
+    void commitCoverageAndResetScope("match", sessionCardIds, scopeEligibleIds);
+    setDone(true);
+  }
 
   function replay(): void {
     setDone(false);
@@ -126,7 +133,7 @@ export function MatchSession({ sessionHref, questionCount }: MatchSessionProps) 
       key={sessionKey}
       batches={batches}
       questionCount={questionCount}
-      onComplete={() => setDone(true)}
+      onComplete={handleComplete}
     />
   );
 }

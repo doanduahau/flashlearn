@@ -2,11 +2,9 @@
 
 import { matchStartSchema } from "@/features/match/schemas/match-schema";
 import type { MatchCard } from "@/features/match/types/match-types";
-import { getMatchEligibility, type MatchEligibility } from "@/features/match/utils/match-session";
+import { loadUncoveredIds } from "@/features/practice-coverage/server/actions";
+import { collectStudyCardIds } from "@/features/study/server/load-study-cards";
 import { createClient } from "@/lib/supabase/server";
-
-export type MatchAvailabilityResult =
-  { ok: true; eligibleCount: number; eligibility: MatchEligibility } | { ok: false; error: string };
 
 async function authenticatedUserId(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -14,6 +12,26 @@ async function authenticatedUserId(
   const { data } = await supabase.auth.getClaims();
   return typeof data?.claims?.sub === "string" ? data.claims.sub : null;
 }
+
+function eligibilityFromCount(count: number): {
+  availableCounts: number[];
+  message: string | null;
+} {
+  if (count < 12)
+    return { availableCounts: [], message: "Match yêu cầu ít nhất 12 thẻ có thể ghép rõ ràng." };
+  if (count < 18) return { availableCounts: [12], message: null };
+  if (count < 24) return { availableCounts: [12, 18], message: null };
+  return { availableCounts: [12, 18, 24], message: null };
+}
+
+export type MatchAvailabilityResult =
+  | {
+      ok: true;
+      eligibleCount: number;
+      eligibility: { availableCounts: number[]; message: string | null };
+      hasUncovered: boolean;
+    }
+  | { ok: false; error: string };
 
 export async function getMatchAvailability(input: unknown): Promise<MatchAvailabilityResult> {
   const parsed = matchStartSchema.safeParse(input);
@@ -25,8 +43,18 @@ export async function getMatchAvailability(input: unknown): Promise<MatchAvailab
     return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
 
   try {
-    const cards = await loadCards(supabase, parsed.data);
-    return { ok: true, eligibleCount: cards.length, eligibility: getMatchEligibility(cards) };
+    const ids = await collectStudyCardIds(supabase, {
+      all: parsed.data.all,
+      setIds: parsed.data.setIds,
+      collectionIds: parsed.data.collectionIds,
+    });
+    const uncovered = await loadUncoveredIds("match", ids);
+    return {
+      ok: true,
+      eligibleCount: ids.length,
+      eligibility: eligibilityFromCount(ids.length),
+      hasUncovered: uncovered.length > 0,
+    };
   } catch {
     return { ok: false, error: "Không thể tải thẻ Match lúc này." };
   }
@@ -44,7 +72,8 @@ export async function loadMatchCards(
   if (!userId) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
 
   try {
-    return { ok: true, cards: await loadCards(supabase, parsed.data) };
+    const cards = await loadCards(supabase, parsed.data);
+    return { ok: true, cards };
   } catch {
     return { ok: false, error: "Không thể tải thẻ Match lúc này." };
   }
@@ -96,5 +125,11 @@ async function loadCards(
     cards.push({ id: row.id, front: row.front, back: row.back });
   }
 
-  return cards;
+  // Reorder: uncovered cards first for the session builder to prioritize.
+  const eligibleIds = cards.map((c) => c.id);
+  const uncovered = await loadUncoveredIds("match", eligibleIds);
+  const uncoveredSet = new Set(uncovered);
+  const uncoveredCards = cards.filter((c) => uncoveredSet.has(c.id));
+  const coveredCards = cards.filter((c) => !uncoveredSet.has(c.id));
+  return [...uncoveredCards, ...coveredCards];
 }

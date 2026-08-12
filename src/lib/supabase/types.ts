@@ -198,6 +198,35 @@ export type Database = {
         }
         Relationships: []
       }
+      flashcard_coverage: {
+        Row: {
+          covered_at: string
+          flashcard_id: string
+          mode: string
+          user_id: string
+        }
+        Insert: {
+          covered_at?: string
+          flashcard_id: string
+          mode: string
+          user_id: string
+        }
+        Update: {
+          covered_at?: string
+          flashcard_id?: string
+          mode?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcard_coverage_flashcard_id_fkey"
+            columns: ["flashcard_id"]
+            isOneToOne: false
+            referencedRelation: "flashcards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flashcard_sets: {
         Row: {
           created_at: string
@@ -501,6 +530,7 @@ export type Database = {
           p_all: boolean
           p_collection_ids: string[]
           p_mode: string
+          p_prioritize_ids?: string[]
           p_question_count: number
           p_set_ids: string[]
         }

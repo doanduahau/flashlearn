@@ -167,6 +167,11 @@ test.describe("Match learning mode", () => {
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
 
+    // A fixed session seed gives one Front near the top whose matching Back is
+    // lower in the independently shuffled column.
+    await page.addInitScript(() => {
+      Math.random = () => 0.25;
+    });
     await page.goto("/match");
     await page.getByRole("button", { name: "12 câu" }).click();
     await page.getByRole("button", { name: "Bắt đầu Match" }).click();
@@ -177,6 +182,28 @@ test.describe("Match learning mode", () => {
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );
     expect(overflow).toBe(false);
+
+    const frontIds = await page
+      .locator('[data-match-side="front"]')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-match-card-id")));
+    const backIds = await page
+      .locator('[data-match-side="back"]')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-match-card-id")));
+    const scrollTargetId = frontIds.find(
+      (id, index) => id !== null && index < 2 && backIds.indexOf(id) >= 4,
+    );
+    expect(scrollTargetId).toBeTruthy();
+    if (!scrollTargetId) return;
+
+    const front = page.locator(`[data-match-side="front"][data-match-card-id="${scrollTargetId}"]`);
+    const back = page.locator(`[data-match-side="back"][data-match-card-id="${scrollTargetId}"]`);
+    await front.click();
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await expect(back).toBeVisible();
+    await back.click();
+    await expect(front).toBeDisabled();
+    await expect(back).toBeDisabled();
   });
 
   test("uses independent deterministic Front and Back orderings", async ({ page }) => {

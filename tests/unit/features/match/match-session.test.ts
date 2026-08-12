@@ -13,7 +13,9 @@ function card(id: string, front = id, back = `back-${id}`): MatchCard {
 }
 
 function makeCards(count: number): MatchCard[] {
-  return Array.from({ length: count }, (_, i) => card(`card-${i}`, `front-${i}`, `back-${i}`));
+  return Array.from({ length: count }, (_, index) =>
+    card(`card-${index}`, `front-${index}`, `back-${index}`),
+  );
 }
 
 function fixedRandom(): () => number {
@@ -24,147 +26,127 @@ function fixedRandom(): () => number {
   };
 }
 
+function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function expectUnambiguousWithoutReuse(session: NonNullable<ReturnType<typeof buildMatchSession>>) {
+  const seen = new Set<string>();
+  for (const batch of session) {
+    expect(new Set(batch.fronts.map((item) => normalizeMatchText(item.front))).size).toBe(6);
+    expect(new Set(batch.backs.map((item) => normalizeMatchText(item.back))).size).toBe(6);
+    expect(batch.fronts.map((item) => item.id).sort()).toEqual(
+      batch.backs.map((item) => item.id).sort(),
+    );
+    for (const item of batch.fronts) {
+      expect(seen.has(item.id)).toBe(false);
+      seen.add(item.id);
+    }
+  }
+}
+
 describe("getMatchEligibility", () => {
-  it("11 eligible -> cannot start", () => {
-    const result = getMatchEligibility(11);
-    expect(result.canStart).toBe(false);
-    expect(result.availableCounts).toEqual([]);
-    expect(result.message).toContain("ít nhất 12");
+  it.each([
+    [11, []],
+    [12, [12]],
+    [17, [12]],
+    [18, [12, 18]],
+    [23, [12, 18]],
+    [24, [12, 18, 24]],
+  ] as const)("%i valid cards -> %j", (count, expected) => {
+    expect(getMatchEligibility(makeCards(count)).availableCounts).toEqual(expected);
   });
 
-  it("12 eligible -> 12 only", () => {
-    const result = getMatchEligibility(12);
-    expect(result.canStart).toBe(true);
-    expect(result.availableCounts).toEqual([12]);
+  it("uses constructible capacity rather than raw physical card count", () => {
+    const cards = [
+      ...Array.from({ length: 18 }, (_, index) =>
+        card(`unique-${index}`, `Front ${index}`, `Back ${index}`),
+      ),
+      ...Array.from({ length: 6 }, (_, index) =>
+        card(`duplicate-${index}`, "Shared front", `Duplicate back ${index}`),
+      ),
+    ];
+
+    expect(cards).toHaveLength(24);
+    expect(getMatchEligibility(cards).availableCounts).toEqual([12, 18]);
   });
 
-  it("17 eligible -> 12 only", () => {
-    const result = getMatchEligibility(17);
-    expect(result.availableCounts).toEqual([12]);
-  });
+  it("does not offer 12 when duplicate-heavy cards cannot form two six-pair batches", () => {
+    const cards = [
+      ...Array.from({ length: 9 }, (_, index) => card(`unique-${index}`, `F${index}`, `B${index}`)),
+      ...Array.from({ length: 15 }, (_, index) => card(`shared-${index}`, "Shared", `S${index}`)),
+    ];
 
-  it("18 eligible -> 12, 18", () => {
-    const result = getMatchEligibility(18);
-    expect(result.availableCounts).toEqual([12, 18]);
-  });
-
-  it("23 eligible -> 12, 18", () => {
-    const result = getMatchEligibility(23);
-    expect(result.availableCounts).toEqual([12, 18]);
-  });
-
-  it("24 eligible -> 12, 18, 24", () => {
-    const result = getMatchEligibility(24);
-    expect(result.availableCounts).toEqual([12, 18, 24]);
-  });
-
-  it("larger set still only offers 12/18/24", () => {
-    const result = getMatchEligibility(100);
-    expect(result.availableCounts).toEqual([12, 18, 24]);
+    expect(getMatchEligibility(cards).availableCounts).not.toContain(12);
   });
 });
 
-describe("buildMatchBatches", () => {
-  it("12 cards -> 2 batches of exactly 6", () => {
-    const batches = buildMatchBatches(makeCards(12), fixedRandom());
-    expect(batches).toHaveLength(2);
-    for (const batch of batches) expect(batch).toHaveLength(6);
+describe("constructible match batches", () => {
+  it("builds exact unambiguous batches without reusing flashcards", () => {
+    const session = buildMatchSession(makeCards(24), 24, fixedRandom());
+    expect(session).not.toBeNull();
+    expect(session).toHaveLength(4);
+    expectUnambiguousWithoutReuse(session!);
   });
 
-  it("18 cards -> 3 batches of exactly 6", () => {
-    const batches = buildMatchBatches(makeCards(18), fixedRandom());
-    expect(batches).toHaveLength(3);
-    for (const batch of batches) expect(batch).toHaveLength(6);
+  it("does not lose valid capacity to the previous greedy skip order", () => {
+    const cards: MatchCard[] = [
+      ["f7", "b0"],
+      ["f2", "b1"],
+      ["f5", "b4"],
+      ["f0", "b1"],
+      ["f6", "b3"],
+      ["f6", "b7"],
+      ["f0", "b3"],
+      ["f7", "b2"],
+      ["f1", "b0"],
+      ["f2", "b4"],
+      ["f4", "b5"],
+      ["f4", "b2"],
+    ].map(([front, back], index) => card(`adversarial-${index}`, front, back));
+
+    const session = buildMatchSession(cards, 12, () => 0.999999);
+    expect(session).not.toBeNull();
+    expectUnambiguousWithoutReuse(session!);
   });
 
-  it("24 cards -> 4 batches of exactly 6", () => {
-    const batches = buildMatchBatches(makeCards(24), fixedRandom());
-    expect(batches).toHaveLength(4);
-    for (const batch of batches) expect(batch).toHaveLength(6);
-  });
-
-  it("no flashcard is reused across batches in a session", () => {
-    const cards = makeCards(24);
-    const batches = buildMatchBatches(cards, fixedRandom());
-    const seen = new Set<string>();
-    for (const batch of batches) {
-      for (const card of batch) {
-        expect(seen.has(card.id)).toBe(false);
-        seen.add(card.id);
-      }
-    }
-  });
-});
-
-describe("buildMatchSession", () => {
-  it("12 question count -> 2 batches, 6 fronts + 6 backs each", () => {
-    const result = buildMatchSession(makeCards(30), 12, fixedRandom());
-    expect(result).not.toBeNull();
-    expect(result).toHaveLength(2);
-    for (const batch of result ?? []) {
-      expect(batch.fronts).toHaveLength(6);
-      expect(batch.backs).toHaveLength(6);
-    }
-  });
-
-  it("18 question count -> 3 batches", () => {
-    const result = buildMatchSession(makeCards(30), 18, fixedRandom());
-    expect(result).toHaveLength(3);
-  });
-
-  it("24 question count -> 4 batches", () => {
-    const result = buildMatchSession(makeCards(30), 24, fixedRandom());
-    expect(result).toHaveLength(4);
-  });
-
-  it("returns null when not enough eligible cards", () => {
-    const result = buildMatchSession(makeCards(10), 12, fixedRandom());
-    expect(result).toBeNull();
-  });
-
-  it("random session selection does not take the first N cards", () => {
-    const cards = makeCards(50);
-    const result = buildMatchSession(cards, 12, fixedRandom());
-    expect(result).not.toBeNull();
-    const selected = new Set<string>();
-    for (const batch of result ?? []) {
-      for (const card of [...batch.fronts, ...batch.backs]) selected.add(card.id);
-    }
-    expect(selected.size).toBe(12);
+  it("returns all constructible batches for the existing utility", () => {
+    expect(buildMatchBatches(makeCards(18), fixedRandom())).toHaveLength(3);
   });
 });
 
 describe("front/back shuffle independence", () => {
-  it("fronts and backs within a batch are independently shuffled", () => {
+  it("uses distinct derived random streams rather than resetting one permutation for both columns", () => {
     const cards = makeCards(24);
-    const result = buildMatchSession(cards, 12, fixedRandom());
-    expect(result).not.toBeNull();
-    const batch = result?.[0];
-    expect(batch).toBeTruthy();
-    if (!batch) return;
-    // Front and back must both be permutations of the same card set.
-    const frontIds = batch.fronts.map((c) => c.id).sort();
-    const backIds = batch.backs.map((c) => c.id).sort();
-    expect(frontIds).toEqual(backIds);
-    expect(frontIds).toHaveLength(6);
+    const alignedPermutations = Array.from({ length: 64 }, (_, seed) => {
+      const session = buildMatchSession(cards, 12, mulberry32(seed + 1));
+      expect(session).not.toBeNull();
+      const firstBatch = session![0];
+      return (
+        firstBatch.fronts.map((item) => item.id).join(",") ===
+        firstBatch.backs.map((item) => item.id).join(",")
+      );
+    }).filter(Boolean).length;
+
+    // Alignment can happen by chance, but resetting the same seed would align every run.
+    expect(alignedPermutations).toBeLessThan(64);
   });
 });
 
 describe("normalizeMatchText", () => {
-  it("trims whitespace", () => {
+  it("trims, collapses whitespace and lowercases without mutating rendered text", () => {
     expect(normalizeMatchText("  CPU  ")).toBe("cpu");
-  });
-
-  it("collapses internal whitespace", () => {
-    expect(normalizeMatchText("Central   Processing   Unit")).toBe("central processing unit");
-  });
-
-  it("lowercases content", () => {
-    expect(normalizeMatchText("Central Processing Unit")).toBe("central processing unit");
-  });
-
-  it("treats case/space variants as equal", () => {
     expect(normalizeMatchText("CPU")).toBe(normalizeMatchText(" cpu "));
     expect(normalizeMatchText("CPU")).toBe(normalizeMatchText("CPU   "));
+    expect(card("unicode", "Tiến trình là gì?", "Người sử dụng dữ liệu").front).toBe(
+      "Tiến trình là gì?",
+    );
   });
 });

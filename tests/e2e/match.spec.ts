@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import { signUpAndConfirm, uniqueEmail } from "./support/auth-helpers";
-import { localSupabaseAdminRest, supabaseRest } from "./support/supabase-api";
+import { supabaseRest } from "./support/supabase-api";
 
 const MOBILE = { width: 390, height: 844 };
 const DESKTOP = { width: 1280, height: 900 };
@@ -50,11 +50,11 @@ test.describe("Match learning mode", () => {
     await page.setViewportSize(DESKTOP);
     await signUpAndConfirm(page, uniqueEmail("match_full"));
 
-    const setId = await importSet(page, "Bộ match");
+    await importSet(page, "Bộ match");
     const userId = await authUserId(page);
 
     // Capture learning state before Match.
-    const before = await learningState(page);
+    const before = await learningState(page, userId);
 
     await page.goto("/study");
     await page.getByRole("link", { name: /Match/ }).click();
@@ -112,6 +112,7 @@ test.describe("Match learning mode", () => {
     // Complete the first batch (6 pairs).
     await completeBatch(page, 6);
     await expect(page.getByText("Bộ 2 / 2")).toBeVisible();
+    await expect(page.getByText("Đã nối 6 / 12")).toBeVisible();
 
     // Complete the final batch.
     await completeBatch(page, 6);
@@ -125,7 +126,7 @@ test.describe("Match learning mode", () => {
     await expect(page.getByText("Bộ 1 / 2")).toBeVisible();
 
     // No learning state changed.
-    const after = await learningState(page);
+    const after = await learningState(page, userId);
     expect(after.quizSessions).toBe(before.quizSessions);
     expect(after.reviewEvents).toBe(before.reviewEvents);
     expect(after.scheduleRows).toBe(before.scheduleRows);
@@ -139,7 +140,7 @@ test.describe("Match learning mode", () => {
     await importSet(page, "Bộ nhỏ", "tests/fixtures/quiz-cards.csv");
 
     await page.goto("/match");
-    await expect(page.getByText("Match yêu cầu ít nhất 12 thẻ hợp lệ.")).toBeVisible();
+    await expect(page.getByText("Match yêu cầu ít nhất 12 thẻ có thể ghép rõ ràng.")).toBeVisible();
     await expect(page.getByRole("button", { name: "12 câu" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "Bắt đầu Match" })).toBeDisabled();
   });
@@ -154,9 +155,11 @@ test.describe("Match learning mode", () => {
       "Hệ điều hành là phần mềm quản lý tài nguyên phần cứng máy tính và cung cấp các dịch vụ chung cho các chương trình phần mềm khác";
     const longBack =
       "An operating system manages computer hardware resources and provides common services for computer programs";
-    const rows = Array.from({ length: 12 }, (_, i) => `${longFront} ${i}\t${longBack} ${i}`).join(
-      "\n",
-    );
+    const longToken = "x".repeat(320);
+    const rows = Array.from(
+      { length: 12 },
+      (_, i) => `${longFront} ${i} ${longToken}${i}\t${longBack} ${i} ${longToken}${i}`,
+    ).join("\n");
     await page.locator("#paste-textarea").fill(rows);
     await page.getByRole("button", { name: "Phân tích" }).click();
     await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
@@ -175,6 +178,34 @@ test.describe("Match learning mode", () => {
     );
     expect(overflow).toBe(false);
   });
+
+  test("uses independent deterministic Front and Back orderings", async ({ page }) => {
+    await page.setViewportSize(DESKTOP);
+    await signUpAndConfirm(page, uniqueEmail("match_independent_shuffle"));
+    await importSet(page, "Bộ Match độc lập");
+
+    // Keep the session seed deterministic. The UI must still use distinct
+    // random streams for the two columns rather than replaying one permutation.
+    await page.addInitScript(() => {
+      Math.random = () => 0.25;
+    });
+
+    await page.goto("/match");
+    await page.getByRole("button", { name: "12 câu" }).click();
+    await page.getByRole("button", { name: "Bắt đầu Match" }).click();
+    await expect(page).toHaveURL(/\/match\/session/);
+
+    const frontOrder = await page
+      .locator('[data-match-side="front"]')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-match-card-id")));
+    const backOrder = await page
+      .locator('[data-match-side="back"]')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-match-card-id")));
+
+    expect(frontOrder).toHaveLength(6);
+    expect(backOrder).toHaveLength(6);
+    expect(frontOrder).not.toEqual(backOrder);
+  });
 });
 
 async function authUserId(page: Page): Promise<string> {
@@ -183,17 +214,26 @@ async function authUserId(page: Page): Promise<string> {
   return data[0]?.id ?? "";
 }
 
-async function learningState(page: Page): Promise<{
+async function learningState(
+  page: Page,
+  userId: string,
+): Promise<{
   quizSessions: number;
   reviewEvents: number;
   scheduleRows: number;
   dailyRecords: number;
 }> {
   const [sessions, events, schedule, daily] = await Promise.all([
-    supabaseRest(page.context(), "quiz_sessions?select=id&limit=1000"),
-    supabaseRest(page.context(), "card_review_events?select=id&limit=1000"),
-    supabaseRest(page.context(), "card_learning_schedule?select=id&limit=1000"),
-    supabaseRest(page.context(), "daily_learning_records?select=id&limit=1000"),
+    supabaseRest(page.context(), `quiz_sessions?select=id&user_id=eq.${userId}&limit=1000`),
+    supabaseRest(page.context(), `card_review_events?select=id&user_id=eq.${userId}&limit=1000`),
+    supabaseRest(
+      page.context(),
+      `card_learning_schedule?select=id&user_id=eq.${userId}&limit=1000`,
+    ),
+    supabaseRest(
+      page.context(),
+      `daily_learning_records?select=id&user_id=eq.${userId}&limit=1000`,
+    ),
   ]);
   const count = async (res: Response) => ((await res.json()) as unknown[]).length;
   return {

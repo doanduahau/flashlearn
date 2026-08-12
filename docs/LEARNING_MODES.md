@@ -138,16 +138,17 @@ The user can choose only **12 / 18 / 24**:
 
 ### Eligibility
 
-| Eligible cards | Allowed counts     |
-| -------------- | ------------------ |
-| < 12           | Match cannot start |
-| 12–17          | 12                 |
-| 18–23          | 12, 18             |
-| ≥ 24           | 12, 18, 24         |
+| Constructible unambiguous pairs | Allowed counts     |
+| ------------------------------- | ------------------ |
+| < 12                            | Match cannot start |
+| 12–17                           | 12                 |
+| 18–23                           | 12, 18             |
+| ≥ 24                            | 12, 18, 24         |
 
-Match requires at least 12 eligible flashcards; otherwise a clear user-friendly
-message is shown. No partial batch is created, and previously played cards are
-never reused to fill a batch.
+Availability is determined from the actual card set, not the raw physical card
+count: Match requires enough cards to construct complete unambiguous six-pair
+batches for the offered session size. No partial batch is created, and
+previously played cards are never reused to fill a batch.
 
 ### Session card selection
 

@@ -62,6 +62,7 @@ describe("match state machine", () => {
     // Matching the sixth pair automatically advanced to batch 2.
     expect(current.currentBatchIndex).toBe(1);
     expect(current.matchedFrontIds.size).toBe(0);
+    expect(current.completedPairCount).toBe(6);
     expect(current.selectedFrontId).toBeNull();
   });
 
@@ -83,6 +84,21 @@ describe("match state machine", () => {
     }
     // Matching the final pair of the last batch completes the session.
     expect(phaseOf(state)).toBe("completed");
+    expect(state.completedPairCount).toBe(12);
+  });
+
+  it("does not advance twice when a stale tap follows the sixth pair", () => {
+    const batch1 = makeBatch(["a", "b", "c", "d", "e", "f"]);
+    const batch2 = makeBatch(["g", "h", "i", "j", "k", "l"]);
+    let state = createMatchState([batch1, batch2]);
+    for (const id of ["a", "b", "c", "d", "e", "f"]) {
+      state = selectCard(state, "front", id);
+      state = selectCard(state, "back", id);
+    }
+
+    const afterStaleTap = selectCard(state, "back", "f");
+    expect(afterStaleTap.currentBatchIndex).toBe(1);
+    expect(afterStaleTap.completedPairCount).toBe(6);
   });
 
   it("selecting a front then a different front reselects", () => {

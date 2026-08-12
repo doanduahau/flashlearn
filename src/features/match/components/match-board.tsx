@@ -104,9 +104,11 @@ function MatchColumn({
               type="button"
               disabled={matched}
               aria-pressed={selected}
+              data-match-card-id={card.id}
+              data-match-side={side}
               onClick={() => onSelect(side, card)}
               className={cn(
-                "w-full rounded-xl border px-3 py-2 text-left text-sm leading-snug transition-colors sm:rounded-2xl sm:px-4 sm:py-3 sm:text-base",
+                "w-full break-words whitespace-pre-wrap rounded-xl border px-3 py-2 text-left text-sm leading-snug transition-colors sm:rounded-2xl sm:px-4 sm:py-3 sm:text-base",
                 matched
                   ? "cursor-default border-border-soft bg-surface-subtle opacity-50"
                   : selected

@@ -1,16 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
-import { getMatchCardCount } from "@/features/match/server/actions";
-import { getMatchEligibility } from "@/features/match/utils/match-session";
+import { getMatchAvailability } from "@/features/match/server/actions";
 import { MATCH_QUESTION_COUNTS } from "@/features/match/types/match-types";
-import { cn } from "@/lib/utils";
 
 const COUNT_DEBOUNCE_MS = 250;
 
@@ -25,17 +22,17 @@ function sameSources(a: SourceParams, b: SourceParams): boolean {
   );
 }
 
-export function MatchSetup({
-  sourcePage,
-  totalCards,
-}: Readonly<{ sourcePage: SourcePage; totalCards: number }>) {
+export function MatchSetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>) {
   const router = useRouter();
   const [all, setAll] = useState(true);
   const [selected, setSelected] = useState<Map<string, SourceOption>>(() => new Map());
   const [count, setCount] = useState<12 | 18 | 24>(12);
-  const [customCount, setCustomCount] = useState<{
-    count: number;
+  const [availability, setAvailability] = useState<{
+    eligibleCount: number;
+    availableCounts: number[];
+    message: string | null;
     computedFor: SourceParams;
+    all: boolean;
   } | null>(null);
   const [countError, setCountError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,19 +52,24 @@ export function MatchSetup({
   );
 
   useEffect(() => {
-    if (all) return;
     let cancelled = false;
     const timer = setTimeout(() => {
       void (async () => {
-        const result = await getMatchCardCount({
-          all: false,
+        const result = await getMatchAvailability({
+          all,
           setIds: currentSources.setIds,
           collectionIds: currentSources.collectionIds,
           questionCount: 12,
         });
         if (cancelled) return;
         if (result.ok) {
-          setCustomCount({ count: result.count, computedFor: currentSources });
+          setAvailability({
+            eligibleCount: result.eligibleCount,
+            availableCounts: result.eligibility.availableCounts,
+            message: result.eligibility.message,
+            computedFor: currentSources,
+            all,
+          });
           setCountError(null);
         } else {
           setCountError(result.error);
@@ -81,9 +83,13 @@ export function MatchSetup({
   }, [all, currentSources]);
 
   const counting =
-    !all && (customCount === null || !sameSources(customCount.computedFor, currentSources));
-  const eligible = all ? totalCards : (customCount?.count ?? 0);
-  const { availableCounts, canStart, message } = getMatchEligibility(eligible);
+    availability === null ||
+    availability.all !== all ||
+    !sameSources(availability.computedFor, currentSources);
+  const eligible = availability?.eligibleCount ?? 0;
+  const availableCounts = availability?.availableCounts ?? [];
+  const canStart = availableCounts.length > 0;
+  const message = availability?.message ?? null;
   const effectiveCount = availableCounts.includes(count)
     ? count
     : ((availableCounts[0] as 12 | 18 | 24 | undefined) ?? 12);
@@ -105,7 +111,7 @@ export function MatchSetup({
     setError(null);
     setPending(true);
     void (async () => {
-      const result = await getMatchCardCount({
+      const result = await getMatchAvailability({
         all,
         setIds: currentSources.setIds,
         collectionIds: currentSources.collectionIds,
@@ -116,9 +122,9 @@ export function MatchSetup({
         setError(result.error);
         return;
       }
-      if (result.count < 12) {
+      if (!result.eligibility.availableCounts.includes(effectiveCount)) {
         setPending(false);
-        setError("Match yêu cầu ít nhất 12 thẻ hợp lệ.");
+        setError(result.eligibility.message ?? "Không thể tạo phiên Match với số câu này.");
         return;
       }
       const query = new URLSearchParams();
@@ -140,7 +146,9 @@ export function MatchSetup({
         <span className="min-w-0">
           <strong className="text-sm sm:text-base">Tất cả thẻ</strong>
           <br />
-          <span className="text-xs text-text-secondary sm:text-sm">{totalCards} thẻ duy nhất</span>
+          <span className="text-xs text-text-secondary sm:text-sm">
+            {counting ? "Đang tính thẻ…" : `${eligible} thẻ trong phạm vi`}
+          </span>
         </span>
       </label>
 

@@ -1,4 +1,4 @@
-import type { MatchBatch, MatchCard } from "../types/match-types";
+import type { MatchBatch } from "../types/match-types";
 
 export type MatchSide = "front" | "back";
 
@@ -8,6 +8,7 @@ export type MatchState = {
   selectedFrontId: string | null;
   selectedBackId: string | null;
   lastResult: "none" | "correct" | "incorrect";
+  completedPairCount: number;
   matchedFrontIds: Set<string>;
   matchedBackIds: Set<string>;
 };
@@ -21,6 +22,7 @@ export function createMatchState(batches: MatchBatch[]): MatchState {
     selectedFrontId: null,
     selectedBackId: null,
     lastResult: "none",
+    completedPairCount: 0,
     matchedFrontIds: new Set(),
     matchedBackIds: new Set(),
   };
@@ -31,7 +33,7 @@ export function currentBatch(state: MatchState): MatchBatch {
 }
 
 export function completedCount(state: MatchState): number {
-  return state.matchedFrontIds.size;
+  return state.completedPairCount;
 }
 
 export function isPairMatched(state: MatchState, frontId: string, backId: string): boolean {
@@ -52,6 +54,8 @@ export function phaseOf(state: MatchState): MatchPhase {
  * selection and any match resolution that results.
  */
 export function selectCard(state: MatchState, side: MatchSide, cardId: string): MatchState {
+  if (phaseOf(state) === "completed") return state;
+
   const batch = currentBatch(state);
   const frontMatched = state.matchedFrontIds.has(cardId);
   const backMatched = state.matchedBackIds.has(cardId);
@@ -93,6 +97,7 @@ export function selectCard(state: MatchState, side: MatchSide, cardId: string): 
   if (isCorrect) {
     copy.matchedFrontIds.add(frontCard.id);
     copy.matchedBackIds.add(backCard.id);
+    copy.completedPairCount = state.completedPairCount + 1;
 
     // Automatically advance to the next batch once all six pairs are matched.
     if (copy.matchedFrontIds.size === batch.fronts.length) {

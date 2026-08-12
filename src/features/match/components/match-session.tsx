@@ -79,11 +79,27 @@ export function MatchSession({ sessionHref, questionCount }: MatchSessionProps) 
     );
   }
 
-  if (!cards || !batches) {
+  if (!cards) {
     return (
       <p role="status" className="text-text-secondary">
         Đang tải thẻ…
       </p>
+    );
+  }
+
+  if (!batches) {
+    return (
+      <div className="space-y-4">
+        <p
+          role="alert"
+          className="rounded-2xl border border-border-soft bg-surface p-4 text-danger"
+        >
+          Không thể tạo phiên Match với số thẻ hiện tại. Hãy chọn phạm vi khác.
+        </p>
+        <Button asChild variant="outline">
+          <Link href="/match">Quay lại</Link>
+        </Button>
+      </div>
     );
   }
 

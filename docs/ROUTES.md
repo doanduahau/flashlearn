@@ -24,6 +24,8 @@
 | `/collections/[collectionId]` | Special collection detail: rename/delete collection, card list with original set name and remove-membership              |
 | `/study`                      | Choose study scope with server-paginated source search/filter (`q`, `sourceType`, `page`) and persistent selections      |
 | `/study/session`              | Flashcard study session (deterministic source-query route, optional `seed`)                                              |
+| `/match`                      | Match setup: choose an eligible source and a feasible 12, 18, or 24-card session                                         |
+| `/match/session`              | Front-to-Back Match practice session; no Quiz, scheduling, mastery, or activity writes                                   |
 | `/quiz?tab=create`            | Kiểm tra: quiz setup with server-paginated source search/filter, dynamic feasible counts and mode selection              |
 | `/quiz?tab=history`           | Kiểm tra: current-user completed quiz history                                                                            |
 | `/quiz/[attemptId]`           | Take a quiz                                                                                                              |

@@ -13,19 +13,16 @@ export default async function MatchPage({
   const raw = await searchParams;
   const supabase = await createClient();
   const query = typeof raw.q === "string" ? raw.q : "";
-  const [sourcePage, totalResult] = await Promise.all([
-    loadSourcePage(supabase, {
-      page: parsePage(raw.page),
-      query,
-      type: sourceType(raw.sourceType),
-    }),
-    supabase.from("flashcards").select("id", { count: "exact", head: true }),
-  ]);
+  const sourcePage = await loadSourcePage(supabase, {
+    page: parsePage(raw.page),
+    query,
+    type: sourceType(raw.sourceType),
+  });
 
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
       <h1 className="text-2xl font-bold sm:text-3xl">Match</h1>
-      <MatchSetup sourcePage={sourcePage} totalCards={totalResult.count ?? 0} />
+      <MatchSetup sourcePage={sourcePage} />
     </main>
   );
 }

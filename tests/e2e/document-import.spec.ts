@@ -85,6 +85,24 @@ test.describe("Document import", () => {
     await expect(page.getByText(/mục/)).toBeVisible();
   });
 
+  test("keeps exact Vietnamese mock-generation text from a PDF through the unified editor", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await signUpAndConfirm(page, uniqueEmail("doc_pdf_unicode"));
+
+    const fileInput = await openDocumentImport(page);
+    await fileInput.setInputFiles(PDF_FIXTURE);
+    await expect(page.getByText("khối nội dung")).toBeVisible();
+
+    await page.getByRole("button", { name: "Tạo thẻ" }).click();
+
+    await expect(page.getByLabel("Mặt trước").first()).toHaveValue("RAM là gì?");
+    await expect(page.getByLabel("Mặt sau").first()).toHaveValue(
+      "Tiến trình là gì? Người sử dụng dữ liệu trong hệ thống.",
+    );
+  });
+
   test("rejects a scan-only PDF with a clear unsupported message", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await signUpAndConfirm(page, uniqueEmail("doc_scanonly"));

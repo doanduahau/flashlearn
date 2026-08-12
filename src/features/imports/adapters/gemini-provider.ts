@@ -36,6 +36,8 @@ function buildPrompt(text: string): string {
 RULES:
 - Use ONLY information present in the source content. Do not introduce outside knowledge.
 - Preserve the source language (Vietnamese, English, etc.) exactly as written.
+- Preserve Unicode fidelity in every source-derived term and answer. In particular, retain Vietnamese diacritics (including đ/Đ); never strip accents, transliterate text, or convert it to ASCII.
+- Preserve punctuation and capitalization when using source terms or quotations.
 - Each card must have a concise front (question/term) and an accurate back (answer/definition).
 - One meaningful concept per card.
 - Avoid redundant or trivial cards that add no learning value.

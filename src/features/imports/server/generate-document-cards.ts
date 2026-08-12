@@ -56,8 +56,11 @@ async function mockGenerateCards(_input: { text: string }): Promise<DraftFlashca
     throw new Error("Mock generation failure");
   }
   return [
-    { front: "Mock question from document", back: "Mock answer from document" },
-    { front: "Another mock question", back: "Another mock answer" },
+    {
+      front: "RAM là gì?",
+      back: "Tiến trình là gì? Người sử dụng dữ liệu trong hệ thống.",
+    },
+    { front: "Đây là thẻ thử nghiệm", back: "Nội dung Unicode phải được giữ nguyên." },
   ];
 }
 

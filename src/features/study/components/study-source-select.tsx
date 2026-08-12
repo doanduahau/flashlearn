@@ -167,6 +167,7 @@ export function StudySourceSelect({
         path="/study"
         sourcePage={resolvedSourcePage}
         selected={selectedSources}
+        selectedKind={null}
         onToggle={toggleSource}
       />
       {actionError ? (

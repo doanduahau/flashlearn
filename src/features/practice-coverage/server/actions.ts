@@ -1,67 +1,65 @@
 "use server";
 
+import { z } from "zod";
+
 import { createClient } from "@/lib/supabase/server";
 
-export type CoverageMode = "quiz" | "match" | "memory" | "runner";
+type CoverageMode = "quiz" | "match" | "memory" | "runner";
 
+const coverageSessionIdSchema = z.uuid();
+const COVERAGE_ID_BATCH_SIZE = 200;
+
+/** Reads only the authenticated user's current-cycle coverage. */
 export async function loadUncoveredIds(
   mode: CoverageMode,
   eligibleIds: string[],
 ): Promise<string[]> {
   if (eligibleIds.length === 0) return [];
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("flashcard_coverage")
-    .select("flashcard_id")
-    .eq("mode", mode)
-    .in("flashcard_id", eligibleIds);
-
-  const covered = new Set((data ?? []).map((row) => row.flashcard_id));
+  const chunks = Array.from(
+    { length: Math.ceil(eligibleIds.length / COVERAGE_ID_BATCH_SIZE) },
+    (_, index) =>
+      eligibleIds.slice(index * COVERAGE_ID_BATCH_SIZE, (index + 1) * COVERAGE_ID_BATCH_SIZE),
+  );
+  const results = await Promise.all(
+    chunks.map((ids) =>
+      supabase
+        .from("flashcard_coverage")
+        .select("flashcard_id")
+        .eq("mode", mode)
+        .in("flashcard_id", ids),
+    ),
+  );
+  if (results.some((result) => result.error)) throw new Error("coverage query failed");
+  const covered = new Set(
+    results.flatMap((result) => result.data ?? []).map((row) => row.flashcard_id),
+  );
   return eligibleIds.filter((id) => !covered.has(id));
 }
 
-export async function commitCardCoverage(mode: CoverageMode, cardIds: string[]): Promise<void> {
-  if (cardIds.length === 0) return;
-  const supabase = await createClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  const userId = typeof claims?.claims?.sub === "string" ? claims.claims.sub : null;
-  if (!userId) return;
-  const rows = cardIds.map((id) => ({ user_id: userId, mode, flashcard_id: id }));
-  await supabase.from("flashcard_coverage").upsert(rows, {
-    onConflict: "user_id,mode,flashcard_id",
-  });
-}
-
-export async function commitCoverageAndResetScope(
-  mode: CoverageMode,
-  sessionCardIds: string[],
-  scopeEligibleIds: string[],
-): Promise<void> {
-  await commitCardCoverage(mode, sessionCardIds);
-  if (scopeEligibleIds.length === 0) return;
-
-  const supabase = await createClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  const userId = typeof claims?.claims?.sub === "string" ? claims.claims.sub : null;
-  if (!userId) return;
-
-  // Check if all eligible cards in scope are now covered.
-  const { data } = await supabase
-    .from("flashcard_coverage")
-    .select("flashcard_id")
-    .eq("user_id", userId)
-    .eq("mode", mode)
-    .in("flashcard_id", scopeEligibleIds);
-
-  const coveredInScope = new Set((data ?? []).map((row) => row.flashcard_id));
-  const allCovered = scopeEligibleIds.every((id) => coveredInScope.has(id));
-
-  if (allCovered) {
-    await supabase
-      .from("flashcard_coverage")
-      .delete()
-      .eq("user_id", userId)
-      .eq("mode", mode)
-      .in("flashcard_id", scopeEligibleIds);
+/**
+ * Completion accepts only an opaque, server-created session identity.  The
+ * database owns all card/scope snapshots and serializes the coverage reset.
+ */
+export async function completeLearningCoverageSession(
+  sessionId: string,
+): Promise<{ ok: true; didReset: boolean } | { ok: false; error: string }> {
+  if (!coverageSessionIdSchema.safeParse(sessionId).success) {
+    return { ok: false, error: "Phiên luyện tập không hợp lệ." };
   }
+
+  const supabase = await createClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  if (typeof claims?.claims?.sub !== "string") {
+    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+
+  const { data, error } = await supabase.rpc("complete_learning_coverage_session", {
+    p_session_id: sessionId,
+  });
+  if (error || !data?.[0]) {
+    return { ok: false, error: "Không thể hoàn tất phạm vi luyện tập lúc này." };
+  }
+
+  return { ok: true, didReset: Boolean(data[0].did_reset) };
 }

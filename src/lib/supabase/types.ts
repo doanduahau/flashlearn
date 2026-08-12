@@ -227,6 +227,50 @@ export type Database = {
           },
         ]
       }
+      learning_coverage_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          did_reset: boolean
+          id: string
+          mode: string
+          quiz_session_id: string | null
+          scope_card_ids: string[]
+          session_card_ids: string[]
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          did_reset?: boolean
+          id?: string
+          mode: string
+          quiz_session_id?: string | null
+          scope_card_ids: string[]
+          session_card_ids: string[]
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          did_reset?: boolean
+          id?: string
+          mode?: string
+          quiz_session_id?: string | null
+          scope_card_ids?: string[]
+          session_card_ids?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_coverage_sessions_quiz_session_id_fkey"
+            columns: ["quiz_session_id"]
+            isOneToOne: true
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flashcard_sets: {
         Row: {
           created_at: string
@@ -530,11 +574,24 @@ export type Database = {
           p_all: boolean
           p_collection_ids: string[]
           p_mode: string
-          p_prioritize_ids?: string[]
           p_question_count: number
           p_set_ids: string[]
         }
         Returns: string
+      }
+      create_learning_coverage_session: {
+        Args: {
+          p_mode: string
+          p_quiz_session_id?: string | null
+          p_scope_card_ids: string[]
+          p_session_card_ids: string[]
+          p_user_id: string
+        }
+        Returns: string
+      }
+      complete_learning_coverage_session: {
+        Args: { p_session_id: string }
+        Returns: { completed_at: string; did_reset: boolean }[]
       }
       create_quiz_session_from_card_ids: {
         Args: { p_card_ids: string[] }
@@ -754,4 +811,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

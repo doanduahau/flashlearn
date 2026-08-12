@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import type {
   SourceOption,
   SourcePage,
+  SourceKind,
   SourceType,
 } from "@/features/source-selection/types/source-types";
 import { cn } from "@/lib/utils";
@@ -22,11 +23,13 @@ export function SourceBrowser({
   path,
   sourcePage,
   selected,
+  selectedKind,
   onToggle,
 }: Readonly<{
   path: string;
   sourcePage: SourcePage;
   selected: SourceOption[];
+  selectedKind: SourceKind | null;
   onToggle: (source: SourceOption) => void;
 }>) {
   const router = useRouter();
@@ -59,6 +62,13 @@ export function SourceBrowser({
         <h2 id="source-browser-heading" className="text-base font-semibold sm:text-lg">
           Chọn nguồn
         </h2>
+        <p className="mt-1 text-sm text-text-secondary">
+          {selectedKind === "regular"
+            ? "Đang chọn Bộ thường. Chuyển sang Bộ đặc biệt sẽ thay thế lựa chọn hiện tại."
+            : selectedKind === "special"
+              ? "Đang chọn Bộ đặc biệt. Chuyển sang Bộ thường sẽ thay thế lựa chọn hiện tại."
+              : "Chọn nhiều nguồn trong cùng một khu vực."}
+        </p>
       </div>
       <form
         className="flex gap-2"

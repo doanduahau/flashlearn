@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 
 import { MatchSession } from "@/features/match/components/match-session";
 import { MATCH_QUESTION_COUNTS } from "@/features/match/types/match-types";
-import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Phiên Match" };
 
@@ -22,7 +21,6 @@ export default async function MatchSessionPage({
   const questionCount = parseCount(raw.count);
   if (!questionCount) redirect("/match");
 
-  const supabase = await createClient();
   const all = raw.all === "1";
   const setIds = typeof raw.sets === "string" ? raw.sets.split(",").filter(Boolean) : [];
   const collectionIds =
@@ -30,44 +28,13 @@ export default async function MatchSessionPage({
 
   if (!all && setIds.length === 0 && collectionIds.length === 0) redirect("/match");
 
-  const ids = await collectScopeIds(supabase, all, setIds, collectionIds);
   const sessionHref = `/match/session${buildQuery({ all, setIds, collectionIds, count: questionCount })}`;
 
   return (
     <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
-      <MatchSession
-        sessionHref={sessionHref}
-        questionCount={questionCount}
-        scopeEligibleIds={ids}
-      />
+      <MatchSession sessionHref={sessionHref} questionCount={questionCount} />
     </main>
   );
-}
-
-async function collectScopeIds(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  all: boolean,
-  setIds: string[],
-  collectionIds: string[],
-): Promise<string[]> {
-  const idSet = new Set<string>();
-  if (all) {
-    const { data } = await supabase.from("flashcards").select("id");
-    for (const row of data ?? []) idSet.add(row.id);
-  } else {
-    if (setIds.length) {
-      const { data } = await supabase.from("flashcards").select("id").in("set_id", setIds);
-      for (const row of data ?? []) idSet.add(row.id);
-    }
-    if (collectionIds.length) {
-      const { data } = await supabase
-        .from("special_collection_items")
-        .select("flashcard_id")
-        .in("collection_id", collectionIds);
-      for (const row of data ?? []) idSet.add(row.flashcard_id);
-    }
-  }
-  return [...idSet];
 }
 
 function buildQuery(params: {

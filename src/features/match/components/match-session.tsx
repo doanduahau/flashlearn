@@ -1,73 +1,75 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { MatchBoard } from "@/features/match/components/match-board";
-import { loadMatchCards } from "@/features/match/server/actions";
-import type { MatchCard, MatchQuestionCount } from "@/features/match/types/match-types";
-import { buildMatchSession } from "@/features/match/utils/match-session";
-import { commitCoverageAndResetScope } from "@/features/practice-coverage/server/actions";
+import { startMatchCoverageSession } from "@/features/match/server/actions";
+import type { MatchQuestionCount, StartedMatchSession } from "@/features/match/types/match-types";
+import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
 
 type MatchSessionProps = {
   sessionHref: string;
   questionCount: MatchQuestionCount;
-  scopeEligibleIds: string[];
 };
 
-function mulberry32(a: number): () => number {
-  return function () {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+function sourceFromHref(sessionHref: string, questionCount: MatchQuestionCount) {
+  const url = new URL(sessionHref, window.location.origin);
+  return {
+    all: url.searchParams.get("all") === "1",
+    setIds: (url.searchParams.get("sets") ?? "").split(",").filter(Boolean),
+    collectionIds: (url.searchParams.get("collections") ?? "").split(",").filter(Boolean),
+    questionCount,
   };
 }
 
-export function MatchSession({ sessionHref, questionCount, scopeEligibleIds }: MatchSessionProps) {
-  const [cards, setCards] = useState<MatchCard[] | null>(null);
+export function MatchSession({ sessionHref, questionCount }: MatchSessionProps) {
+  const [session, setSession] = useState<StartedMatchSession | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [sessionKey, setSessionKey] = useState(() => Math.floor(Math.random() * 2 ** 32));
+  const [completionError, setCompletionError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  const loadedRef = useRef(false);
+
+  const loadSession = useCallback(async () => {
+    setSession(null);
+    setError(null);
+    setCompletionError(null);
+    const result = await startMatchCoverageSession(sourceFromHref(sessionHref, questionCount));
+    if (!result.ok) {
+      setCompletionError(result.error);
+      return;
+    }
+    setSession(result.session);
+  }, [questionCount, sessionHref]);
 
   useEffect(() => {
-    loadedRef.current = true;
     let cancelled = false;
-    const url = new URL(sessionHref, window.location.origin);
-    const all = url.searchParams.get("all") === "1";
-    const setIds = (url.searchParams.get("sets") ?? "").split(",").filter(Boolean);
-    const collectionIds = (url.searchParams.get("collections") ?? "").split(",").filter(Boolean);
-    void (async () => {
-      const result = await loadMatchCards({ all, setIds, collectionIds, questionCount });
+    void startMatchCoverageSession(sourceFromHref(sessionHref, questionCount)).then((result) => {
       if (cancelled) return;
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setCards(result.cards);
-    })();
+      setSession(result.session);
+    });
     return () => {
       cancelled = true;
     };
-  }, [sessionHref, questionCount]);
+  }, [questionCount, sessionHref]);
 
-  const batches = useMemo(() => {
-    if (!cards) return null;
-    const random = mulberry32(sessionKey);
-    return buildMatchSession(cards, questionCount, random);
-  }, [cards, questionCount, sessionKey]);
-
-  async function handleComplete(sessionCardIds: string[]): Promise<void> {
-    void commitCoverageAndResetScope("match", sessionCardIds, scopeEligibleIds);
+  async function handleComplete(): Promise<void> {
+    if (!session) return;
+    const result = await completeLearningCoverageSession(session.coverageSessionId);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
     setDone(true);
   }
 
   function replay(): void {
     setDone(false);
-    setSessionKey(Math.floor(Math.random() * 2 ** 32));
+    void loadSession();
   }
 
   if (error) {
@@ -85,31 +87,12 @@ export function MatchSession({ sessionHref, questionCount, scopeEligibleIds }: M
       </div>
     );
   }
-
-  if (!cards) {
+  if (!session)
     return (
       <p role="status" className="text-text-secondary">
         Đang tải thẻ…
       </p>
     );
-  }
-
-  if (!batches) {
-    return (
-      <div className="space-y-4">
-        <p
-          role="alert"
-          className="rounded-2xl border border-border-soft bg-surface p-4 text-danger"
-        >
-          Không thể tạo phiên Match với số thẻ hiện tại. Hãy chọn phạm vi khác.
-        </p>
-        <Button asChild variant="outline">
-          <Link href="/match">Quay lại</Link>
-        </Button>
-      </div>
-    );
-  }
-
   if (done) {
     return (
       <div className="space-y-4">
@@ -127,11 +110,30 @@ export function MatchSession({ sessionHref, questionCount, scopeEligibleIds }: M
       </div>
     );
   }
-
+  if (completionError) {
+    return (
+      <div className="space-y-4">
+        <p
+          role="alert"
+          className="rounded-2xl border border-border-soft bg-surface p-4 text-danger"
+        >
+          {completionError}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" onClick={() => void handleComplete()}>
+            Thử lại
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/study">Quay lại</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
   return (
     <MatchBoard
-      key={sessionKey}
-      batches={batches}
+      key={session.coverageSessionId}
+      batches={session.batches}
       questionCount={questionCount}
       onComplete={handleComplete}
     />

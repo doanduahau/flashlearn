@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(14);
 
 insert into auth.users (
   instance_id, id, aud, role, email, email_confirmed_at,
@@ -17,25 +17,13 @@ insert into public.flashcards (id, user_id, set_id, front, back) values
   ('cacacaca-0000-4000-8000-000000000002', 'aaaaaaaa-c0c0-c0c0-c0c0-c0c0c0c0c0c0', 'a1a1a1a1-c0c0-c0c0-c0c0-c0c0c0c0c0c0', 'A2', 'A2'),
   ('cbcbcbcb-0000-4000-8000-000000000001', 'bbbbbbbb-c0c0-c0c0-c0c0-c0c0c0c0c0c0', 'b1b1b1b1-c0c0-c0c0-c0c0-c0c0c0c0c0c0', 'B1', 'B1');
 
--- Own coverage: insert select delete
+-- Coverage is server-completed only; browser roles may read their own rows but
+-- cannot forge or clear cycle state directly.
 set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-c0c0-c0c0-c0c0-c0c0c0c0c0c0';
 
-select lives_ok(
-  $$insert into public.flashcard_coverage (user_id, mode, flashcard_id) values ('aaaaaaaa-c0c0-c0c0-c0c0-c0c0c0c0c0c0', 'match', 'cacacaca-0000-4000-8000-000000000001')$$,
-  'own user can insert coverage'
-);
-
-select is(
-  (select count(*)::integer from public.flashcard_coverage where user_id = 'aaaaaaaa-c0c0-c0c0-c0c0-c0c0c0c0c0c0'),
-  1,
-  'own coverage row is visible'
-);
-
-select lives_ok(
-  $$delete from public.flashcard_coverage where user_id = 'aaaaaaaa-c0c0-c0c0-c0c0-c0c0c0c0c0c0'$$,
-  'own user can delete coverage'
-);
+select ok(not has_table_privilege('authenticated', 'public.flashcard_coverage', 'INSERT'), 'authenticated cannot forge coverage');
+select ok(not has_table_privilege('authenticated', 'public.flashcard_coverage', 'DELETE'), 'authenticated cannot clear coverage');
 
 -- Foreign coverage: cannot insert or see
 set local role authenticated;
@@ -66,9 +54,7 @@ select throws_ok(
 );
 
 -- Mode separation
-set local role authenticated;
-set local request.jwt.claim.sub = 'bbbbbbbb-c0c0-c0c0-c0c0-c0c0c0c0c0c0';
-
+reset role;
 insert into public.flashcard_coverage (user_id, mode, flashcard_id) values
   ('bbbbbbbb-c0c0-c0c0-c0c0-c0c0c0c0c0c0', 'match', 'cbcbcbcb-0000-4000-8000-000000000001');
 
@@ -85,9 +71,7 @@ select is(
 );
 
 -- On-conflict upsert is idempotent
-set local role authenticated;
-set local request.jwt.claim.sub = 'bbbbbbbb-c0c0-c0c0-c0c0-c0c0c0c0c0c0';
-
+reset role;
 insert into public.flashcard_coverage (user_id, mode, flashcard_id) values
   ('bbbbbbbb-c0c0-c0c0-c0c0-c0c0c0c0c0c0', 'match', 'cbcbcbcb-0000-4000-8000-000000000001')
 on conflict (user_id, mode, flashcard_id) do nothing;
@@ -109,9 +93,6 @@ select is(
 
 -- Invalid mode rejected by check constraint
 reset role;
-set local role authenticated;
-set local request.jwt.claim.sub = 'aaaaaaaa-c0c0-c0c0-c0c0-c0c0c0c0c0c0';
-
 select throws_ok(
   $$insert into public.flashcard_coverage (user_id, mode, flashcard_id) values ('aaaaaaaa-c0c0-c0c0-c0c0-c0c0c0c0c0c0', 'study', 'cacacaca-0000-4000-8000-000000000002')$$,
   '23514',

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 type MatchBoardProps = {
   batches: MatchBatch[];
   questionCount: number;
-  onComplete: (sessionCardIds: string[]) => void;
+  onComplete: () => Promise<void>;
 };
 
 export function MatchBoard({ batches, questionCount, onComplete }: MatchBoardProps) {
@@ -28,8 +28,7 @@ export function MatchBoard({ batches, questionCount, onComplete }: MatchBoardPro
   useEffect(() => {
     if (phase === "completed" && !completionNotifiedRef.current) {
       completionNotifiedRef.current = true;
-      const allIds = batches.flatMap((b) => b.fronts.map((c) => c.id));
-      onComplete(allIds);
+      void onComplete();
     }
   }, [phase, onComplete, batches]);
 

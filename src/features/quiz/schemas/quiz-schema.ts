@@ -21,6 +21,12 @@ export const quizSourceSchema = z
         message: `Chỉ được chọn tối đa ${QUIZ_MAX_SOURCES} nguồn.`,
       });
     }
+    if (value.setIds.length > 0 && value.collectionIds.length > 0) {
+      context.addIssue({
+        code: "custom",
+        message: "Chỉ chọn nhiều nguồn trong cùng một khu vực.",
+      });
+    }
   });
 
 export const quizStartSchema = z
@@ -36,6 +42,18 @@ export const quizStartSchema = z
       context.addIssue({
         code: "custom",
         message: `Chỉ được chọn tối đa ${QUIZ_MAX_SOURCES} nguồn.`,
+      });
+    }
+    if (value.all && value.setIds.length + value.collectionIds.length > 0) {
+      context.addIssue({
+        code: "custom",
+        message: "Tất cả thẻ không thể kết hợp với nguồn khác.",
+      });
+    }
+    if (value.setIds.length > 0 && value.collectionIds.length > 0) {
+      context.addIssue({
+        code: "custom",
+        message: "Chỉ chọn nhiều nguồn trong cùng một khu vực.",
       });
     }
     if (!value.all && value.setIds.length + value.collectionIds.length === 0) {

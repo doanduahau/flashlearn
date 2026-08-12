@@ -89,6 +89,16 @@ describe("getMatchEligibility", () => {
 });
 
 describe("constructible match batches", () => {
+  it("keeps every feasible uncovered card ahead of covered cards in a 15-card / 12-card session", () => {
+    const cards = makeCards(15);
+    const uncovered = new Set(["card-0", "card-1", "card-2"]);
+    const session = buildMatchSession(cards, 12, fixedRandom(), uncovered);
+    expect(session).not.toBeNull();
+    const selected = new Set(session?.flatMap((batch) => batch.fronts.map((item) => item.id)));
+    expect(selected.size).toBe(12);
+    expect([...uncovered].every((id) => selected.has(id))).toBe(true);
+  });
+
   it("builds exact unambiguous batches without reusing flashcards", () => {
     const session = buildMatchSession(makeCards(24), 24, fixedRandom());
     expect(session).not.toBeNull();

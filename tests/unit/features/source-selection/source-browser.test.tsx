@@ -42,7 +42,15 @@ const LARGE_PAGE_ONE: SourcePage = {
 describe("SourceBrowser", () => {
   it("searches, filters and paginates through URL state", async () => {
     const user = userEvent.setup();
-    render(<SourceBrowser path="/study" sourcePage={PAGE_ONE} selected={[]} onToggle={vi.fn()} />);
+    render(
+      <SourceBrowser
+        path="/study"
+        sourcePage={PAGE_ONE}
+        selected={[]}
+        selectedKind={null}
+        onToggle={vi.fn()}
+      />,
+    );
 
     await user.type(screen.getByLabelText("Tìm nguồn theo tên"), "React");
     await user.click(screen.getByRole("button", { name: "Tìm" }));
@@ -75,6 +83,7 @@ function SelectionHarness({ sourcePage }: Readonly<{ sourcePage: SourcePage }>) 
       path="/quiz"
       sourcePage={sourcePage}
       selected={selected}
+      selectedKind={selected[0]?.kind ?? null}
       onToggle={(source) =>
         setSelected((current) =>
           current.some((item) => item.id === source.id && item.kind === source.kind)

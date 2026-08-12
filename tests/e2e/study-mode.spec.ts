@@ -50,6 +50,45 @@ test.describe("Study mode", () => {
     await context.close();
   });
 
+  test("Quiz source selection stays within one source area on mobile", async ({ browser }) => {
+    const context = await browser.newContext({
+      storageState: AUTH_STATE,
+      viewport: { width: 390, height: 844 },
+    });
+    const page = await context.newPage();
+
+    await page.goto("/quiz");
+    const allCards = page.locator('input[type="radio"]').first();
+    await expect(allCards).toBeChecked();
+
+    const regularA = page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) });
+    const regularB = page.getByRole("checkbox", { name: new RegExp(SET_B_NAME) });
+    await regularA.check();
+    await regularB.check();
+    await expect(page.getByLabel("Nguồn đã chọn")).toContainText(SET_A_NAME);
+    await expect(page.getByLabel("Nguồn đã chọn")).toContainText(SET_B_NAME);
+    expect((await regularA.locator("xpath=..").boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
+      40,
+    );
+
+    await page.getByRole("button", { name: "Bộ đặc biệt" }).click();
+    const special = page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) });
+    await special.check();
+    await expect(page.getByLabel("Nguồn đã chọn")).toContainText(COLLECTION_NAME);
+    await expect(page.getByLabel("Nguồn đã chọn")).not.toContainText(SET_A_NAME);
+    await expect(page.getByLabel("Nguồn đã chọn")).not.toContainText(SET_B_NAME);
+
+    await allCards.check();
+    await expect(page.getByLabel("Nguồn đã chọn")).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+
+    await context.close();
+  });
+
   test("starts a session that flips, navigates and finishes", async ({ browser }) => {
     const context = await browser.newContext({ storageState: AUTH_STATE });
     const page = await context.newPage();

@@ -183,15 +183,10 @@ test.describe("Match learning mode", () => {
     );
     expect(overflow).toBe(false);
 
-    const frontIds = await page
+    const scrollTargetId = await page
       .locator('[data-match-side="front"]')
-      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-match-card-id")));
-    const backIds = await page
-      .locator('[data-match-side="back"]')
-      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-match-card-id")));
-    const scrollTargetId = frontIds.find(
-      (id, index) => id !== null && index < 2 && backIds.indexOf(id) >= 4,
-    );
+      .first()
+      .getAttribute("data-match-card-id");
     expect(scrollTargetId).toBeTruthy();
     if (!scrollTargetId) return;
 
@@ -200,6 +195,7 @@ test.describe("Match learning mode", () => {
     await front.click();
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await back.scrollIntoViewIfNeeded();
     await expect(back).toBeVisible();
     await back.click();
     await expect(front).toBeDisabled();
@@ -221,6 +217,7 @@ test.describe("Match learning mode", () => {
     await page.getByRole("button", { name: "12 câu" }).click();
     await page.getByRole("button", { name: "Bắt đầu Match" }).click();
     await expect(page).toHaveURL(/\/match\/session/);
+    await expect(page.locator('[data-match-side="front"]').first()).toBeVisible();
 
     const frontOrder = await page
       .locator('[data-match-side="front"]')

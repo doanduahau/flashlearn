@@ -13,6 +13,7 @@ type FlowEdge = {
   to: number;
   reverse: number;
   capacity: number;
+  cost: number;
   card?: MatchCard;
 };
 
@@ -39,6 +40,10 @@ function mulberry32(seed: number): () => number {
   };
 }
 
+export function createSeededMatchRandom(seed: number): () => number {
+  return mulberry32(seed);
+}
+
 function derivedRandom(random: () => number, salt: number): () => number {
   const seed = Math.floor(random() * 2 ** 32) >>> 0;
   return mulberry32((seed ^ salt) >>> 0);
@@ -55,10 +60,11 @@ function addEdge(
   from: number,
   to: number,
   capacity: number,
+  cost = 0,
   card?: MatchCard,
 ): FlowEdge {
-  const forward: FlowEdge = { to, reverse: graph[to].length, capacity, card };
-  const backward: FlowEdge = { to: from, reverse: graph[from].length, capacity: 0 };
+  const forward: FlowEdge = { to, reverse: graph[to].length, capacity, cost, card };
+  const backward: FlowEdge = { to: from, reverse: graph[from].length, capacity: 0, cost: -cost };
   graph[from].push(forward);
   graph[to].push(backward);
   return forward;
@@ -73,6 +79,7 @@ function selectCardsForBatches(
   cards: readonly MatchCard[],
   batchCount: number,
   random?: () => number,
+  priorityIds?: ReadonlySet<string>,
 ): MatchCard[] | null {
   const target = batchCount * MATCH_PAIR_COUNT;
   const ordered = random
@@ -99,6 +106,7 @@ function selectCardsForBatches(
       frontNode.get(normalizeMatchText(card.front))!,
       backNode.get(normalizeMatchText(card.back))!,
       1,
+      priorityIds?.has(card.id) ? -1 : 0,
       card,
     ),
   );
@@ -107,20 +115,24 @@ function selectCardsForBatches(
   while (flow < target) {
     const parent = Array.from({ length: graph.length }, () => -1);
     const parentEdge = Array.from({ length: graph.length }, () => -1);
-    const queue = [source];
-    parent[source] = source;
-    for (let index = 0; index < queue.length && parent[sink] === -1; index += 1) {
-      const node = queue[index];
-      for (let edgeIndex = 0; edgeIndex < graph[node].length; edgeIndex += 1) {
-        const edge = graph[node][edgeIndex];
-        if (edge.capacity <= 0 || parent[edge.to] !== -1) continue;
-        parent[edge.to] = node;
-        parentEdge[edge.to] = edgeIndex;
-        queue.push(edge.to);
-        if (edge.to === sink) break;
+    const distance = Array.from({ length: graph.length }, () => Number.POSITIVE_INFINITY);
+    distance[source] = 0;
+    for (let pass = 0; pass < graph.length - 1; pass += 1) {
+      let changed = false;
+      for (let node = 0; node < graph.length; node += 1) {
+        if (!Number.isFinite(distance[node])) continue;
+        for (let edgeIndex = 0; edgeIndex < graph[node].length; edgeIndex += 1) {
+          const edge = graph[node][edgeIndex];
+          if (edge.capacity <= 0 || distance[edge.to] <= distance[node] + edge.cost) continue;
+          distance[edge.to] = distance[node] + edge.cost;
+          parent[edge.to] = node;
+          parentEdge[edge.to] = edgeIndex;
+          changed = true;
+        }
       }
+      if (!changed) break;
     }
-    if (parent[sink] === -1) break;
+    if (!Number.isFinite(distance[sink])) break;
 
     for (let node = sink; node !== source; node = parent[node]) {
       const edge = graph[parent[node]][parentEdge[node]];
@@ -204,8 +216,9 @@ function buildBatchesForCount(
   cards: readonly MatchCard[],
   batchCount: number,
   random?: () => number,
+  priorityIds?: ReadonlySet<string>,
 ): MatchCard[][] | null {
-  const selected = selectCardsForBatches(cards, batchCount, random);
+  const selected = selectCardsForBatches(cards, batchCount, random, priorityIds);
   return selected ? partitionSelectedCards(selected, batchCount) : null;
 }
 
@@ -238,10 +251,11 @@ export function buildMatchSession(
   eligibleCards: readonly MatchCard[],
   questionCount: number,
   random: () => number,
+  priorityIds?: ReadonlySet<string>,
 ): MatchBatch[] | null {
   const batchCount = questionCount / MATCH_PAIR_COUNT;
   if (!Number.isInteger(batchCount)) return null;
-  const batches = buildBatchesForCount(eligibleCards, batchCount, random);
+  const batches = buildBatchesForCount(eligibleCards, batchCount, random, priorityIds);
   if (!batches) return null;
 
   return batches.map((batch) => ({

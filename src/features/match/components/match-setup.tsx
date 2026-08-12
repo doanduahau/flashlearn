@@ -39,6 +39,7 @@ export function MatchSetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>)
   const [pending, setPending] = useState(false);
 
   const selectedSources = useMemo(() => [...selected.values()], [selected]);
+  const selectedKind = selectedSources[0]?.kind ?? null;
   const currentSources = useMemo<SourceParams>(
     () => ({
       setIds: selectedSources
@@ -99,12 +100,20 @@ export function MatchSetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>)
     setError(null);
     setCountError(null);
     setSelected((previous) => {
-      const next = new Map(previous);
+      const next = new Map(
+        [...previous.entries()].filter(([, selectedSource]) => selectedSource.kind === source.kind),
+      );
       const key = `${source.kind}:${source.id}`;
       if (next.has(key)) next.delete(key);
       else next.set(key, source);
       return next;
     });
+  }
+
+  function selectAll(): void {
+    setAll(true);
+    setSelected(new Map());
+    setError(null);
   }
 
   function start(): void {
@@ -142,7 +151,7 @@ export function MatchSetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>)
   return (
     <div className="mt-2 space-y-3 pb-28 sm:mt-5 sm:space-y-4 md:pb-0">
       <label className="flex min-h-10 gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 sm:min-h-12 sm:p-4">
-        <input type="radio" checked={all} onChange={() => setAll(true)} />
+        <input type="radio" checked={all} onChange={selectAll} />
         <span className="min-w-0">
           <strong className="text-sm sm:text-base">Tất cả thẻ</strong>
           <br />
@@ -156,6 +165,7 @@ export function MatchSetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>)
         path="/study"
         sourcePage={sourcePage}
         selected={selectedSources}
+        selectedKind={selectedKind}
         onToggle={toggleSource}
       />
 

@@ -7,17 +7,62 @@ database table, migration, or persistence.
 
 ## Mode map
 
-| Group    | Mode             | Purpose                       | Learning-data effect in Phase 5               |
-| -------- | ---------------- | ----------------------------- | --------------------------------------------- |
-| Learning | Traditional Quiz | Graded recall                 | Existing Quiz behavior remains unchanged.     |
-| Learning | Match            | Fast Front → Back recognition | Practice only; no Quiz/session/grading write. |
-| Play     | Memory Matching  | Find Front ↔ Back pairs       | Practice only; no Quiz/session/grading write. |
-| Play     | Flashcard Runner | Educational runner game       | Practice only; no Quiz/session/grading write. |
+| Group    | Mode             | Purpose                       | Learning-data effect in Phase 5              |
+| -------- | ---------------- | ----------------------------- | -------------------------------------------- |
+| Learning | Traditional Quiz | Graded recall                 | Existing behavior plus `quiz` coverage.      |
+| Learning | Match            | Fast Front → Back recognition | Practice-only plus `match` coverage only.    |
+| Play     | Memory Matching  | Find Front ↔ Back pairs       | Future practice-only `memory` coverage only. |
+| Play     | Flashcard Runner | Educational runner game       | Future practice-only `runner` coverage only. |
 
 Match, Memory Matching, and Flashcard Runner must not update FSRS schedules,
 Mastery, `card_review_events`, `quiz_sessions`, `daily_learning_records`,
-streaks, or statistics in Phase 5. Whether practice/game activity later affects
-streaks or general statistics remains a product decision for a later phase.
+streaks, or statistics. Their mode-specific coverage write after whole-session
+completion is selection-cycle state only, not graded learning data. Whether
+practice/game activity later affects streaks or general statistics remains a
+product decision for a later phase.
+
+## Shared learning-mode coverage (Phase 5C.0)
+
+Coverage answers only: **has a flashcard been included in the current selected
+cycle for this mode?** It is not scheduling. FSRS alone remains responsible for
+stability, difficulty, retrievability, due dates, Smart Review, and New Cards.
+
+- Identity is `user + mode + flashcard`; valid modes are `quiz`, `match`,
+  `memory`, and `runner`. A Match-covered card is still Memory-uncovered, and
+  vice versa.
+- Study, Smart Review, and New Cards do not read or write coverage.
+- Coverage commits only after a whole session completes. Starting, abandoning,
+  or partly completing a session changes no coverage state.
+- A server-created durable coverage session snapshots both its selected cards
+  and its eligible source scope. Completion takes only its opaque ID and is
+  atomic and idempotent; retries return the first result without polluting a
+  new cycle.
+- When all surviving cards in that snapshotted selected scope are covered, only
+  that scope is reset for that mode. Rows outside the scope stay unchanged.
+  Deleted snapshot cards are safely ignored at completion because they can no
+  longer be covered.
+- `covered_at` is the first coverage time in the current cycle. A reset deletes
+  rows; a later re-cover creates a new timestamp.
+
+### Source selection
+
+The source taxonomy remains unchanged:
+
+- **Tất cả thẻ** is standalone and exclusive.
+- **Bộ thường** supports multi-select within that area.
+- **Bộ đặc biệt** supports multi-select within that area.
+- Regular sets and special collections cannot be mixed. Switching areas clears
+  the incompatible selection.
+
+Each selected scope is the union of its card IDs, so an overlapping card appears
+once. The same source rules apply to Traditional Quiz and Match. Traditional
+Quiz prioritizes currently uncovered `quiz` coverage before its existing
+historical balancing criteria; Smart Review and New Cards retain their own
+selection paths.
+
+Future Memory and Runner use the same server contract: create a mode-specific
+coverage session from a source selection and question count, then complete the
+opaque session ID only after a legitimate full game completion.
 
 ## Current Quiz question foundation
 
@@ -218,10 +263,11 @@ existing source-selection browser for choosing which flashcards to practice.
 
 ### Side-effect boundary
 
-Match is client/read-only practice after card data is loaded. It performs no
-DB writes: no `quiz_sessions`, no quiz answers, no `card_review_events`, no FSRS
-scheduling, no mastery updates, no `daily_learning_records`, no streak or
-statistics changes, and no game-result persistence.
+Match creates a durable coverage-session snapshot at start and writes only
+`match` coverage after the whole selected session completes. It creates no
+`quiz_sessions`, no quiz answers, no `card_review_events`, no FSRS scheduling,
+no mastery updates, no `daily_learning_records`, no streak/statistics changes,
+and no game-result persistence.
 
 ### Accessibility
 
@@ -234,14 +280,20 @@ statistics changes, and no game-result persistence.
 
 ## Memory Matching
 
-- Pairs are Front ↔ Back.
-- The compact grid occupies the main interaction area.
-- A separate preview/read area above the grid shows the full currently flipped
-  card content. Grid cards must not render long Flashcard text at unreadably
-  small sizes.
-- Pair count/grid shape is adaptive to available viewport size; Phase 5A defines
-  no final breakpoints or dimensions.
-- Memory Matching is practice-only and must not affect FSRS or Mastery.
+**Not implemented yet.** Frozen implementation requirements are:
+
+- Mobile-first, Front ↔ Back, six pairs per batch, 3×4 grid, and total choices
+  of 12/18/24 cards.
+- Face-down tiles are blank light-blue cards with no text. Flipped tiles use a
+  different light background plus an upward-arrow icon, also with no text.
+- The preview above the grid shows only the latest flipped card's full content.
+- A correct pair stays flipped, faded, and disabled; small confetti belongs in
+  or around the preview.
+- A mismatch never turns a tile red: the preview gets a subtle red border for
+  exactly one second, both cards flip down, then the preview returns neutral.
+- A whole-session timer, no penalties/lives, mobile-first layout, and full
+  session-only `memory` coverage apply. It remains practice-only: no FSRS,
+  Mastery, review-event, or statistics write.
 
 ## Flashcard Runner
 

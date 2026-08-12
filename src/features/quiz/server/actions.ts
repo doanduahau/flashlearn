@@ -5,7 +5,7 @@ import {
   quizSourceSchema,
   quizStartSchema,
 } from "@/features/quiz/schemas/quiz-schema";
-import { commitCoverageAndResetScope } from "@/features/practice-coverage/server/actions";
+import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
 import { collectStudyCardIds } from "@/features/study/server/load-study-cards";
 import { reconcileCardSchedule } from "@/features/spaced-repetition/server/reconcile-card-schedule";
 import { createClient } from "@/lib/supabase/server";
@@ -95,44 +95,20 @@ export async function submitQuizAnswer(input: unknown): Promise<Result> {
     }
   }
 
-  // Commit Quiz coverage on session completion (traditional Quiz only).
+  // Quiz coverage is a separate, retry-safe transaction.  Only a durable
+  // manual-Quiz ledger row can complete; Smart Review and New Cards have none.
   if (answer.completed && answer.session_id) {
     try {
-      const { data: questionRows } = await supabase
-        .from("quiz_questions")
-        .select("flashcard_id")
-        .eq("session_id", answer.session_id as string);
-      const cardIds = (questionRows ?? [])
-        .map((row) => row.flashcard_id)
-        .filter((id): id is string => id !== null);
-
-      if (cardIds.length > 0) {
-        const { data: sessionData } = await supabase
-          .from("quiz_sessions")
-          .select("source_set_ids, source_collection_ids")
-          .eq("id", answer.session_id as string)
-          .maybeSingle();
-
-        const setIds = Array.isArray(sessionData?.source_set_ids)
-          ? (sessionData.source_set_ids as string[])
-          : [];
-        const collectionIds = Array.isArray(sessionData?.source_collection_ids)
-          ? (sessionData.source_collection_ids as string[])
-          : [];
-
-        if (setIds.length > 0 || collectionIds.length > 0) {
-          const scopeIds = await collectStudyCardIds(supabase, {
-            all: false,
-            setIds,
-            collectionIds,
-          });
-          void commitCoverageAndResetScope("quiz", cardIds, scopeIds);
-        } else {
-          void commitCoverageAndResetScope("quiz", cardIds, []);
-        }
-      }
+      const { data: coverageSession } = await supabase
+        .from("learning_coverage_sessions")
+        .select("id")
+        .eq("quiz_session_id", answer.session_id as string)
+        .eq("mode", "quiz")
+        .maybeSingle();
+      if (coverageSession?.id) await completeLearningCoverageSession(coverageSession.id);
     } catch {
-      // Coverage commit is best-effort; never fail the quiz answer.
+      // A retry of the final answer repeats the same idempotent completion.
+      // Never let a derived coverage failure invalidate the authoritative quiz.
     }
   }
 

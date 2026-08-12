@@ -27,3 +27,7 @@ export type MatchSessionPlan = {
   selectedCount: number;
   eligibleCount: number;
 };
+
+export type StartedMatchSession = MatchSessionPlan & {
+  coverageSessionId: string;
+};

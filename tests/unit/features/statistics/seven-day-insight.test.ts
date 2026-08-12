@@ -62,6 +62,7 @@ describe("computeSevenDayInsight — improvement", () => {
     const previous = [record("2026-08-03", 10, 7)];
     const result = computeSevenDayInsight(today, current, previous);
     expect(result.kind).toBe("improvement");
+    expect(result.message).toBe("Độ chính xác của bạn đã cải thiện trong 7 ngày vừa qua.");
   });
 
   it("detects improvement when accuracy rises by 10pp", () => {
@@ -91,6 +92,7 @@ describe("computeSevenDayInsight — stable_more_activity", () => {
     const previous = [record("2026-08-01", 5, 4), record("2026-08-02", 5, 4)];
     const result = computeSevenDayInsight(today, current, previous);
     expect(result.kind).toBe("stable_more_activity");
+    expect(result.message).toBe("Bạn đang duy trì nhịp làm bài trong 7 ngày vừa qua.");
   });
 
   it("stable accuracy with only 2pp change + more activity", () => {
@@ -109,6 +111,9 @@ describe("computeSevenDayInsight — some_activity", () => {
     const previous = [record("2026-08-01", 2, 2)];
     const result = computeSevenDayInsight(today, current, previous);
     expect(result.kind).toBe("some_activity");
+    expect(result.message).toBe(
+      "Bạn đã có hoạt động làm bài trong 7 ngày vừa qua. Hãy tiếp tục nhé!",
+    );
   });
 
   it("current has 4 questions (<5) — insufficient for comparison", () => {
@@ -130,7 +135,7 @@ describe("computeSevenDayInsight — no_activity", () => {
   it("returns no_activity when current period has zero quizCount", () => {
     const result = computeSevenDayInsight("2026-08-12", [], []);
     expect(result.kind).toBe("no_activity");
-    expect(result.message).toBe("7 ngày vừa qua chưa có nhiều hoạt động học.");
+    expect(result.message).toBe("7 ngày vừa qua chưa có nhiều hoạt động làm bài được ghi nhận.");
   });
 });
 
@@ -144,6 +149,10 @@ describe("computeSevenDayInsight — negative trend", () => {
     expect(result.kind).not.toBe("improvement");
     expect(result.kind).not.toBe("stable_more_activity");
     expect(result.message).not.toContain("giảm");
+    expect(result.message).toBe(
+      "Bạn đã có hoạt động làm bài trong 7 ngày vừa qua. Hãy tiếp tục nhé!",
+    );
+    expect(result.message).not.toContain("tốt");
   });
 
   it("accuracy declined with less activity — uses neutral fallback", () => {
@@ -151,6 +160,36 @@ describe("computeSevenDayInsight — negative trend", () => {
     const previous = [record("2026-08-01", 10, 9)];
     const result = computeSevenDayInsight(today, current, previous);
     expect(result.kind).toBe("some_activity");
+    expect(result.message).toBe(
+      "Bạn đã có hoạt động làm bài trong 7 ngày vừa qua. Hãy tiếp tục nhé!",
+    );
+  });
+
+  it("uses neutral cadence copy for low but stable accuracy with more completed quizzes", () => {
+    const previous = [record("2026-08-01", 10, 2, 1)];
+    const current = [record("2026-08-10", 50, 9, 2)];
+
+    const result = computeSevenDayInsight(today, current, previous);
+
+    expect(result.kind).toBe("stable_more_activity");
+    expect(result.message).toBe("Bạn đang duy trì nhịp làm bài trong 7 ngày vừa qua.");
+    expect(result.message).not.toContain("tốt");
+  });
+});
+
+describe("computeSevenDayInsight — canonical rounded accuracy comparison", () => {
+  it("uses rounded integer percentages near the +5pp threshold", () => {
+    // Raw: previous = 373 / 500 = 74.6%, current = 397 / 500 = 79.4% (+4.8pp).
+    // Canonical accuracy() rounds these to 75% and 79%, so this remains below +5pp.
+    const previous = [record("2026-08-01", 500, 373, 1)];
+    const current = [record("2026-08-10", 500, 397, 1)];
+
+    const result = computeSevenDayInsight("2026-08-12", current, previous);
+
+    expect(result.kind).toBe("some_activity");
+    expect(result.message).toBe(
+      "Bạn đã có hoạt động làm bài trong 7 ngày vừa qua. Hãy tiếp tục nhé!",
+    );
   });
 });
 

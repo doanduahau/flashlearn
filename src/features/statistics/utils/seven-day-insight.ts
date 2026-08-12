@@ -1,4 +1,4 @@
-import { dateInTimezone, type DailyActivityDetail } from "./month-activity";
+import type { DailyActivityDetail } from "./month-activity";
 
 export type InsightKind = "improvement" | "stable_more_activity" | "some_activity" | "no_activity";
 
@@ -28,7 +28,6 @@ export function getSevenDayBoundaries(today: string): {
   previousStart: string;
 } {
   const d = new Date(`${today}T12:00:00Z`);
-  const currentEnd = new Date(d);
   const currentStart = new Date(d);
   currentStart.setUTCDate(d.getUTCDate() - 6);
 
@@ -60,7 +59,7 @@ export function computeSevenDayInsight(
   if (currentActivity === 0) {
     return {
       kind: "no_activity",
-      message: "7 ngày vừa qua chưa có nhiều hoạt động học.",
+      message: "7 ngày vừa qua chưa có nhiều hoạt động làm bài được ghi nhận.",
     };
   }
 
@@ -79,13 +78,13 @@ export function computeSevenDayInsight(
     if (improvement > -5 && currentActivity > previousActivity) {
       return {
         kind: "stable_more_activity",
-        message: "Bạn đang duy trì nhịp học tốt trong 7 ngày vừa qua.",
+        message: "Bạn đang duy trì nhịp làm bài trong 7 ngày vừa qua.",
       };
     }
   }
 
   return {
     kind: "some_activity",
-    message: "Bạn đã duy trì việc học trong 7 ngày vừa qua. Hãy tiếp tục nhé!",
+    message: "Bạn đã có hoạt động làm bài trong 7 ngày vừa qua. Hãy tiếp tục nhé!",
   };
 }

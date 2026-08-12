@@ -68,6 +68,45 @@ test.describe("Mastery summary", () => {
     await expectNoHorizontalOverflow(page);
   });
 
+  test("dashboard renders the recorded-activity insight between learning status and monthly activity", async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("seven_day_insight"));
+    await createSetWithCard(page, "Bộ insight");
+
+    await page.goto("/dashboard");
+
+    const summary = page.getByRole("region", { name: "Tóm tắt trạng thái học" });
+    const insight = page.getByRole("region", { name: "Thông tin 7 ngày vừa qua" });
+    const title = insight.getByRole("heading", { name: "7 ngày vừa qua" });
+    const calendarHeading = page.getByRole("heading", { name: "Hoạt động tháng này" });
+
+    await expect(summary.getByText("Chưa học", { exact: true })).toBeVisible();
+    await expect(title).toBeVisible();
+    await expect(
+      insight.getByText("7 ngày vừa qua chưa có nhiều hoạt động làm bài được ghi nhận."),
+    ).toHaveCount(1);
+    await expect(insight.getByRole("button")).toHaveCount(0);
+    await expect(page.locator('a[href="/quiz?tab=create"]')).toBeVisible();
+    await expect(calendarHeading).toBeVisible();
+
+    const summaryBox = await summary.boundingBox();
+    const insightBox = await insight.boundingBox();
+    const calendarBox = await calendarHeading.boundingBox();
+    expect(summaryBox).not.toBeNull();
+    expect(insightBox).not.toBeNull();
+    expect(calendarBox).not.toBeNull();
+    expect((summaryBox?.y ?? 0) + (summaryBox?.height ?? 0)).toBeLessThanOrEqual(
+      (insightBox?.y ?? 0) + 2,
+    );
+    expect((insightBox?.y ?? 0) + (insightBox?.height ?? 0)).toBeLessThanOrEqual(
+      (calendarBox?.y ?? 0) + 2,
+    );
+
+    await expectNoHorizontalOverflow(page);
+  });
+
   test("set detail shows full-scope counts independent of pagination", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("summary_set"));

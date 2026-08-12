@@ -472,12 +472,12 @@ No new charts, KPIs, navigation, pages, or AI calls.
 
 ## Insight rules
 
-| Condition                                                              | Message                                                           |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Improvement: current ≥5 & previous ≥5 graded responses, accuracy +≥5pp | "Độ chính xác của bạn đã cải thiện trong 7 ngày vừa qua."         |
-| Stable: ≥5 & ≥5 responses, accuracy stable (±5pp), more activity       | "Bạn đang duy trì nhịp học tốt trong 7 ngày vừa qua."             |
-| Some activity: current has activity, insufficient comparison data      | "Bạn đã duy trì việc học trong 7 ngày vừa qua. Hãy tiếp tục nhé!" |
-| No activity: current has zero activity                                 | "7 ngày vừa qua chưa có nhiều hoạt động học."                     |
+| Condition                                                              | Message                                                               |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Improvement: current ≥5 & previous ≥5 graded responses, accuracy +≥5pp | "Độ chính xác của bạn đã cải thiện trong 7 ngày vừa qua."             |
+| Stable: ≥5 & ≥5 responses, accuracy stable (±5pp), more activity       | "Bạn đang duy trì nhịp làm bài trong 7 ngày vừa qua."                 |
+| Some activity: current has activity, insufficient comparison data      | "Bạn đã có hoạt động làm bài trong 7 ngày vừa qua. Hãy tiếp tục nhé!" |
+| No activity: current has zero activity                                 | "7 ngày vừa qua chưa có nhiều hoạt động làm bài được ghi nhận."       |
 
 Negative trends never produce discouraging messages. The card is supportive, not a warning system.
 
@@ -489,3 +489,10 @@ Negative trends never produce discouraging messages. The card is supportive, not
 - Rolling 7-day windows (not calendar weeks)
 - One DB query, ≤14 days of data, no caching
 - Mobile-first, no horizontal overflow
+
+## Recorded-activity scope
+
+The insight is based on `daily_learning_records.completed_quiz_count`: completed Quiz-style
+sessions, including ordinary Quiz, Smart Review, and New Cards. Study-only sessions deliberately
+do not persist activity, streak, or statistics and are therefore not represented. The UI says
+"làm bài" rather than all learning activity. Phase 4 introduces no broader Study tracking.

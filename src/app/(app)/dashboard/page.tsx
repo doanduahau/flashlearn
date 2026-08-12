@@ -9,6 +9,8 @@ import { countNewCards } from "@/features/spaced-repetition/server/new-cards-rep
 import { StartSmartReviewButton } from "@/features/smart-review/components/start-smart-review-button";
 import { StartNewCardsButton } from "@/features/spaced-repetition/components/start-new-cards-button";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
+import { SevenDayInsightCard } from "@/features/statistics/components/seven-day-insight-card";
+import { loadSevenDayInsight } from "@/features/statistics/server/load-seven-day-insight";
 import {
   accuracy,
   loadActivityDetail,
@@ -36,12 +38,14 @@ export default async function DashboardPage({
   const currentMonth = monthInTimezone(new Date(), timezone);
 
   const evaluationTime = new Date().toISOString();
-  const [todayDetail, monthActivity, streakDates, claimsResult] = await Promise.all([
-    loadActivityDetail(supabase, today),
-    loadMonthlyActivity(supabase, currentMonth),
-    loadMonthlyStreakDates(supabase, timezone, currentMonth),
-    supabase.auth.getClaims(),
-  ]);
+  const [todayDetail, monthActivity, streakDates, sevenDayInsight, claimsResult] =
+    await Promise.all([
+      loadActivityDetail(supabase, today),
+      loadMonthlyActivity(supabase, currentMonth),
+      loadMonthlyStreakDates(supabase, timezone, currentMonth),
+      loadSevenDayInsight(supabase, today),
+      supabase.auth.getClaims(),
+    ]);
 
   const userId =
     typeof claimsResult.data?.claims?.sub === "string" ? claimsResult.data.claims.sub : null;
@@ -139,6 +143,12 @@ export default async function DashboardPage({
             </div>
           </div>
         </section>
+      ) : null}
+
+      {sevenDayInsight ? (
+        <div className="mt-2 sm:mt-3">
+          <SevenDayInsightCard insight={sevenDayInsight} />
+        </div>
       ) : null}
 
       {monthActivity ? (

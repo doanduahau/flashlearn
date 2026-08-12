@@ -99,13 +99,20 @@ export async function submitQuizAnswer(input: unknown): Promise<Result> {
   // manual-Quiz ledger row can complete; Smart Review and New Cards have none.
   if (answer.completed && answer.session_id) {
     try {
-      const { data: coverageSession } = await supabase
-        .from("learning_coverage_sessions")
-        .select("id")
-        .eq("quiz_session_id", answer.session_id as string)
-        .eq("mode", "quiz")
+      const { data: session } = await supabase
+        .from("quiz_sessions")
+        .select("origin")
+        .eq("id", answer.session_id as string)
         .maybeSingle();
-      if (coverageSession?.id) await completeLearningCoverageSession(coverageSession.id);
+      if (session?.origin === "manual") {
+        const { data: coverageSession } = await supabase
+          .from("learning_coverage_sessions")
+          .select("id")
+          .eq("quiz_session_id", answer.session_id as string)
+          .eq("mode", "quiz")
+          .maybeSingle();
+        if (coverageSession?.id) await completeLearningCoverageSession(coverageSession.id);
+      }
     } catch {
       // A retry of the final answer repeats the same idempotent completion.
       // Never let a derived coverage failure invalidate the authoritative quiz.

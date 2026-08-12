@@ -3,11 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   reconcileCardSchedule: vi.fn(),
+  completeLearningCoverageSession: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/features/spaced-repetition/server/reconcile-card-schedule", () => ({
   reconcileCardSchedule: mocks.reconcileCardSchedule,
+}));
+vi.mock("@/features/practice-coverage/server/actions", () => ({
+  completeLearningCoverageSession: mocks.completeLearningCoverageSession,
 }));
 
 import { submitQuizAnswer } from "@/features/quiz/server/actions";
@@ -32,6 +36,7 @@ function authenticatedSupabase() {
       ],
       error: null,
     }),
+    from: vi.fn(),
   };
 }
 
@@ -39,6 +44,7 @@ describe("submitQuizAnswer FSRS shadow boundary", () => {
   beforeEach(() => {
     mocks.createClient.mockReset();
     mocks.reconcileCardSchedule.mockReset();
+    mocks.completeLearningCoverageSession.mockReset();
   });
 
   it("uses the verified claims subject for reconciliation and returns only quiz UX fields", async () => {
@@ -87,4 +93,47 @@ describe("submitQuizAnswer FSRS shadow boundary", () => {
     expect(supabase.rpc).not.toHaveBeenCalled();
     expect(mocks.reconcileCardSchedule).not.toHaveBeenCalled();
   });
+
+  it.each(["smart_review", "new_cards"])(
+    "does not read or complete quiz coverage for a completed %s session",
+    async (origin) => {
+      const supabase = authenticatedSupabase();
+      supabase.rpc.mockResolvedValue({
+        data: [
+          {
+            session_id: "33333333-3333-3333-3333-333333333333",
+            is_correct: true,
+            completed: true,
+            flashcard_id: flashcardId,
+            review_event_id: "44444444-4444-4444-4444-444444444444",
+          },
+        ],
+        error: null,
+      });
+      const ledgerQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+      };
+      supabase.from
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi
+              .fn()
+              .mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: { origin } }) }),
+          }),
+        })
+        .mockReturnValue(ledgerQuery);
+      mocks.createClient.mockResolvedValue(supabase);
+
+      await expect(submitQuizAnswer({ questionId, selectedChoiceIndex: 0 })).resolves.toMatchObject(
+        {
+          ok: true,
+          completed: true,
+        },
+      );
+      expect(supabase.from).toHaveBeenCalledTimes(1);
+      expect(mocks.completeLearningCoverageSession).not.toHaveBeenCalled();
+    },
+  );
 });

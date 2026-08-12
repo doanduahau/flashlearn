@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { StudySourceSelect } from "@/features/study/components/study-source-select";
+import { MatchSetup } from "@/features/match/components/match-setup";
 import { loadSourcePage, sourceType } from "@/features/source-selection/server/load-source-page";
 import { parsePage, type RouteSearchParams } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Học" };
+export const metadata: Metadata = { title: "Match" };
 
-export default async function StudyPage({
+export default async function MatchPage({
   searchParams,
 }: Readonly<{ searchParams: Promise<RouteSearchParams> }>) {
   const raw = await searchParams;
@@ -25,15 +24,8 @@ export default async function StudyPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
-      <h1 className="text-2xl font-bold sm:text-3xl">Học</h1>
-      <Link
-        className="mt-3 inline-flex items-center gap-2 rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm font-medium hover:bg-surface-subtle sm:mt-5 sm:rounded-2xl sm:px-4 sm:py-3"
-        href="/match"
-      >
-        Match
-        <span className="text-xs font-normal text-text-secondary">nối mặt trước với mặt sau</span>
-      </Link>
-      <StudySourceSelect sourcePage={sourcePage} totalCards={totalResult.count ?? 0} />
+      <h1 className="text-2xl font-bold sm:text-3xl">Match</h1>
+      <MatchSetup sourcePage={sourcePage} totalCards={totalResult.count ?? 0} />
     </main>
   );
 }

@@ -100,12 +100,136 @@ ad-hoc `Math.random()` calls through React components. If a later concrete mode
 needs a shuffle helper, it should be pure and accept an injectable/testable
 random source or session seed.
 
-## Match
+## Match (Phase 5B — implemented)
 
 - Pairs are Front ↔ Back for fast recognition practice.
-- Pair count is adaptive to available viewport size; Phase 5A defines no fixed
-  count, breakpoints, or layout values.
-- Match is practice-only and must not affect FSRS or Mastery.
+- Match is practice-only and must not affect FSRS, Mastery, `card_review_events`,
+  `quiz_sessions`, `daily_learning_records`, streaks, or statistics.
+
+### Interaction
+
+Front → Back only. Two columns:
+
+- LEFT: Front cards.
+- RIGHT: Back cards.
+
+Each column is independently shuffled. The user taps a Front, then taps the
+corresponding Back:
+
+- **Correct:** both cards become visually faded/muted, remain in their exact
+  positions, and become non-interactive. The layout does not collapse/reflow.
+- **Incorrect:** subtle red feedback, the attempted selection clears, no score
+  penalty, no life penalty, the user continues immediately.
+
+Correctly matched cards are never removed from the layout.
+
+### Fixed batch size
+
+Every Match batch contains exactly **6 flashcard pairs** (12 interactive cards
+before matches complete). The batch size does not adapt.
+
+### Session question counts
+
+The user can choose only **12 / 18 / 24**:
+
+- 12 flashcards → 2 batches × 6 pairs
+- 18 flashcards → 3 batches × 6 pairs
+- 24 flashcards → 4 batches × 6 pairs
+
+### Eligibility
+
+| Eligible cards | Allowed counts     |
+| -------------- | ------------------ |
+| < 12           | Match cannot start |
+| 12–17          | 12                 |
+| 18–23          | 12, 18             |
+| ≥ 24           | 12, 18, 24         |
+
+Match requires at least 12 eligible flashcards; otherwise a clear user-friendly
+message is shown. No partial batch is created, and previously played cards are
+never reused to fill a batch.
+
+### Session card selection
+
+If the set contains more eligible cards than the selected count, cards are
+selected **randomly for each new Match session** without replacement. A replay is
+a new session, so selection may be randomized again. Underlying flashcard
+ordering is never mutated.
+
+### Duplicate / ambiguity prevention
+
+Within every six-card batch:
+
+- Front values are unique after canonical normalization
+  (trim + collapse whitespace + lowercase).
+- Back values are also unique after canonical normalization.
+
+The canonical normalization mirrors the existing Quiz distractor normalization
+(`lower(regexp_replace(btrim(back), '\s+', ' ', 'g'))`) so Match treats content
+exactly as Quiz does for option distinctness. Normalization is used only for
+ambiguity detection — rendered text remains the user's original content.
+Conflicting cards are skipped/reselected during batch construction. If the
+available set cannot produce the requested number of complete unambiguous
+batches, that count option is not offered. A flashcard is never reused twice in
+the same session.
+
+### Randomization
+
+Randomization happens at two levels:
+
+1. Session selection — random eligible cards.
+2. Every batch — Front order and Back order are shuffled independently, so the
+   correct Front/Back normally appear at unrelated positions.
+
+Randomization uses a pure seeded PRNG (mulberry32) seeded once per session, so a
+session is reproducible from its seed while each new session/replay draws a new
+seed. No `Math.random()` is scattered through UI components.
+
+### Batch progression
+
+A Match session has 2, 3, or 4 six-card batches. When all six pairs in the
+current batch are matched, the session automatically continues to the next
+batch — no "Next batch" button, no intermediate modal. Overall session progress
+is maintained. No batch progress is persisted in Phase 5B.
+
+### Completion screen
+
+After all selected pairs complete, a minimal completion state shows:
+
+- "Hoàn thành N/N" using the actual selected count.
+- Actions: "Chơi lại" (new session, same count, new random selection/shuffle) and
+  "Quay lại" (returns to the study/learning-mode selection).
+- No score, percentage, leaderboard, streak, XP, mastery, or FSRS data.
+
+### Typography and long text
+
+Match uses one fixed readable body-text token (`text-sm`/`text-base`) for all
+cards during a session. Cards do not shrink individually and text is never
+truncated or hidden behind ellipsis. Cards wrap and may grow vertically; the
+page allows moderate vertical scrolling. The two columns use most of the useful
+content width, with no horizontal scroll.
+
+### Entry point
+
+Match is reached from the "Học" (`/study`) page via a Match link. It reuses the
+existing source-selection browser for choosing which flashcards to practice.
+"Trắc nghiệm" (Quiz) remains available through its existing route.
+
+### Side-effect boundary
+
+Match is client/read-only practice after card data is loaded. It performs no
+DB writes: no `quiz_sessions`, no quiz answers, no `card_review_events`, no FSRS
+scheduling, no mastery updates, no `daily_learning_records`, no streak or
+statistics changes, and no game-result persistence.
+
+### Accessibility
+
+- Semantic interactive controls with visible keyboard focus.
+- Selected state exposed via `aria-pressed`.
+- Matched/disabled cards are non-interactive (`disabled`) and communicate state
+  with opacity plus semantic disabled state, not color alone.
+- Error feedback is text-based and respects `prefers-reduced-motion`.
+- Clear section/title structure for screen readers.
 
 ## Memory Matching
 
@@ -161,8 +285,8 @@ readable minimum font size and a consistent session-level typography decision;
 they must not shrink individual cards indefinitely. Mobile readability has
 priority over fitting unlimited text, and Runner gameplay must retain usable
 physical space. Runner may use adaptive question/current-answer layout without
-collapsing its canvas. Memory uses its separate preview/read area. Match adapts
-pair count/layout to the viewport.
+collapsing its canvas. Memory uses its separate preview/read area. Match uses a
+fixed readable session typography with wrapping and moderate vertical scroll.
 
 ## Explicitly unresolved for later stages
 
@@ -173,8 +297,7 @@ pair count/layout to the viewport.
 - Whether Match, Memory, or Runner affects streaks, daily learning records, or
   general statistics.
 - Final result/record persistence semantics.
-- Adaptive Match/Memory pair-count breakpoints and final long-text typography
-  algorithm.
+- Memory pair-count breakpoints and final long-text typography algorithm.
 - The additive database/domain design that exposes the canonical Quiz option
   operation as a side-effect-free, configurable read model while preserving
   existing Quiz semantics.

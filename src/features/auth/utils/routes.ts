@@ -4,6 +4,7 @@ export const PROTECTED_ROUTES = [
   "/sets",
   "/collections",
   "/study",
+  "/match",
   "/quiz",
   "/history",
   "/statistics",

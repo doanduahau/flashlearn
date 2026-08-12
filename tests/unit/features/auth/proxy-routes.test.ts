@@ -120,6 +120,7 @@ describe("PROTECTED_ROUTES constant", () => {
       "/sets",
       "/collections",
       "/study",
+      "/match",
       "/quiz",
       "/history",
       "/statistics",

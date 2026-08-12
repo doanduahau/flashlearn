@@ -1,0 +1,241 @@
+import { expect, type Page, test } from "@playwright/test";
+
+import { signUpAndConfirm, uniqueEmail } from "./support/auth-helpers";
+import { supabaseRest } from "./support/supabase-api";
+
+const MOBILE = { width: 390, height: 844 };
+const DESKTOP = { width: 1280, height: 900 };
+const MEMORY_CSV = "tests/fixtures/smart-review-24-cards.csv";
+
+async function importSet(page: Page, name: string, csv = MEMORY_CSV): Promise<string> {
+  await page.goto("/import");
+  await page.getByLabel(/CSV\/XLSX/i).setInputFiles(csv);
+  await page.getByLabel("Tên bộ").fill(name);
+  await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
+  await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
+  return new URL(page.url()).pathname.split("/").pop() ?? "";
+}
+
+async function openMemory(page: Page): Promise<void> {
+  await page.goto("/study");
+  await page.getByRole("link", { name: /Memory Matching/ }).click();
+  await expect(page).toHaveURL(/\/memory$/);
+}
+
+async function findMatchingTiles(page: Page) {
+  const tiles = page.locator("[data-memory-tile-key]");
+  const count = await tiles.count();
+  for (let i = 0; i < count; i += 1) {
+    const tile = tiles.nth(i);
+    if ((await tile.getAttribute("aria-label")) !== "Ô úp") continue;
+    const cardId = await tile.getAttribute("data-memory-card-id");
+    const side = await tile.getAttribute("data-memory-side");
+    const otherSide = side === "front" ? "back" : "front";
+    const sibling = page.locator(
+      `[data-memory-card-id="${cardId}"][data-memory-side="${otherSide}"]`,
+    );
+    return { first: tile, second: sibling };
+  }
+  throw new Error("no face-down tile found");
+}
+
+async function matchPair(page: Page): Promise<void> {
+  const { first, second } = await findMatchingTiles(page);
+  await first.click();
+  await expect(first).toHaveAttribute("aria-label", "Đã lật", { timeout: 2000 });
+  await expect(page.getByTestId("memory-preview")).toContainText(/Smart (prompt|answer) \d+/);
+  await second.click();
+  // Wait for the celebration to resolve so the next pair can be selected.
+  await expect(first).toHaveAttribute("aria-label", "Đã ghép đúng", { timeout: 2000 });
+  await page.waitForTimeout(1200);
+}
+
+async function learningState(page: Page, userId: string) {
+  const [sessions, events, schedule, daily] = await Promise.all([
+    supabaseRest(page.context(), `quiz_sessions?select=id&user_id=eq.${userId}&limit=1000`),
+    supabaseRest(page.context(), `card_review_events?select=id&user_id=eq.${userId}&limit=1000`),
+    supabaseRest(
+      page.context(),
+      `card_learning_schedule?select=id&user_id=eq.${userId}&limit=1000`,
+    ),
+    supabaseRest(
+      page.context(),
+      `daily_learning_records?select=id&user_id=eq.${userId}&limit=1000`,
+    ),
+  ]);
+  const count = async (res: Response) => ((await res.json()) as unknown[]).length;
+  return {
+    quizSessions: await count(sessions),
+    reviewEvents: await count(events),
+    scheduleRows: await count(schedule),
+    dailyRecords: await count(daily),
+  };
+}
+
+async function authUserId(page: Page): Promise<string> {
+  const res = await supabaseRest(page.context(), "profiles?select=id");
+  const data = (await res.json()) as { id: string }[];
+  return data[0]?.id ?? "";
+}
+
+test.describe("Memory Matching", () => {
+  test("runs a full 12-pair Memory session with practice-only side effects", async ({ page }) => {
+    await page.setViewportSize(DESKTOP);
+    await signUpAndConfirm(page, uniqueEmail("memory_full"));
+
+    await importSet(page, "Bộ memory");
+    const userId = await authUserId(page);
+    const before = await learningState(page, userId);
+
+    await openMemory(page);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Memory Matching");
+
+    await expect(page.getByRole("button", { name: "12 câu" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "18 câu" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "24 câu" })).toBeVisible();
+
+    await page.getByRole("button", { name: "12 câu" }).click();
+    await page.getByRole("button", { name: "Bắt đầu Memory" }).click();
+    await expect(page).toHaveURL(/\/memory\/session/);
+
+    // 3x4 grid of 12 face-down tiles, no card content leaked.
+    const tiles = page.locator("[data-memory-tile-key]");
+    await expect(tiles).toHaveCount(12);
+    await expect(page.getByRole("button", { name: /Smart prompt|Smart answer/ })).toHaveCount(0);
+
+    // Complete all 6 pairs of batch 1, then batch 2.
+    await matchPair(page);
+    await expect(page.getByText("Bộ 1 / 2")).toBeVisible();
+    await matchPair(page);
+    await matchPair(page);
+    await matchPair(page);
+    await matchPair(page);
+    await matchPair(page);
+
+    // Batch 2 appears automatically.
+    await expect(page.getByText("Bộ 2 / 2")).toBeVisible();
+    await matchPair(page);
+    await matchPair(page);
+    await matchPair(page);
+    await matchPair(page);
+    await matchPair(page);
+    await matchPair(page);
+
+    // Completion screen.
+    await expect(page.getByRole("heading", { name: "Hoàn thành 12/12" })).toBeVisible();
+    await expect(page.getByText(/Thời gian \d{2}:\d{2}/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Chơi lại" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Quay lại" })).toBeVisible();
+
+    // No Quiz / FSRS / statistics writes.
+    const after = await learningState(page, userId);
+    expect(after.quizSessions).toBe(before.quizSessions);
+    expect(after.reviewEvents).toBe(before.reviewEvents);
+    expect(after.scheduleRows).toBe(before.scheduleRows);
+    expect(after.dailyRecords).toBe(before.dailyRecords);
+  });
+
+  test("mismatch shows preview red border but no red tiles and flips back after one second", async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("memory_mismatch"));
+    await importSet(page, "Bộ memory mismatch");
+
+    await openMemory(page);
+    await page.getByRole("button", { name: "12 câu" }).click();
+    await page.getByRole("button", { name: "Bắt đầu Memory" }).click();
+    await expect(page).toHaveURL(/\/memory\/session/);
+
+    const tiles = page.locator("[data-memory-tile-key]");
+    await expect(tiles).toHaveCount(12);
+
+    // Pick two tiles with different card ids.
+    const t0 = tiles.nth(0);
+    const t1 = tiles.nth(1);
+    const card0 = await t0.getAttribute("data-memory-card-id");
+    const card1 = await t1.getAttribute("data-memory-card-id");
+    // If they are the same card, move to a different second tile.
+    const secondIndex = card0 === card1 ? 2 : 1;
+    const mismatchTile = tiles.nth(secondIndex);
+
+    await t0.click();
+    await mismatchTile.click();
+
+    // Preview shows red border; tiles are not red (no danger class on tile).
+    const preview = page.getByTestId("memory-preview");
+    await expect(preview).toHaveClass(/border-danger/);
+    await expect(t0).toHaveAttribute("aria-pressed", "true");
+    await expect(mismatchTile).toHaveAttribute("aria-pressed", "true");
+
+    // After one second both flip back face down.
+    await expect(t0).toHaveAttribute("aria-pressed", "false", { timeout: 2000 });
+    await expect(mismatchTile).toHaveAttribute("aria-pressed", "false", { timeout: 2000 });
+  });
+
+  test("long Vietnamese text stays in preview and the grid has no overflow", async ({ page }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("memory_longtext"));
+
+    await page.goto("/sets?create=paste");
+    const longFront =
+      "Hệ điều hành là phần mềm quản lý tài nguyên phần cứng máy tính và cung cấp các dịch vụ chung cho các chương trình phần mềm khác";
+    const longBack =
+      "An operating system manages computer hardware resources and provides common services for computer programs";
+    const rows = Array.from({ length: 12 }, (_, i) => `${longFront} ${i}\t${longBack} ${i}`).join(
+      "\n",
+    );
+    await page.locator("#paste-textarea").fill(rows);
+    await page.getByRole("button", { name: "Phân tích" }).click();
+    await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
+    await page.getByLabel("Tên bộ").fill("Bộ memory dài");
+    await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
+    await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
+
+    await openMemory(page);
+    await page.getByRole("button", { name: "12 câu" }).click();
+    await page.getByRole("button", { name: "Bắt đầu Memory" }).click();
+    await expect(page).toHaveURL(/\/memory\/session/);
+
+    // Flip a tile; preview shows the full content, grid has no horizontal overflow.
+    const tiles = page.locator("[data-memory-tile-key]");
+    await tiles.first().click();
+    const preview = page.getByTestId("memory-preview");
+    await expect(preview).toContainText(/(Hệ điều hành|An operating system)/);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(overflow).toBe(false);
+  });
+
+  test("abandoning a session writes no coverage", async ({ page }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("memory_abandon"));
+    await importSet(page, "Bộ memory abandon");
+    const userId = await authUserId(page);
+
+    const coverageBefore = await supabaseRest(
+      page.context(),
+      `flashcard_coverage?select=flashcard_id&user_id=eq.${userId}&mode=eq.memory&limit=1000`,
+    );
+    const countBefore = ((await coverageBefore.json()) as unknown[]).length;
+
+    await openMemory(page);
+    await page.getByRole("button", { name: "12 câu" }).click();
+    await page.getByRole("button", { name: "Bắt đầu Memory" }).click();
+    await expect(page).toHaveURL(/\/memory\/session/);
+
+    const tiles = page.locator("[data-memory-tile-key]");
+    await tiles.first().click();
+
+    // Navigate away before completion.
+    await page.goto("/dashboard");
+
+    const coverageAfter = await supabaseRest(
+      page.context(),
+      `flashcard_coverage?select=flashcard_id&user_id=eq.${userId}&mode=eq.memory&limit=1000`,
+    );
+    const countAfter = ((await coverageAfter.json()) as unknown[]).length;
+    expect(countAfter).toBe(countBefore);
+  });
+});

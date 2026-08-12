@@ -1,20 +1,15 @@
+import { normalizeContentText } from "@/lib/normalize-content";
+
 /**
- * Canonical normalization for Match ambiguity detection.
- *
- * This mirrors the existing Quiz distractor normalization
- * `lower(regexp_replace(btrim(back), '\\s+', ' ', 'g'))` used by the
- * PostgreSQL session-creation functions, so Match treats content exactly the
- * way Quiz already treats it for option distinctness. It is used only for
- * ambiguity detection, never for rendering user text.
+ * Canonical normalization for Match ambiguity detection. Re-exports the shared
+ * learning-mode normalization so Match, Memory, and Quiz all use one definition.
  */
-export function normalizeMatchText(value: string): string {
-  return value.trim().replace(/\s+/g, " ").toLowerCase();
-}
+export const normalizeMatchText = normalizeContentText;
 
 export function uniqueFrontKeys(cards: readonly { front: string }[]): Set<string> {
-  return new Set(cards.map((card) => normalizeMatchText(card.front)));
+  return new Set(cards.map((card) => normalizeContentText(card.front)));
 }
 
 export function uniqueBackKeys(cards: readonly { back: string }[]): Set<string> {
-  return new Set(cards.map((card) => normalizeMatchText(card.back)));
+  return new Set(cards.map((card) => normalizeContentText(card.back)));
 }

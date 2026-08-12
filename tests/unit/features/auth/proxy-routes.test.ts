@@ -121,6 +121,7 @@ describe("PROTECTED_ROUTES constant", () => {
       "/collections",
       "/study",
       "/match",
+      "/memory",
       "/quiz",
       "/history",
       "/statistics",

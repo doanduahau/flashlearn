@@ -278,22 +278,36 @@ and no game-result persistence.
 - Error feedback is text-based and respects `prefers-reduced-motion`.
 - Clear section/title structure for screen readers.
 
-## Memory Matching
+## Memory Matching (Phase 5C.1 — implemented)
 
-**Not implemented yet.** Frozen implementation requirements are:
+Memory is a practice/game mode reached from the "Học" page under a "Chơi"
+section (`/memory`). It reuses the shared source-selection browser and the Phase
+5C.0 mode-specific coverage foundation (`mode = "memory"`).
 
-- Mobile-first, Front ↔ Back, six pairs per batch, 3×4 grid, and total choices
-  of 12/18/24 cards.
-- Face-down tiles are blank light-blue cards with no text. Flipped tiles use a
-  different light background plus an upward-arrow icon, also with no text.
-- The preview above the grid shows only the latest flipped card's full content.
-- A correct pair stays flipped, faded, and disabled; small confetti belongs in
-  or around the preview.
-- A mismatch never turns a tile red: the preview gets a subtle red border for
-  exactly one second, both cards flip down, then the preview returns neutral.
-- A whole-session timer, no penalties/lives, mobile-first layout, and full
-  session-only `memory` coverage apply. It remains practice-only: no FSRS,
-  Mastery, review-event, or statistics write.
+- **Game:** Front ↔ Back pairs by stable flashcard identity (never text
+  equality). Exactly six flashcards per batch (12 tiles) in a fixed 3×4 grid.
+  Session choices are 12 / 18 / 24 (2 / 3 / 4 batches).
+- **Tiles:** Face-down tiles are blank light-blue buttons with no text. A
+  flipped tile shows only an upward-arrow icon on a different light background;
+  no flashcard text ever appears inside a tile.
+- **Preview:** A region above the grid shows only the most recently flipped
+  tile's full original content. Long text wraps and the preview scrolls
+  vertically rather than shrinking or ellipsizing.
+- **Correct pair:** Both tiles stay flipped, fade, and become disabled. Lightweight
+  CSS confetti shows in the preview for roughly 700 ms (disabled under
+  `prefers-reduced-motion`). After the final pair of a batch, the next batch
+  advances automatically.
+- **Mismatch:** No tile turns red. The preview gets a subtle red border for
+  exactly 1000 ms, then both tiles flip face-down and the preview returns neutral.
+  There is no penalty or "Sai" copy.
+- **Timer:** One whole-session timer starts when the first batch is active and
+  stops at logical completion (final correct pair), excluding the celebration
+  animation. It is not persisted.
+- **Coverage:** A durable coverage session is created at start and `memory`
+  coverage commits only after the whole session completes. Replay re-queries the
+  server for the latest coverage and creates a fresh opaque session.
+- **Practice-only:** No Quiz, FSRS, mastery, review-event, or statistics writes.
+  It remains mobile-first (390×844) with no horizontal overflow.
 
 ## Flashcard Runner
 

@@ -57,7 +57,7 @@ test.describe("Match learning mode", () => {
     const before = await learningState(page, userId);
 
     await page.goto("/study");
-    await page.getByRole("link", { name: /Match/ }).click();
+    await page.getByRole("link", { name: /^Match nối/ }).click();
     await expect(page).toHaveURL(/\/match$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Match");
 

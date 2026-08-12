@@ -116,6 +116,18 @@
 
   --animate-card-in: card-in 0.18s ease-out;
   --animate-fade-in: fadeIn 0.12s ease-out;
+  --animate-confetti: confetti 0.7s ease-out forwards;
+}
+
+@keyframes confetti {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--confetti-x, 0), -3.5rem) scale(0.4);
+  }
 }
 
 @keyframes card-in {

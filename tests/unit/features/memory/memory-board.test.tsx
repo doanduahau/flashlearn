@@ -61,4 +61,26 @@ describe("MemoryBoard mismatch timing", () => {
     expect(screen.getByTestId("a:front")).toHaveAttribute("aria-pressed", "true");
     expect(onComplete).not.toHaveBeenCalled();
   });
+
+  it("stops the whole-session timer at final-pair resolution before any celebration delay", () => {
+    const onComplete = vi.fn().mockResolvedValue(undefined);
+    vi.setSystemTime(new Date("2026-08-13T00:00:00.000Z"));
+    render(<MemoryBoard batches={[BATCH]} questionCount={6} onComplete={onComplete} />);
+
+    for (const cardId of ["a", "b", "c", "d", "e"]) {
+      fireEvent.click(screen.getByTestId(`${cardId}:front`));
+      fireEvent.click(screen.getByTestId(`${cardId}:back`));
+      act(() => vi.advanceTimersByTime(700));
+    }
+    act(() => vi.advanceTimersByTime(57_700));
+    fireEvent.click(screen.getByTestId("f:front"));
+    fireEvent.click(screen.getByTestId("f:back"));
+
+    // The final pair occurs at 61.2s; completion must not wait for or include
+    // a final celebration transition.
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete).toHaveBeenCalledWith(61_200);
+    act(() => vi.advanceTimersByTime(700));
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
 });

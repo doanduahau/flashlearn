@@ -47,7 +47,7 @@ async function matchPair(page: Page): Promise<void> {
   await second.click();
   // Wait for the celebration to resolve so the next pair can be selected.
   await expect(first).toHaveAttribute("aria-label", "Đã ghép đúng", { timeout: 2000 });
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(750);
 }
 
 async function learningState(page: Page, userId: string) {
@@ -78,6 +78,14 @@ async function authUserId(page: Page): Promise<string> {
   return data[0]?.id ?? "";
 }
 
+async function memoryCoverageCount(page: Page, userId: string): Promise<number> {
+  const response = await supabaseRest(
+    page.context(),
+    `flashcard_coverage?select=flashcard_id&user_id=eq.${userId}&mode=eq.memory&limit=1000`,
+  );
+  return ((await response.json()) as unknown[]).length;
+}
+
 test.describe("Memory Matching", () => {
   test("runs a full 12-pair Memory session with practice-only side effects", async ({ page }) => {
     await page.setViewportSize(DESKTOP);
@@ -86,6 +94,7 @@ test.describe("Memory Matching", () => {
     await importSet(page, "Bộ memory");
     const userId = await authUserId(page);
     const before = await learningState(page, userId);
+    expect(await memoryCoverageCount(page, userId)).toBe(0);
 
     await openMemory(page);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Memory Matching");
@@ -114,6 +123,7 @@ test.describe("Memory Matching", () => {
 
     // Batch 2 appears automatically.
     await expect(page.getByText("Bộ 2 / 2")).toBeVisible();
+    expect(await memoryCoverageCount(page, userId)).toBe(0);
     await matchPair(page);
     await matchPair(page);
     await matchPair(page);
@@ -126,6 +136,7 @@ test.describe("Memory Matching", () => {
     await expect(page.getByText(/Thời gian \d{2}:\d{2}/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Chơi lại" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Quay lại" })).toBeVisible();
+    expect(await memoryCoverageCount(page, userId)).toBe(12);
 
     // No Quiz / FSRS / statistics writes.
     const after = await learningState(page, userId);
@@ -182,9 +193,11 @@ test.describe("Memory Matching", () => {
       "Hệ điều hành là phần mềm quản lý tài nguyên phần cứng máy tính và cung cấp các dịch vụ chung cho các chương trình phần mềm khác";
     const longBack =
       "An operating system manages computer hardware resources and provides common services for computer programs";
-    const rows = Array.from({ length: 12 }, (_, i) => `${longFront} ${i}\t${longBack} ${i}`).join(
-      "\n",
-    );
+    const veryLongVietnameseFront = `${longFront} `.repeat(8);
+    const rows = Array.from(
+      { length: 12 },
+      (_, i) => `${veryLongVietnameseFront}${i}\t${longBack} ${i}`,
+    ).join("\n");
     await page.locator("#paste-textarea").fill(rows);
     await page.getByRole("button", { name: "Phân tích" }).click();
     await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
@@ -197,11 +210,26 @@ test.describe("Memory Matching", () => {
     await page.getByRole("button", { name: "Bắt đầu Memory" }).click();
     await expect(page).toHaveURL(/\/memory\/session/);
 
-    // Flip a tile; preview shows the full content, grid has no horizontal overflow.
+    // Flip a tile; the full content stays in a bounded, internally scrollable preview.
     const tiles = page.locator("[data-memory-tile-key]");
-    await tiles.first().click();
+    await page.locator('[data-memory-tile-key][data-memory-side="front"]').first().click();
     const preview = page.getByTestId("memory-preview");
     await expect(preview).toContainText(/(Hệ điều hành|An operating system)/);
+    const previewMetrics = await preview.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+      overflowY: getComputedStyle(element).overflowY,
+    }));
+    expect(previewMetrics.clientHeight).toBeLessThanOrEqual(176);
+    expect(previewMetrics.scrollHeight).toBeGreaterThan(previewMetrics.clientHeight);
+    expect(["auto", "scroll"]).toContain(previewMetrics.overflowY);
+    await preview.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    expect(await page.getByTestId("memory-preview-content").textContent()).toContain(
+      "Hệ điều hành",
+    );
+    expect((await tiles.first().boundingBox())?.y ?? 0).toBeLessThan(600);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );

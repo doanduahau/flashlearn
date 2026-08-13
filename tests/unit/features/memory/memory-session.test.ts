@@ -144,4 +144,15 @@ describe("coverage priority", () => {
     expect(result).not.toBeNull();
     expect(result).toHaveLength(2);
   });
+
+  it("selects all three compatible uncovered cards for the exact 15-card / 12-session case", () => {
+    const cards = makeCards(15);
+    const uncoveredIds = new Set(cards.slice(12).map((card) => card.id));
+    const result = buildMemorySession(cards, 12, fixedRandom(), uncoveredIds);
+    const selectedIds = new Set(result?.flatMap((batch) => batch.tiles.map((tile) => tile.cardId)));
+
+    expect(selectedIds).toHaveLength(12);
+    expect([...uncoveredIds].every((id) => selectedIds.has(id))).toBe(true);
+    expect([...selectedIds].filter((id) => !uncoveredIds.has(id))).toHaveLength(9);
+  });
 });

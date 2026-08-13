@@ -90,14 +90,19 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
       <div
         aria-live="polite"
         className={cn(
-          "rounded-xl border p-3 text-sm sm:rounded-2xl sm:p-4 sm:text-base",
+          "max-h-44 overflow-y-auto overscroll-contain rounded-xl border p-3 text-sm sm:max-h-52 sm:rounded-2xl sm:p-4 sm:text-base",
           state.phase === "mismatch" ? "border-danger" : "border-border-soft",
         )}
         data-testid="memory-preview"
       >
         <div className="relative min-h-16">
           {preview ? (
-            <p className="whitespace-pre-wrap break-words leading-relaxed">{preview.content}</p>
+            <p
+              data-testid="memory-preview-content"
+              className="whitespace-pre-wrap break-words leading-relaxed"
+            >
+              {preview.content}
+            </p>
           ) : (
             <p className="text-text-secondary">Chạm vào một ô để xem nội dung.</p>
           )}

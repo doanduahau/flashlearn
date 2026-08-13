@@ -422,6 +422,15 @@ where practical.
   include question count, difficulty, and completion time; Phase 5A creates no
   such persistence.
 
+### Session content snapshot
+
+A Runner session snapshots card IDs, not immutable copies of question text or
+answers (unlike Quiz, which persists `quiz_questions` snapshots). A future Runner
+client must load the complete question payload once when gameplay begins and
+retain it for that run; it must not reload questions from the database during an
+active game, because a card edited or deleted mid-run would otherwise change or
+drop the content the player is answering.
+
 ## Readability and long text
 
 Flashcard Front and Back text can be long. All future modes must preserve a

@@ -227,50 +227,6 @@ export type Database = {
           },
         ]
       }
-      learning_coverage_sessions: {
-        Row: {
-          completed_at: string | null
-          created_at: string
-          did_reset: boolean
-          id: string
-          mode: string
-          quiz_session_id: string | null
-          scope_card_ids: string[]
-          session_card_ids: string[]
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string
-          did_reset?: boolean
-          id?: string
-          mode: string
-          quiz_session_id?: string | null
-          scope_card_ids: string[]
-          session_card_ids: string[]
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string
-          did_reset?: boolean
-          id?: string
-          mode?: string
-          quiz_session_id?: string | null
-          scope_card_ids?: string[]
-          session_card_ids?: string[]
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "learning_coverage_sessions_quiz_session_id_fkey"
-            columns: ["quiz_session_id"]
-            isOneToOne: true
-            referencedRelation: "quiz_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       flashcard_sets: {
         Row: {
           created_at: string
@@ -342,6 +298,50 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "flashcard_sets"
             referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
+      learning_coverage_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          did_reset: boolean
+          id: string
+          mode: string
+          quiz_session_id: string | null
+          scope_card_ids: string[]
+          session_card_ids: string[]
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          did_reset?: boolean
+          id?: string
+          mode: string
+          quiz_session_id?: string | null
+          scope_card_ids: string[]
+          session_card_ids: string[]
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          did_reset?: boolean
+          id?: string
+          mode?: string
+          quiz_session_id?: string | null
+          scope_card_ids?: string[]
+          session_card_ids?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_coverage_sessions_quiz_session_id_fkey"
+            columns: ["quiz_session_id"]
+            isOneToOne: true
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -483,6 +483,33 @@ export type Database = {
         }
         Relationships: []
       }
+      runner_personal_bests: {
+        Row: {
+          best_ms: number
+          created_at: string
+          difficulty: string
+          question_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          best_ms: number
+          created_at?: string
+          difficulty: string
+          question_count: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          best_ms?: number
+          created_at?: string
+          difficulty?: string
+          question_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       special_collection_items: {
         Row: {
           collection_id: string
@@ -561,6 +588,23 @@ export type Database = {
           position: number
         }[]
       }
+      complete_learning_coverage_session: {
+        Args: { p_session_id: string }
+        Returns: {
+          completed_at: string
+          did_reset: boolean
+        }[]
+      }
+      create_learning_coverage_session: {
+        Args: {
+          p_mode: string
+          p_quiz_session_id?: string | null
+          p_scope_card_ids: string[]
+          p_session_card_ids: string[]
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_owned_quiz_session_from_card_ids: {
         Args: { p_card_ids: string[]; p_user_id: string }
         Returns: string
@@ -578,20 +622,6 @@ export type Database = {
           p_set_ids: string[]
         }
         Returns: string
-      }
-      create_learning_coverage_session: {
-        Args: {
-          p_mode: string
-          p_quiz_session_id?: string | null
-          p_scope_card_ids: string[]
-          p_session_card_ids: string[]
-          p_user_id: string
-        }
-        Returns: string
-      }
-      complete_learning_coverage_session: {
-        Args: { p_session_id: string }
-        Returns: { completed_at: string; did_reset: boolean }[]
       }
       create_quiz_session_from_card_ids: {
         Args: { p_card_ids: string[] }
@@ -617,6 +647,17 @@ export type Database = {
           total: number
         }[]
       }
+      load_runner_candidates: {
+        Args: { p_card_ids: string[] }
+        Returns: {
+          correct_answer: string
+          distractor_1: string
+          distractor_2: string
+          eligible: boolean
+          flashcard_id: string
+          front: string
+        }[]
+      }
       move_flashcard_set: {
         Args: { p_direction: string; p_set_id: string }
         Returns: undefined
@@ -633,6 +674,18 @@ export type Database = {
           is_correct: boolean
           review_event_id: string
           session_id: string
+        }[]
+      }
+      submit_runner_best_time: {
+        Args: {
+          p_difficulty: string
+          p_elapsed_ms: number
+          p_session_id: string
+        }
+        Returns: {
+          is_new_best: boolean
+          result_best_ms: number
+          result_question_count: number
         }[]
       }
       update_profile: {
@@ -811,3 +864,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

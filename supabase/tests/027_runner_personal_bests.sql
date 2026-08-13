@@ -54,8 +54,14 @@ insert into public.runner_sessions (id, user_id, coverage_session_id, difficulty
   ('e2000002-d2d2-4000-8000-000000000002', 'aaaaaaaa-d2d2-d2d2-d2d2-d2d2d2d2d2d2', 'd2000002-d2d2-4000-8000-000000000002', 'hard'),
   ('e2000003-d2d2-4000-8000-000000000003', 'aaaaaaaa-d2d2-d2d2-d2d2-d2d2d2d2d2d2', 'd2000003-d2d2-4000-8000-000000000003', 'medium'),
   ('e2000004-d2d2-4000-8000-000000000004', 'aaaaaaaa-d2d2-d2d2-d2d2-d2d2d2d2d2d2', 'd2000004-d2d2-4000-8000-000000000004', 'easy'),
-  ('e2000005-d2d2-4000-8000-000000000005', 'aaaaaaaa-d2d2-d2d2-d2d2-d2d2d2d2d2d2', 'd2000005-d2d2-4000-8000-000000000005', 'easy'),
   ('e2000006-d2d2-4000-8000-000000000006', 'bbbbbbbb-d2d2-d2d2-d2d2-d2d2d2d2d2d2', 'd2000006-d2d2-4000-8000-000000000006', 'easy');
+
+select throws_ok(
+  $$insert into public.runner_sessions (id, user_id, coverage_session_id, difficulty)
+    values ('e2000005-d2d2-4000-8000-000000000005', 'aaaaaaaa-d2d2-d2d2-d2d2-d2d2d2d2d2d2', 'd2000005-d2d2-4000-8000-000000000005', 'easy')$$,
+  '22023', NULL,
+  'runner session cannot link non-runner coverage'
+);
 
 set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-d2d2-d2d2-d2d2-d2d2d2d2d2d2';
@@ -114,7 +120,6 @@ select is((select result_question_count from _medium), 2, 'question count follow
 select throws_ok($$select * from public.submit_runner_best_time('e2000001-d2d2-4000-8000-000000000001', 0)$$, '22023', NULL, 'zero elapsed time is rejected');
 select throws_ok($$select * from public.submit_runner_best_time('e2000001-d2d2-4000-8000-000000000001', -5)$$, '22023', NULL, 'negative elapsed time is rejected');
 select throws_ok($$select * from public.submit_runner_best_time('e2000004-d2d2-4000-8000-000000000004', 5000)$$, '22023', NULL, 'incomplete runner session cannot establish a best');
-select throws_ok($$select * from public.submit_runner_best_time('e2000005-d2d2-4000-8000-000000000005', 5000)$$, '22023', NULL, 'non-runner coverage cannot establish a best');
 set local request.jwt.claim.sub = 'bbbbbbbb-d2d2-d2d2-d2d2-d2d2d2d2d2d2';
 select throws_ok($$select * from public.submit_runner_best_time('e2000001-d2d2-4000-8000-000000000001', 5000)$$, '22023', NULL, 'foreign runner session cannot establish a best');
 

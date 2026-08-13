@@ -1,5 +1,5 @@
 begin;
-select plan(25);
+select plan(31);
 
 insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -65,12 +65,39 @@ select is(
   'linked coverage session is mode runner'
 );
 
+select throws_ok(
+  $$select public.create_runner_session(
+    'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2',
+    array['cb000001-c2c2-4000-8000-000000000001'::uuid],
+    array['cb000001-c2c2-4000-8000-000000000001'::uuid],
+    'easy'
+  )$$,
+  '22023', NULL,
+  'ineligible selected card rejects runner session creation'
+);
+select is(
+  (select count(*)::integer from public.runner_sessions where user_id = 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2'),
+  0,
+  'ineligible creation leaves no partial runner session'
+);
+select is(
+  (select count(*)::integer from public.learning_coverage_sessions where user_id = 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2' and mode = 'runner'),
+  0,
+  'ineligible creation leaves no partial coverage session'
+);
+
 -- One-to-one: the same coverage session cannot be linked to a second runner config.
 select throws_ok(
   format($$insert into public.runner_sessions (user_id, coverage_session_id, difficulty) values ('aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2', '%s', 'easy')$$,
     (select coverage_session_id from public.runner_sessions where id = current_setting('runner.test_sid')::uuid)),
   '23505', NULL,
   'a coverage session can be linked to only one runner session'
+);
+select throws_ok(
+  format($$insert into public.runner_sessions (user_id, coverage_session_id, difficulty) values ('bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2', '%s', 'easy')$$,
+    (select coverage_session_id from public.runner_sessions where id = current_setting('runner.test_sid')::uuid)),
+  '22023', NULL,
+  'a runner session cannot link another user''s coverage snapshot'
 );
 
 -- Difficulty and ownership are immutable for the browser.
@@ -90,6 +117,11 @@ select is(
 
 -- Eligibility: whole-library, side-effect free, no seed.
 set local request.jwt.claim.sub = 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2';
+select is(
+  (select cardinality(lcs.session_card_ids) from public.learning_coverage_sessions lcs join public.runner_sessions rs on rs.coverage_session_id = lcs.id where rs.id = current_setting('runner.test_sid')::uuid),
+  (select count(*)::integer from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid)),
+  'every trusted session card produces exactly one Runner question'
+);
 select is(
   (select eligible from public.load_runner_candidate_eligibility(array['ca000001-c2c2-4000-8000-000000000001'::uuid]) where flashcard_id = 'ca000001-c2c2-4000-8000-000000000001'),
   true,
@@ -148,6 +180,21 @@ select is(
   (select choices from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid) where flashcard_id = 'ca000001-c2c2-4000-8000-000000000001'),
   (select choices from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid) where flashcard_id = 'ca000001-c2c2-4000-8000-000000000001'),
   'same session produces identical deterministic choices'
+);
+
+-- A later content change must fail the complete session load rather than
+-- silently dropping one snapshotted question.
+update public.flashcards
+set back = 'Solo'
+where id in (
+  'ca000003-c2c2-4000-8000-000000000003'::uuid,
+  'ca000004-c2c2-4000-8000-000000000004'::uuid,
+  'ca000005-c2c2-4000-8000-000000000005'::uuid
+);
+select throws_ok(
+  $$select * from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid)$$,
+  '22023', NULL,
+  'later eligibility drift rejects the whole session load instead of skipping a card'
 );
 
 -- Foreign session is not disclosed.

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { submitQuizAnswer } from "@/features/quiz/server/actions";
@@ -20,7 +20,7 @@ export function QuizSession({
   const [feedback, setFeedback] = useState<boolean | null>(null);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pending, transition] = useTransition();
+  const [pending, setPending] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const feedbackRef = useRef<HTMLParagraphElement>(null);
   const submittingRef = useRef(false);
@@ -46,7 +46,8 @@ export function QuizSession({
     }
 
     submittingRef.current = true;
-    transition(async () => {
+    setPending(true);
+    void (async () => {
       try {
         const result = await submitQuizAnswer({
           questionId: question.id,
@@ -57,20 +58,26 @@ export function QuizSession({
           return;
         }
         setError(null);
-        setFeedback(result.correct ?? false);
-        setCompleted(result.completed ?? false);
-        if (result.completed) {
+        const correct = result.correct ?? false;
+        const done = result.completed ?? false;
+        setFeedback(correct);
+        setCompleted(done);
+        if (done) {
+          // Final answer: preserve the existing completion path (brief delay,
+          // then the result page), unchanged from before.
           advanceTimerRef.current = window.setTimeout(
             () => router.push(`/quiz/${sessionId}/result`),
             ADVANCE_DELAY_MS,
           );
-        } else if (result.correct) {
-          advanceTimerRef.current = window.setTimeout(() => router.refresh(), ADVANCE_DELAY_MS);
+        } else if (correct) {
+          // Non-final correct answer: advance immediately, no "Câu tiếp theo".
+          router.refresh();
         }
       } finally {
         submittingRef.current = false;
+        setPending(false);
       }
-    });
+    })();
   };
 
   const advance = () => {
@@ -124,7 +131,7 @@ export function QuizSession({
         <Button className="mt-6" type="button" onClick={submit} disabled={pending}>
           {pending ? "Đang chấm…" : "Xác nhận đáp án"}
         </Button>
-      ) : (
+      ) : feedback === true && !completed ? null : (
         <Button className="mt-6" type="button" onClick={advance} disabled={pending}>
           {completed ? "Xem kết quả" : "Câu tiếp theo"}
         </Button>

@@ -59,4 +59,38 @@ test.describe("Primary application navigation", () => {
     await page.goto("/settings");
     await expect(page).toHaveURL(/\/profile\?tab=settings$/);
   });
+
+  test("dashboard mobile bottom navigation matches other app pages", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signUpAndConfirm(page, uniqueEmail("primary_nav_dashboard"));
+
+    const navigation = page.getByRole("navigation", { name: "Điều hướng chính" }).last();
+    const navLinks = ["Tổng quan", "Bộ flashcard", "Học", "Kiểm tra", "Cá nhân"];
+
+    await page.goto("/dashboard");
+    await expect(navigation.getByRole("link")).toHaveCount(5);
+    const dashboardBox = await navigation.boundingBox();
+    expect(dashboardBox).not.toBeNull();
+    expect(Math.round(dashboardBox?.width ?? 0)).toBe(390);
+    for (const label of navLinks) {
+      await expect(navigation.getByRole("link", { name: label })).toBeVisible();
+    }
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+
+    // A non-Dashboard route must render the same navigation dimensions.
+    await page.goto("/sets");
+    await expect(navigation.getByRole("link")).toHaveCount(5);
+    const setsBox = await navigation.boundingBox();
+    expect(setsBox).not.toBeNull();
+    expect(Math.round(setsBox?.width ?? 0)).toBe(390);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+  });
 });

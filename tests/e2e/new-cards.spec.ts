@@ -109,8 +109,13 @@ async function answerQuestion(page: Page, wantCorrect: boolean): Promise<void> {
   }
   expect(selected).toBe(true);
   await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
-  await expect(page.getByRole("status")).toHaveText(wantCorrect ? "Chính xác." : "Chưa chính xác.");
-  await page.getByRole("button", { name: /Câu tiếp theo|Xem kết quả/ }).click();
+  if (wantCorrect) {
+    // A correct answer auto-advances without a "Câu tiếp theo" action.
+    await expect(page.getByRole("heading", { level: 1 })).not.toHaveText(prompt);
+  } else {
+    await expect(page.getByRole("status")).toHaveText("Chưa chính xác.");
+    await page.getByRole("button", { name: /Câu tiếp theo|Xem kết quả/ }).click();
+  }
 }
 
 async function answerBatch(page: Page, count: number, firstCorrect = false): Promise<void> {

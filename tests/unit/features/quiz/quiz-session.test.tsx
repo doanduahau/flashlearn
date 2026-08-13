@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -43,6 +43,29 @@ describe("QuizSession", () => {
     expect(await screen.findByText("Chính xác.")).toHaveFocus();
     await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1), { timeout: 2000 });
     expect(router.push).not.toHaveBeenCalled();
+    // A correct answer must not offer a manual "Câu tiếp theo" action.
+    expect(screen.queryByRole("button", { name: "Câu tiếp theo" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Xem kết quả" })).not.toBeInTheDocument();
+  });
+
+  it("advances a correct answer without waiting on a timer", async () => {
+    vi.useFakeTimers();
+    try {
+      submitQuizAnswer.mockResolvedValue({ ok: true, correct: true, completed: false });
+      render(<QuizSession sessionId="session" total={2} question={first} />);
+      fireEvent.click(screen.getByRole("radio", { name: "One" }));
+      fireEvent.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
+
+      // No timer may be advanced for the normal correct-answer progression.
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(router.refresh).toHaveBeenCalledTimes(1);
+      expect(router.push).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("keeps a wrong answer visible until the learner explicitly advances", async () => {

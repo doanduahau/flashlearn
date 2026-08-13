@@ -177,10 +177,15 @@ async function answerQuestion(page: Page, wantCorrect: boolean): Promise<string>
   }
   expect(selected).toBe(true);
   await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
-  await expect(page.getByRole("status")).toHaveText(/^(Chính xác|Chưa chính xác)\.$/);
-  const nextButton = page.getByRole("button", { name: /Câu tiếp theo|Xem kết quả/ });
-  if ((await nextButton.count()) > 0) {
-    await nextButton.click();
+  if (wantCorrect) {
+    // A correct answer auto-advances without a "Câu tiếp theo" action.
+    await expect(heading).not.toHaveText(prompt);
+  } else {
+    await expect(page.getByRole("status")).toHaveText("Chưa chính xác.");
+    const nextButton = page.getByRole("button", { name: /Câu tiếp theo|Xem kết quả/ });
+    if ((await nextButton.count()) > 0) {
+      await nextButton.click();
+    }
   }
   return prompt;
 }

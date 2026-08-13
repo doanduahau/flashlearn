@@ -31,8 +31,19 @@ async function completeTenQuestionQuiz(page: Page): Promise<void> {
 
     await page.getByRole("radio").first().check();
     await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
-    await expect(page.getByRole("status")).toHaveText(/^(Chính xác|Chưa chính xác)\.$/);
+    // A correct answer auto-advances; an incorrect answer exposes a
+    // "Câu tiếp theo"/"Xem kết quả" action. Wait for either outcome.
     const nextButton = page.getByRole("button", { name: /Câu tiếp theo|Xem kết quả/ });
+    await expect
+      .poll(
+        async () => {
+          const current = (await heading.textContent()) ?? "";
+          const nextCount = await nextButton.count();
+          return current !== previousPrompt || nextCount > 0;
+        },
+        { timeout: 5000 },
+      )
+      .toBe(true);
     if ((await nextButton.count()) > 0) {
       await nextButton.click();
     }

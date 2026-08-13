@@ -26,7 +26,8 @@ test("correct answers auto-advance while wrong answers wait for the learner", as
   const firstAnswer = firstPrompt.replace("prompt", "answer");
   await labels.filter({ hasText: firstAnswer }).getByRole("radio").check();
   await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
-  await expect(page.getByRole("status")).toHaveText("Chính xác.");
+  // No "Câu tiếp theo" is ever offered; the quiz advances automatically.
+  await expect(page.getByRole("button", { name: "Câu tiếp theo" })).toHaveCount(0);
   await expect(heading).not.toHaveText(firstPrompt);
   await expect(heading).toBeFocused();
   await expect(page.getByRole("status")).toHaveCount(0);

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import { Flame } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -11,6 +13,10 @@ const quizLevelClasses: Record<CalendarDay["quizLevel"], string> = {
   2: "border-primary/40 bg-primary/15",
   3: "border-primary bg-primary/30",
 };
+
+const DIALOG_WIDTH = 208; // w-52 = 13rem
+const DIALOG_MARGIN = 8;
+const DIALOG_CENTER_SHIFT = -DIALOG_WIDTH / 2;
 
 export function CalendarDayCell({
   day,
@@ -45,8 +51,34 @@ export function CalendarDayCell({
         : "có hoạt động"
       : "không có hoạt động";
 
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dialogShift, setDialogShift] = useState(DIALOG_CENTER_SHIFT);
+
+  // Clamp the inline day detail horizontally within the viewport so right-edge
+  // cells never cause page-level horizontal overflow (which would widen the
+  // fixed bottom navigation). Mirrors the desktop tooltip clamping.
+  useEffect(() => {
+    if (!isCoarse || !day.detail) return;
+    const measure = () => {
+      const button = buttonRef.current;
+      if (!button) return;
+      const rect = button.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const centeredLeft = rect.left + rect.width / 2 - DIALOG_WIDTH / 2;
+      const clampedLeft = Math.max(
+        DIALOG_MARGIN,
+        Math.min(centeredLeft, vw - DIALOG_WIDTH - DIALOG_MARGIN),
+      );
+      setDialogShift(clampedLeft - rect.left - rect.width / 2);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [isCoarse, day.detail]);
+
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={onTap}
       aria-haspopup="dialog"
@@ -88,9 +120,10 @@ export function CalendarDayCell({
           role="dialog"
           aria-label="Chi tiết hoạt động"
           className={cn(
-            "pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-52 -translate-x-1/2 rounded-2xl border border-border-soft bg-surface p-3 text-left shadow-md transition-opacity duration-150",
+            "pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-52 rounded-2xl border border-border-soft bg-surface p-3 text-left shadow-md transition-opacity duration-150",
             shown ? "visible opacity-100" : "invisible opacity-0",
           )}
+          style={{ transform: `translateX(${dialogShift}px)` }}
         >
           <span className="block text-sm font-bold">{monthDayLabel(day.date, timezone)}</span>
           <span className="mt-1.5 block text-xs text-text-secondary">

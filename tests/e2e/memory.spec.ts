@@ -5,6 +5,7 @@ import { supabaseRest } from "./support/supabase-api";
 
 const MOBILE = { width: 390, height: 844 };
 const DESKTOP = { width: 1280, height: 900 };
+const MIN_TILE_HEIGHT_PX = 56;
 const MEMORY_CSV = "tests/fixtures/smart-review-24-cards.csv";
 
 async function importSet(page: Page, name: string, csv = MEMORY_CSV): Promise<string> {
@@ -201,6 +202,17 @@ test.describe("Memory Matching", () => {
     const tiles = page.locator("[data-memory-tile-key]");
     await expect(tiles).toHaveCount(12);
 
+    // Regression guard: every tile must render with real usable height, never
+    // collapsed to thin horizontal lines. Poll until the measured grid height
+    // settles, then require each tile to meet the minimum rendered height.
+    await expect
+      .poll(
+        () =>
+          tiles.evaluateAll((els) => els.every((el) => el.getBoundingClientRect().height >= 56)),
+        { timeout: 5000 },
+      )
+      .toBe(true);
+
     const boxes: { x: number; y: number; width: number; height: number }[] = [];
     for (let i = 0; i < 12; i += 1) {
       const box = await tiles.nth(i).boundingBox();
@@ -214,6 +226,9 @@ test.describe("Memory Matching", () => {
       expect(box.y + box.height, `tile ${i} bottom inside viewport`).toBeLessThanOrEqual(844);
       expect(box.x, `tile ${i} left inside viewport`).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width, `tile ${i} right inside viewport`).toBeLessThanOrEqual(390);
+      expect(box.height, `tile ${i} has a usable rendered height`).toBeGreaterThanOrEqual(
+        MIN_TILE_HEIGHT_PX,
+      );
     }
 
     // Reaching any tile must not require page scrolling, and there must be no

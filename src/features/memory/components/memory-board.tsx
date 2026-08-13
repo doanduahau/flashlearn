@@ -33,6 +33,13 @@ type MemoryBoardProps = {
   onComplete: (elapsedMs: number) => Promise<void>;
 };
 
+// Hard floor so tiles can never collapse to near-zero height even if the
+// viewport measurement is delayed or fails.
+const MEMORY_GRID_MIN_HEIGHT_PX = 240;
+// Space reserved below the grid for the mobile bottom navigation, the app
+// shell bottom padding, and breathing room so the page never scrolls.
+const MEMORY_GRID_BOTTOM_RESERVE_PX = 120;
+
 function formatTime(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
@@ -47,8 +54,10 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
   const completedRef = useRef(false);
   const finalElapsedRef = useRef<number | null>(null);
 
+  const boardRootRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLUListElement | null>(null);
-  const [gridSize, setGridSize] = useState<{ width: number; height: number } | null>(null);
+  const [gridWidth, setGridWidth] = useState<number | null>(null);
+  const [gridHeightPx, setGridHeightPx] = useState(MEMORY_GRID_MIN_HEIGHT_PX);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -58,23 +67,44 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
   }, [startTime]);
 
   useEffect(() => {
-    const element = gridRef.current;
-    if (!element || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver((entries) => {
+    const grid = gridRef.current;
+    const boardRoot = boardRootRef.current;
+    if (!grid || !boardRoot || typeof ResizeObserver === "undefined") return;
+
+    const updateGridHeight = () => {
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      const top = grid.getBoundingClientRect().top;
+      const available = Math.floor(viewportHeight - top - MEMORY_GRID_BOTTOM_RESERVE_PX);
+      setGridHeightPx(Math.max(MEMORY_GRID_MIN_HEIGHT_PX, available));
+    };
+
+    const gridObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (!entry) return;
-      setGridSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+      setGridWidth(entry.contentRect.width);
     });
-    observer.observe(element);
-    return () => observer.disconnect();
+    gridObserver.observe(grid);
+
+    const boardObserver = new ResizeObserver(updateGridHeight);
+    boardObserver.observe(boardRoot);
+
+    window.addEventListener("resize", updateGridHeight);
+    window.addEventListener("orientationchange", updateGridHeight);
+
+    return () => {
+      gridObserver.disconnect();
+      boardObserver.disconnect();
+      window.removeEventListener("resize", updateGridHeight);
+      window.removeEventListener("orientationchange", updateGridHeight);
+    };
   }, []);
 
   const gridLayout: MemoryGridLayout = useMemo(
     () =>
-      gridSize
-        ? computeMemoryGridLayout(gridSize.width, gridSize.height)
+      gridWidth !== null
+        ? computeMemoryGridLayout(gridWidth, gridHeightPx)
         : DEFAULT_MEMORY_GRID_LAYOUT,
-    [gridSize],
+    [gridWidth, gridHeightPx],
   );
 
   useEffect(() => {
@@ -119,7 +149,7 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-4">
+    <div ref={boardRootRef} className="flex min-h-0 flex-col gap-3 sm:gap-4">
       <div className="flex shrink-0 items-center justify-between gap-2">
         <p className="text-sm text-text-secondary">
           Bộ {state.currentBatchIndex + 1} / {batches.length}
@@ -155,10 +185,12 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
 
       <ul
         ref={gridRef}
-        className="grid min-h-0 flex-1 gap-2 sm:gap-3"
+        className="grid shrink-0 gap-2 sm:gap-3"
         role="group"
         aria-label="Lưới Memory"
         style={{
+          height: `${gridHeightPx}px`,
+          minHeight: `${gridHeightPx}px`,
           gridTemplateColumns: `repeat(${gridLayout.columns}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${gridLayout.rows}, minmax(0, 1fr))`,
         }}

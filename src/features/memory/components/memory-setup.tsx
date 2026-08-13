@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { ModeFilter } from "@/features/learning-modes/components/mode-filter";
+import { QuestionCountSelector } from "@/features/learning-modes/components/question-count-selector";
+import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
+import type { LearningFilter } from "@/features/learning-modes/types";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { getMemoryAvailability } from "@/features/memory/server/actions";
@@ -22,10 +25,14 @@ function sameSources(a: SourceParams, b: SourceParams): boolean {
   );
 }
 
-export function MemorySetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>) {
+export function MemorySetup({
+  sourcePage,
+  totalCards,
+}: Readonly<{ sourcePage: SourcePage; totalCards: number }>) {
   const router = useRouter();
   const [all, setAll] = useState(true);
   const [selected, setSelected] = useState<Map<string, SourceOption>>(() => new Map());
+  const [filter, setFilter] = useState<LearningFilter>("unseen");
   const [count, setCount] = useState<12 | 18 | 24>(12);
   const [availability, setAvailability] = useState<{
     eligibleCount: number;
@@ -39,7 +46,6 @@ export function MemorySetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>
   const [pending, setPending] = useState(false);
 
   const selectedSources = useMemo(() => [...selected.values()], [selected]);
-  const selectedKind = selectedSources[0]?.kind ?? null;
   const currentSources = useMemo<SourceParams>(
     () => ({
       setIds: selectedSources
@@ -89,7 +95,6 @@ export function MemorySetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>
     !sameSources(availability.computedFor, currentSources);
   const eligible = availability?.eligibleCount ?? 0;
   const availableCounts = availability?.availableCounts ?? [];
-  const canStart = availableCounts.length > 0;
   const message = availability?.message ?? null;
   const effectiveCount = availableCounts.includes(count)
     ? count
@@ -142,31 +147,24 @@ export function MemorySetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>
       if (currentSources.collectionIds.length)
         query.set("collections", currentSources.collectionIds.join(","));
       query.set("count", String(effectiveCount));
+      query.set("filter", filter);
       router.push(`/memory/session?${query.toString()}`);
     })();
   }
 
-  const canStartMemory = canStart && !counting && countError === null && !pending;
+  const canStartMemory = availableCounts.length > 0 && !counting && countError === null && !pending;
 
   return (
     <div className="mt-2 space-y-3 pb-28 sm:mt-5 sm:space-y-4 md:pb-0">
-      <label className="flex min-h-10 gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 sm:min-h-12 sm:p-4">
-        <input type="radio" checked={all} onChange={selectAll} />
-        <span className="min-w-0">
-          <strong className="text-sm sm:text-base">Tất cả thẻ</strong>
-          <br />
-          <span className="text-xs text-text-secondary sm:text-sm">
-            {counting ? "Đang tính thẻ…" : `${eligible} thẻ trong phạm vi`}
-          </span>
-        </span>
-      </label>
+      <ModeFilter value={filter} onChange={setFilter} />
 
-      <SourceBrowser
-        path="/memory"
-        sourcePage={sourcePage}
-        selected={selectedSources}
-        selectedKind={selectedKind}
-        onToggle={toggleSource}
+      <QuestionCountSelector
+        counts={MEMORY_QUESTION_COUNTS}
+        value={effectiveCount}
+        eligible={eligible}
+        counting={counting}
+        suffix="câu"
+        onChange={(next) => setCount(next as 12 | 18 | 24)}
       />
 
       {!all && countError ? (
@@ -174,40 +172,21 @@ export function MemorySetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>
           {countError}
         </p>
       ) : null}
+      {message ? (
+        <p role="alert" className="text-sm text-text-secondary">
+          {message}
+        </p>
+      ) : null}
 
-      <section
-        aria-labelledby="memory-count-heading"
-        className="rounded-2xl border border-border-soft bg-surface p-4"
-      >
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 id="memory-count-heading" className="text-sm font-semibold sm:text-base">
-            Số câu
-          </h2>
-          <p aria-live="polite" className="text-xs text-text-secondary">
-            {counting ? "Đang tính…" : `${eligible} thẻ hợp lệ`}
-          </p>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Chọn số câu">
-          {MEMORY_QUESTION_COUNTS.map((value) => (
-            <Button
-              type="button"
-              key={value}
-              size="sm"
-              variant={effectiveCount === value ? "soft" : "outline"}
-              disabled={!availableCounts.includes(value) || counting}
-              aria-pressed={effectiveCount === value}
-              onClick={() => setCount(value)}
-            >
-              {value} câu
-            </Button>
-          ))}
-        </div>
-        {message ? (
-          <p role="alert" className="mt-2 text-sm text-text-secondary">
-            {message}
-          </p>
-        ) : null}
-      </section>
+      <SourceBrowser
+        path="/memory"
+        sourcePage={sourcePage}
+        selected={selectedSources}
+        onToggle={toggleSource}
+        allCount={totalCards}
+        allSelected={all}
+        onSelectAll={selectAll}
+      />
 
       {error ? (
         <p role="alert" className="text-danger">
@@ -215,23 +194,18 @@ export function MemorySetup({ sourcePage }: Readonly<{ sourcePage: SourcePage }>
         </p>
       ) : null}
 
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-y border-border-soft bg-surface/95 p-3 shadow-[0_-8px_24px_rgba(39,93,70,0.08)] backdrop-blur md:sticky md:bottom-4 md:rounded-2xl md:border">
-        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 md:max-w-none">
-          <p aria-live="polite" className="min-w-0 text-sm font-medium">
-            {counting
-              ? "Đang tính thẻ…"
-              : `${all ? 0 : selectedSources.length} nguồn · ${eligible} thẻ`}
-          </p>
-          <Button
-            type="button"
-            className="min-h-11 shrink-0"
-            onClick={start}
-            disabled={!canStartMemory}
-          >
-            {pending ? "Đang mở…" : "Bắt đầu Memory"}
-          </Button>
-        </div>
-      </div>
+      <StickyStartBar
+        summary={
+          counting
+            ? "Đang tính thẻ…"
+            : `${all ? 0 : selectedSources.length} nguồn · ${eligible} thẻ`
+        }
+        canStart={canStartMemory}
+        pending={pending}
+        pendingLabel="Đang mở…"
+        startLabel="Bắt đầu Memory"
+        onStart={start}
+      />
     </div>
   );
 }

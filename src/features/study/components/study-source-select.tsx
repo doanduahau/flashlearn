@@ -4,11 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { getStudyCardCount } from "@/features/study/server/actions";
-import { cn } from "@/lib/utils";
 
 const COUNT_DEBOUNCE_MS = 250;
 
@@ -38,7 +37,7 @@ export function StudySourceSelect({
   totalCards: number;
 }>) {
   const router = useRouter();
-  const [mode, setMode] = useState<"all" | "custom">("all");
+  const [all, setAll] = useState(true);
   const [selected, setSelected] = useState<Map<string, SourceOption>>(() => new Map());
   const [customCount, setCustomCount] = useState<{
     count: number;
@@ -72,7 +71,7 @@ export function StudySourceSelect({
   );
 
   useEffect(() => {
-    if (mode !== "custom") return;
+    if (all) return;
     let cancelled = false;
     const timer = setTimeout(() => {
       void (async () => {
@@ -86,17 +85,15 @@ export function StudySourceSelect({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [currentSources, mode]);
+  }, [currentSources, all]);
 
   const isCounting =
-    mode === "custom" &&
-    (customCount === null || !sameSources(customCount.computedFor, currentSources));
-  const availableCards = mode === "all" ? totalCards : (customCount?.count ?? 0);
-  const canStart =
-    mode === "all" ? totalCards > 0 : actionError === null && !isCounting && availableCards > 0;
+    !all && (customCount === null || !sameSources(customCount.computedFor, currentSources));
+  const availableCards = all ? totalCards : (customCount?.count ?? 0);
+  const canStart = all ? totalCards > 0 : actionError === null && !isCounting && availableCards > 0;
 
   function toggleSource(source: SourceOption): void {
-    setMode("custom");
+    setAll(false);
     setActionError(null);
     setError(null);
     setSelected((previous) => {
@@ -108,9 +105,15 @@ export function StudySourceSelect({
     });
   }
 
+  function selectAll(): void {
+    setAll(true);
+    setSelected(new Map());
+    setError(null);
+  }
+
   function start(): void {
     setError(null);
-    if (mode === "all") {
+    if (all) {
       if (!totalCards) {
         setError("Chưa có thẻ nào để học.");
         return;
@@ -146,29 +149,14 @@ export function StudySourceSelect({
           </Link>
         </div>
       ) : null}
-      <button
-        type="button"
-        aria-pressed={mode === "all"}
-        onClick={() => {
-          setMode("all");
-          setError(null);
-        }}
-        className={cn(
-          "flex w-full items-center justify-between gap-3 rounded-2xl border p-2.5 text-left text-sm transition-colors sm:p-4",
-          mode === "all"
-            ? "border-primary bg-primary-soft"
-            : "border-border-soft bg-surface hover:bg-surface-subtle",
-        )}
-      >
-        <span className="font-semibold">Tất cả thẻ</span>
-        <span className="shrink-0 text-text-secondary">{totalCards} thẻ</span>
-      </button>
       <SourceBrowser
         path="/study"
         sourcePage={resolvedSourcePage}
         selected={selectedSources}
-        selectedKind={null}
         onToggle={toggleSource}
+        allCount={totalCards}
+        allSelected={all}
+        onSelectAll={selectAll}
       />
       {actionError ? (
         <p role="alert" className="text-danger">
@@ -180,48 +168,20 @@ export function StudySourceSelect({
           {error}
         </p>
       ) : null}
-      <StudyActionBar
-        selectedCount={mode === "all" ? 0 : selectedSources.length}
-        availableCards={availableCards}
-        counting={isCounting}
-        pending={isStarting}
+      <StickyStartBar
+        summary={
+          isCounting
+            ? "Đang tính thẻ…"
+            : all
+              ? `${availableCards} thẻ`
+              : `${selectedSources.length} nguồn · ${availableCards} thẻ`
+        }
         canStart={canStart}
+        pending={isStarting}
+        pendingLabel="Đang mở phiên…"
+        startLabel="Bắt đầu học"
         onStart={start}
       />
-    </div>
-  );
-}
-
-function StudyActionBar({
-  selectedCount,
-  availableCards,
-  counting,
-  pending,
-  canStart,
-  onStart,
-}: Readonly<{
-  selectedCount: number;
-  availableCards: number;
-  counting: boolean;
-  pending: boolean;
-  canStart: boolean;
-  onStart: () => void;
-}>) {
-  return (
-    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-y border-border-soft bg-surface/95 p-3 shadow-[0_-8px_24px_rgba(39,93,70,0.08)] backdrop-blur md:sticky md:bottom-4 md:rounded-2xl md:border">
-      <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 md:max-w-none">
-        <p aria-live="polite" className="min-w-0 text-sm font-medium">
-          {counting ? "Đang tính thẻ…" : `${selectedCount} nguồn · ${availableCards} thẻ`}
-        </p>
-        <Button
-          type="button"
-          className="min-h-11 shrink-0"
-          onClick={onStart}
-          disabled={pending || !canStart}
-        >
-          {pending ? "Đang mở phiên…" : "Bắt đầu học"}
-        </Button>
-      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { learningFilters } from "@/features/learning-modes/types";
 import { MEMORY_QUESTION_COUNTS } from "../types/memory-types";
 
 export const memoryQuestionCountSchema = z
@@ -13,6 +14,7 @@ export const memoryStartSchema = z
     setIds: z.array(z.uuid("Mã bộ flashcard không hợp lệ.")).max(50).default([]),
     collectionIds: z.array(z.uuid("Mã bộ đặc biệt không hợp lệ.")).max(50).default([]),
     questionCount: memoryQuestionCountSchema,
+    filter: z.enum(learningFilters).default("unseen"),
   })
   .superRefine((value, context) => {
     if (value.all && value.setIds.length + value.collectionIds.length > 0) {

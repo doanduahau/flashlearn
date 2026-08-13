@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { ModeTabs } from "@/components/shared/mode-tabs";
 import { SectionTabs } from "@/components/shared/section-tabs";
 import { QuizSetup } from "@/features/quiz/components/quiz-setup";
 import { loadSourcePage, sourceType } from "@/features/source-selection/server/load-source-page";
@@ -25,6 +26,13 @@ export default async function QuizPage({
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
       <h1 className="text-2xl font-bold sm:text-3xl">Kiểm tra</h1>
+      <ModeTabs
+        label="Khu vực kiểm tra"
+        items={[
+          { label: "Trắc nghiệm", href: "/quiz", active: true },
+          { label: "Match", href: "/match", active: false },
+        ]}
+      />
       <SectionTabs
         label="Nội dung kiểm tra"
         current={tab}

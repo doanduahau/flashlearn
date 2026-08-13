@@ -39,10 +39,9 @@ describe("StudySourceSelect", () => {
 
   it("defaults to all cards with the total count and an enabled start button", () => {
     render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
-    const allButton = screen.getByRole("button", { name: /Tất cả thẻ/ });
-    expect(allButton).toHaveAttribute("aria-pressed", "true");
-    expect(allButton).toHaveTextContent("4 thẻ");
-    expect(screen.getByText("0 nguồn · 4 thẻ")).toBeInTheDocument();
+    const allCard = screen.getByRole("radio", { name: "Tất cả 4 thẻ" });
+    expect(allCard).toBeChecked();
+    expect(screen.getByText("4 thẻ")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeEnabled();
   });
 

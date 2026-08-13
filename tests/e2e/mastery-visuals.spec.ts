@@ -88,7 +88,6 @@ test.describe("Visual mastery", () => {
     await createSetWithCard(page, "Bộ ôn", "Q", "A");
 
     await page.goto("/study");
-    await page.getByRole("button", { name: /Tất cả thẻ/ }).click();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
     await expect(page).toHaveURL(/\/study\/session/);
 

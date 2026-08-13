@@ -21,6 +21,7 @@ function sourceFromHref(sessionHref: string, questionCount: MatchQuestionCount) 
     setIds: (url.searchParams.get("sets") ?? "").split(",").filter(Boolean),
     collectionIds: (url.searchParams.get("collections") ?? "").split(",").filter(Boolean),
     questionCount,
+    filter: url.searchParams.get("filter") ?? "unseen",
   };
 }
 

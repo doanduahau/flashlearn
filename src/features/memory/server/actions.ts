@@ -5,7 +5,11 @@ import { randomInt } from "node:crypto";
 import { memoryStartSchema } from "@/features/memory/schemas/memory-schema";
 import type { MemoryCard, StartedMemorySession } from "@/features/memory/types/memory-types";
 import { buildMemorySession, getMemoryEligibility } from "@/features/memory/utils/memory-session";
-import { loadUncoveredIds } from "@/features/practice-coverage/server/actions";
+import { priorityIdsForFilter } from "@/features/learning-modes/types";
+import {
+  loadUncoveredIds,
+  loadWrongAnswerCardIds,
+} from "@/features/practice-coverage/server/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -79,11 +83,13 @@ export async function startMemoryCoverageSession(
         cards.map((card) => card.id),
       ),
     );
+    const wrong = await loadWrongAnswerCardIds(cards.map((card) => card.id));
+    const priority = priorityIdsForFilter(parsed.data.filter, uncovered, wrong);
     const batches = buildMemorySession(
       cards,
       parsed.data.questionCount,
       () => randomInt(0, 2 ** 32) / 2 ** 32,
-      uncovered,
+      priority,
     );
     if (!batches) return { ok: false, error: "Không thể tạo phiên Memory với phạm vi hiện tại." };
 

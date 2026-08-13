@@ -21,6 +21,56 @@ completion is selection-cycle state only, not graded learning data. Whether
 practice/game activity later affects streaks or general statistics remains a
 product decision for a later phase.
 
+## Shared setup UI and information architecture
+
+The session-based modes share one mobile-first setup structure and visual
+language. Presentation is shared; each feature keeps its own session
+construction and side-effect boundary.
+
+### Information architecture
+
+- **Học** (`/study`): two top tabs — **Học truyền thống** (the existing Study
+  flow) and **Vừa học vừa chơi** (play mode cards). Memory Matching is a
+  functional link; Flashcard Runner is shown only as a clearly non-interactive
+  "Sắp ra mắt" future option, with no clickable `/runner` route.
+- **Kiểm tra** (`/quiz` and `/match`): one shared top tab control —
+  **Trắc nghiệm** (existing Quiz) and **Match** (existing Match). `/quiz` keeps
+  its Tạo bài / Lịch sử sub-tabs; `/match` shows only the Match setup.
+
+### Shared setup order
+
+1. Mode tabs / page context
+2. Chế độ (shared mode filter)
+3. Số câu (shared count selector)
+4. "Chọn một hoặc nhiều nguồn" (single heading)
+5. Search
+6. Source-area filter (Tất cả / Bộ thường / Bộ đặc biệt)
+7. Source cards (the **last** normal content section; "Tất cả N thẻ" is the
+   first source card)
+8. Sticky Start CTA
+
+### Shared mode filter
+
+Only three filters exist: **Chưa**, **Sai**, **Ngẫu nhiên**. "Cân bằng" is no
+longer exposed to users (the Quiz engine keeps its internal balanced ordering
+as the fallback for the other modes). Traditional Study never shows these
+filters.
+
+- **Chưa** — mode-specific coverage. Quiz uses cards uncovered for
+  `mode = 'quiz'`; Match uses `mode = 'match'`; Memory uses `mode = 'memory'`.
+  Insufficient coverage falls back to covered cards.
+- **Sai** — the canonical shared wrong-answer history (completed Quiz sessions'
+  incorrect answers). Match and Memory reuse this same set and never create
+  their own wrong history. Selecting "Sai" only changes which cards may be
+  selected; it does not make Match/Memory graded.
+- **Ngẫu nhiên** — the entire valid selected pool, still ordered with
+  coverage fairness so repeated sessions eventually cover the whole pool
+  instead of repeating the same small subset.
+
+The shared filter maps to the existing Quiz RPC modes: Chưa → `never_tested`,
+Sai → `wrong_answers`, Ngẫu nhiên → `pure_random`. For Match and Memory the
+filter resolves to the priority id set passed to their session builders.
+
 ## Shared learning-mode coverage (Phase 5C.0)
 
 Coverage answers only: **has a flashcard been included in the current selected

@@ -162,7 +162,9 @@ test.describe("Mobile-first UI — Study page", () => {
     await page.goto("/study");
 
     // Source browser heading visible without scrolling
-    const heading = page.getByRole("heading", { name: /Ch\u1ecdn ngu\u1ed3n/ });
+    const heading = page.getByRole("heading", {
+      name: /Ch\u1ecdn m\u1ed9t ho\u1eb7c nhi\u1ec1u ngu\u1ed3n/,
+    });
     await expect(heading).toBeVisible();
 
     // "Bắt đầu học" button in sticky bar visible
@@ -207,7 +209,7 @@ test.describe("Mobile-first UI — Study page", () => {
 });
 
 test.describe("Mobile-first UI — Quiz page", () => {
-  test("quiz mode and count reachable via action bar while scrolled deep in source list", async ({
+  test("mode filter and count sit above the source list and stay reachable on mobile", async ({
     page,
   }) => {
     await page.setViewportSize(MOBILE);
@@ -216,45 +218,18 @@ test.describe("Mobile-first UI — Quiz page", () => {
 
     await page.goto("/quiz?tab=create");
 
-    // Scroll deep into source list (to bottom)
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    // Shared mode filter and count are inline, above the source list.
+    await expect(page.getByRole("button", { name: "Ch\u01b0a" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sai" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Ng\u1eabu nhi\u00ean" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "10" })).toBeVisible();
 
-    // "Bắt đầu kiểm tra" button must still be visible in sticky bar
+    // Scroll deep into source list (to bottom); the sticky Start CTA stays.
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     const startBtn = page.getByRole("button", { name: /B\u1eaft \u0111\u1ea7u ki\u1ec3m tra/ });
     await expect(startBtn).toBeVisible();
     const startBox = await startBtn.boundingBox();
     expect((startBox?.y ?? 0) + (startBox?.height ?? 0)).toBeLessThanOrEqual(MOBILE.height);
-
-    // "Thiết lập" config button visible in action bar
-    const configBtn = page.getByRole("button", {
-      name: /Thi\u1ebft l\u1eadp b\u00e0i ki\u1ec3m tra/,
-    });
-    await expect(configBtn).toBeVisible();
-
-    // Opening bottom sheet shows mode chips
-    await configBtn.click();
-    const dialog = page.getByRole("dialog", { name: /Thi\u1ebft l\u1eadp b\u00e0i ki\u1ec3m tra/ });
-    await expect(dialog).toBeVisible();
-
-    // Mode chips all visible in bottom sheet
-    await expect(dialog.getByRole("button", { name: "Cân bằng" })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Chưa kiểm tra" })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Câu sai" })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Ngẫu nhiên" })).toBeVisible();
-
-    // Select a mode
-    await dialog.getByRole("button", { name: "Câu sai" }).click();
-
-    // Count buttons visible
-    await expect(dialog.getByRole("button", { name: "10" })).toBeVisible();
-    await dialog.getByRole("button", { name: "10" }).click();
-
-    // Close sheet
-    await dialog.getByRole("button", { name: /Xong/ }).click();
-    await expect(dialog).not.toBeVisible();
-
-    // "Bắt đầu kiểm tra" still visible after sheet closed
-    await expect(startBtn).toBeVisible();
   });
 
   test("quiz start button remains in viewport on mobile regardless of scroll position", async ({
@@ -277,7 +252,7 @@ test.describe("Mobile-first UI — Quiz page", () => {
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(MOBILE.height);
   });
 
-  test("quiz action bar is contiguous with bottom nav and summarizes mode/count/cards", async ({
+  test("quiz action bar is contiguous with bottom nav and summarizes count/cards", async ({
     page,
   }) => {
     await page.setViewportSize(MOBILE);
@@ -299,9 +274,6 @@ test.describe("Mobile-first UI — Quiz page", () => {
     const barBottom = (barBox?.y ?? 0) + (barBox?.height ?? 0);
     expect(Math.abs(barBottom - (navBox?.y ?? 0))).toBeLessThanOrEqual(2);
 
-    // Mode name is fully visible (not truncated)
-    await expect(bar.getByText("C\u00e2n b\u1eb1ng", { exact: true })).toBeVisible();
-
     // Question count and eligible card count are fully visible (not truncated)
     await expect(bar.getByText("10 c\u00e2u \u00b7 13 th\u1ebb")).toBeVisible();
 
@@ -312,15 +284,15 @@ test.describe("Mobile-first UI — Quiz page", () => {
     expect(startBottom).toBeLessThanOrEqual((navBox?.y ?? 0) + 4);
   });
 
-  test("quiz page desktop layout is unchanged", async ({ page }) => {
+  test("quiz page desktop shows the shared mode filter inline", async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await signUpAndConfirm(page, uniqueEmail("quiz_desk"));
     await page.goto("/quiz?tab=create");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    // Desktop shows inline config (no bottom sheet trigger)
-    await expect(
-      page.getByRole("button", { name: /Thi\u1ebft l\u1eadp b\u00e0i ki\u1ec3m tra/ }),
-    ).not.toBeVisible();
+    // Shared mode filter is always inline (no separate bottom sheet trigger).
+    await expect(page.getByRole("button", { name: "Ch\u01b0a" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sai" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Ng\u1eabu nhi\u00ean" })).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,

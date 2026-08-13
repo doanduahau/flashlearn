@@ -47,8 +47,10 @@ describe("SourceBrowser", () => {
         path="/study"
         sourcePage={PAGE_ONE}
         selected={[]}
-        selectedKind={null}
         onToggle={vi.fn()}
+        allCount={17}
+        allSelected={true}
+        onSelectAll={vi.fn()}
       />,
     );
 
@@ -83,7 +85,6 @@ function SelectionHarness({ sourcePage }: Readonly<{ sourcePage: SourcePage }>) 
       path="/quiz"
       sourcePage={sourcePage}
       selected={selected}
-      selectedKind={selected[0]?.kind ?? null}
       onToggle={(source) =>
         setSelected((current) =>
           current.some((item) => item.id === source.id && item.kind === source.kind)
@@ -91,6 +92,9 @@ function SelectionHarness({ sourcePage }: Readonly<{ sourcePage: SourcePage }>) 
             : [...current, source],
         )
       }
+      allCount={0}
+      allSelected={false}
+      onSelectAll={() => setSelected([])}
     />
   );
 }

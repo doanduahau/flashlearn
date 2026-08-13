@@ -56,10 +56,9 @@ test.describe("Match learning mode", () => {
     // Capture learning state before Match.
     const before = await learningState(page, userId);
 
-    await page.goto("/study");
-    await page.getByRole("link", { name: /^Match nối/ }).click();
-    await expect(page).toHaveURL(/\/match$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Match");
+    await page.goto("/match");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Kiểm tra");
+    await expect(page.getByRole("link", { name: "Match" })).toHaveAttribute("aria-current", "page");
 
     // 24 eligible cards -> all three options available.
     await expect(page.getByRole("button", { name: "12 câu" })).toBeVisible();

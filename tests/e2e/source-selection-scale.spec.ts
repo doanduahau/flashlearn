@@ -53,19 +53,12 @@ test("Study and Quiz source selection scales across pages on mobile", async ({ p
   // "Bắt đầu kiểm tra" is in the sticky action bar — always visible
   await expect(page.getByRole("button", { name: "Bắt đầu kiểm tra" })).toBeVisible();
 
-  // Open config bottom sheet to access mode/count
-  await page.getByRole("button", { name: /Thiết lập bài kiểm tra/ }).click();
-  const dialog = page.getByRole("dialog", { name: /Thiết lập bài kiểm tra/ });
-  await expect(dialog).toBeVisible();
-
-  // With 13 cards: 10 enabled, 20/30/50 disabled
-  await expect(dialog.getByText(/13 thẻ hợp lệ/)).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "10" })).toBeEnabled();
-  await expect(dialog.getByRole("button", { name: "20" })).toBeDisabled();
-  await expect(dialog.getByRole("button", { name: "30" })).toBeDisabled();
-  await expect(dialog.getByRole("button", { name: "50" })).toBeDisabled();
-
-  await dialog.getByRole("button", { name: /Xong/ }).click();
-  await expect(dialog).not.toBeVisible();
+  // Mode filter and count are inline (no bottom sheet). With 13 cards:
+  // 10 enabled, 20/30/50 disabled.
+  await expect(page.getByText(/13 thẻ hợp lệ/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "10" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "20" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "30" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "50" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Bắt đầu kiểm tra" })).toBeVisible();
 });

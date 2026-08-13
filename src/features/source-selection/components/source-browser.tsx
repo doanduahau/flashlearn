@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import type {
   SourceOption,
   SourcePage,
-  SourceKind,
   SourceType,
 } from "@/features/source-selection/types/source-types";
 import { cn } from "@/lib/utils";
@@ -23,14 +22,18 @@ export function SourceBrowser({
   path,
   sourcePage,
   selected,
-  selectedKind,
   onToggle,
+  allCount,
+  allSelected,
+  onSelectAll,
 }: Readonly<{
   path: string;
   sourcePage: SourcePage;
   selected: SourceOption[];
-  selectedKind: SourceKind | null;
   onToggle: (source: SourceOption) => void;
+  allCount: number;
+  allSelected: boolean;
+  onSelectAll: () => void;
 }>) {
   const router = useRouter();
   const [query, setQuery] = useState(sourcePage.query);
@@ -58,18 +61,9 @@ export function SourceBrowser({
 
   return (
     <section className="space-y-2 sm:space-y-3" aria-labelledby="source-browser-heading">
-      <div>
-        <h2 id="source-browser-heading" className="text-base font-semibold sm:text-lg">
-          Chọn nguồn
-        </h2>
-        <p className="mt-1 text-sm text-text-secondary">
-          {selectedKind === "regular"
-            ? "Đang chọn Bộ thường. Chuyển sang Bộ đặc biệt sẽ thay thế lựa chọn hiện tại."
-            : selectedKind === "special"
-              ? "Đang chọn Bộ đặc biệt. Chuyển sang Bộ thường sẽ thay thế lựa chọn hiện tại."
-              : "Chọn nhiều nguồn trong cùng một khu vực."}
-        </p>
-      </div>
+      <h2 id="source-browser-heading" className="text-base font-semibold sm:text-lg">
+        Chọn một hoặc nhiều nguồn
+      </h2>
       <form
         className="flex gap-2"
         onSubmit={(event) => {
@@ -131,40 +125,56 @@ export function SourceBrowser({
         </div>
       ) : null}
       {isNavigating ? <SourceSkeleton /> : null}
-      {sourcePage.sources.length ? (
-        <ul className={cn("grid gap-2", isNavigating && "opacity-50")} aria-live="polite">
-          {sourcePage.sources.map((source) => {
-            const selectedSource = selectedKeys.has(`${source.kind}:${source.id}`);
-            return (
-              <li key={`${source.kind}:${source.id}`}>
-                <label className="flex min-h-10 items-center gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 hover:bg-surface-subtle sm:min-h-12 sm:p-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedSource}
-                    onChange={() => onToggle(source)}
-                    aria-label={`${source.name}, ${source.kind === "regular" ? "Bộ thường" : "Bộ đặc biệt"}`}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium sm:text-base">
-                      {source.name}
-                    </span>
-                    <span className="text-xs text-text-secondary">
-                      {source.kind === "regular" ? "Bộ thường" : "Bộ đặc biệt"}
-                    </span>
+      <ul className={cn("grid gap-2", isNavigating && "opacity-50")} aria-live="polite">
+        <li>
+          <label className="flex min-h-10 items-center gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 hover:bg-surface-subtle sm:min-h-12 sm:p-3">
+            <input
+              type="radio"
+              name="source-scope"
+              checked={allSelected}
+              onChange={onSelectAll}
+              aria-label={`Tất cả ${allCount} thẻ`}
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium sm:text-base">
+                Tất cả {allCount} thẻ
+              </span>
+              <span className="text-xs text-text-secondary">Tất cả</span>
+            </span>
+          </label>
+        </li>
+        {sourcePage.sources.map((source) => {
+          const selectedSource = selectedKeys.has(`${source.kind}:${source.id}`);
+          return (
+            <li key={`${source.kind}:${source.id}`}>
+              <label className="flex min-h-10 items-center gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 hover:bg-surface-subtle sm:min-h-12 sm:p-3">
+                <input
+                  type="checkbox"
+                  checked={selectedSource}
+                  onChange={() => onToggle(source)}
+                  aria-label={`${source.name}, ${source.kind === "regular" ? "Bộ thường" : "Bộ đặc biệt"}`}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium sm:text-base">
+                    {source.name}
                   </span>
-                  <span className="shrink-0 text-xs text-text-secondary sm:text-sm">
-                    {source.cardCount} thẻ
+                  <span className="text-xs text-text-secondary">
+                    {source.kind === "regular" ? "Bộ thường" : "Bộ đặc biệt"}
                   </span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-      ) : isNavigating ? null : (
+                </span>
+                <span className="shrink-0 text-xs text-text-secondary sm:text-sm">
+                  {source.cardCount} thẻ
+                </span>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+      {!isNavigating && sourcePage.sources.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-5 text-center text-text-secondary">
           Không tìm thấy nguồn phù hợp.
         </p>
-      )}
+      ) : null}
       {sourcePage.totalPages > 1 ? (
         <nav className="flex items-center justify-between gap-3" aria-label="Phân trang nguồn">
           <Button

@@ -59,10 +59,7 @@ async function answerEveryQuestionCorrect(page: Page): Promise<void> {
 async function startManualQuiz(page: Page, useAllAvailableCards = false): Promise<string> {
   await page.goto("/quiz");
   if (useAllAvailableCards) {
-    await page.getByRole("button", { name: "Thiết lập bài kiểm tra" }).click();
-    const dialog = page.getByRole("dialog", { name: "Thiết lập bài kiểm tra" });
-    await dialog.getByRole("button", { name: /Tất cả \(24\)/ }).click();
-    await dialog.getByRole("button", { name: "Xong" }).click();
+    await page.getByRole("button", { name: /Tất cả \(24\)/ }).click();
   }
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
   await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);

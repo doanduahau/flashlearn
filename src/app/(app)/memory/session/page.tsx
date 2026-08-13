@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { MemorySession } from "@/features/memory/components/memory-session";
 import { MEMORY_QUESTION_COUNTS } from "@/features/memory/types/memory-types";
+import { learningFilters, type LearningFilter } from "@/features/learning-modes/types";
 
 export const metadata: Metadata = { title: "Phiên Memory" };
 
@@ -10,6 +11,12 @@ function parseCount(value: string | string[] | undefined): 12 | 18 | 24 | null {
   if (typeof value !== "string") return null;
   const num = Number(value);
   return MEMORY_QUESTION_COUNTS.includes(num as never) ? (num as 12 | 18 | 24) : null;
+}
+
+function parseFilter(value: string | string[] | undefined): LearningFilter {
+  return typeof value === "string" && (learningFilters as readonly string[]).includes(value)
+    ? (value as LearningFilter)
+    : "unseen";
 }
 
 export default async function MemorySessionPage({
@@ -25,10 +32,11 @@ export default async function MemorySessionPage({
   const setIds = typeof raw.sets === "string" ? raw.sets.split(",").filter(Boolean) : [];
   const collectionIds =
     typeof raw.collections === "string" ? raw.collections.split(",").filter(Boolean) : [];
+  const filter = parseFilter(raw.filter);
 
   if (!all && setIds.length === 0 && collectionIds.length === 0) redirect("/memory");
 
-  const sessionHref = `/memory/session${buildQuery({ all, setIds, collectionIds, count: questionCount })}`;
+  const sessionHref = `/memory/session${buildQuery({ all, setIds, collectionIds, count: questionCount, filter })}`;
 
   return (
     <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
@@ -42,12 +50,14 @@ function buildQuery(params: {
   setIds: string[];
   collectionIds: string[];
   count: number;
+  filter: LearningFilter;
 }): string {
   const query = new URLSearchParams();
   if (params.all) query.set("all", "1");
   if (params.setIds.length) query.set("sets", params.setIds.join(","));
   if (params.collectionIds.length) query.set("collections", params.collectionIds.join(","));
   query.set("count", String(params.count));
+  query.set("filter", params.filter);
   const search = query.toString();
   return search ? `?${search}` : "";
 }

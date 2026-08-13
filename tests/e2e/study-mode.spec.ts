@@ -36,7 +36,7 @@ test.describe("Study mode", () => {
     const page = await context.newPage();
 
     await page.goto("/study");
-    await expect(page.getByRole("button", { name: /Tất cả thẻ/ })).toContainText("4 thẻ");
+    await expect(page.getByRole("radio", { name: /Tất cả 4 thẻ/ })).toBeChecked();
 
     await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).check();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
@@ -177,7 +177,6 @@ test.describe("Study mode", () => {
     const page = await context.newPage();
 
     await page.goto("/study");
-    await page.getByRole("button", { name: /Tất cả thẻ/ }).click();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
     await expect(page).toHaveURL(/\/study\/session\?all=1$/);
     await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuemax", "4");
@@ -200,7 +199,6 @@ test.describe("Study mode", () => {
     const page = await context.newPage();
 
     await page.goto("/study");
-    await page.getByRole("button", { name: /Tất cả thẻ/ }).click();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
     await expect(page).toHaveURL(/\/study\/session/);
     await expect(page.getByText("1 / 4")).toBeVisible();

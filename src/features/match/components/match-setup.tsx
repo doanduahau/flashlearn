@@ -4,13 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ModeFilter } from "@/features/learning-modes/components/mode-filter";
-import { QuestionCountSelector } from "@/features/learning-modes/components/question-count-selector";
+import {
+  QuestionCountSelector,
+  type CountOption,
+} from "@/features/learning-modes/components/question-count-selector";
 import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
-import type { LearningFilter } from "@/features/learning-modes/types";
+import { insufficientPoolMessage, type LearningFilter } from "@/features/learning-modes/types";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { getMatchAvailability } from "@/features/match/server/actions";
-import { MATCH_QUESTION_COUNTS } from "@/features/match/types/match-types";
 
 const COUNT_DEBOUNCE_MS = 250;
 
@@ -67,6 +69,7 @@ export function MatchSetup({
           setIds: currentSources.setIds,
           collectionIds: currentSources.collectionIds,
           questionCount: 12,
+          filter,
         });
         if (cancelled) return;
         if (result.ok) {
@@ -87,7 +90,7 @@ export function MatchSetup({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [all, currentSources]);
+  }, [all, currentSources, filter]);
 
   const counting =
     availability === null ||
@@ -95,10 +98,14 @@ export function MatchSetup({
     !sameSources(availability.computedFor, currentSources);
   const eligible = availability?.eligibleCount ?? 0;
   const availableCounts = availability?.availableCounts ?? [];
-  const message = availability?.message ?? null;
-  const effectiveCount = availableCounts.includes(count)
+  const baseMessage = availability?.message ?? null;
+  const options: CountOption[] = availableCounts.map((value) => ({
+    value,
+    label: `${value} câu`,
+  }));
+  const effectiveCount = options.some((option) => option.value === count)
     ? count
-    : ((availableCounts[0] as 12 | 18 | 24 | undefined) ?? 12);
+    : ((options[0]?.value as 12 | 18 | 24 | undefined) ?? 12);
 
   function toggleSource(source: SourceOption): void {
     setAll(false);
@@ -130,6 +137,7 @@ export function MatchSetup({
         setIds: currentSources.setIds,
         collectionIds: currentSources.collectionIds,
         questionCount: effectiveCount,
+        filter,
       });
       if (!result.ok) {
         setPending(false);
@@ -154,27 +162,33 @@ export function MatchSetup({
 
   const canStartMatch = availableCounts.length > 0 && !counting && countError === null && !pending;
 
+  const poolMessage =
+    countError === null && !counting && availableCounts.length === 0
+      ? filter === "unseen" || filter === "wrong"
+        ? insufficientPoolMessage(filter)
+        : (baseMessage ?? insufficientPoolMessage(filter))
+      : null;
+
   return (
     <div className="mt-2 space-y-3 pb-28 sm:mt-5 sm:space-y-4 md:pb-0">
       <ModeFilter value={filter} onChange={setFilter} />
 
       <QuestionCountSelector
-        counts={MATCH_QUESTION_COUNTS}
+        options={options}
         value={effectiveCount}
         eligible={eligible}
         counting={counting}
-        suffix="câu"
         onChange={(next) => setCount(next as 12 | 18 | 24)}
       />
 
+      {poolMessage ? (
+        <p role="alert" className="text-danger">
+          {poolMessage}
+        </p>
+      ) : null}
       {!all && countError ? (
         <p role="alert" className="text-danger">
           {countError}
-        </p>
-      ) : null}
-      {message ? (
-        <p role="alert" className="text-sm text-text-secondary">
-          {message}
         </p>
       ) : null}
 

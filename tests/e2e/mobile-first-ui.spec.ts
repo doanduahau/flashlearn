@@ -219,8 +219,8 @@ test.describe("Mobile-first UI — Quiz page", () => {
     await page.goto("/quiz?tab=create");
 
     // Shared mode filter and count are inline, above the source list.
-    await expect(page.getByRole("button", { name: "Ch\u01b0a" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sai" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Ch\u01b0a l\u00e0m" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "C\u00e2u sai" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Ng\u1eabu nhi\u00ean" })).toBeVisible();
     await expect(page.getByRole("button", { name: "10" })).toBeVisible();
 
@@ -290,8 +290,8 @@ test.describe("Mobile-first UI — Quiz page", () => {
     await page.goto("/quiz?tab=create");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     // Shared mode filter is always inline (no separate bottom sheet trigger).
-    await expect(page.getByRole("button", { name: "Ch\u01b0a" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sai" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Ch\u01b0a l\u00e0m" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "C\u00e2u sai" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Ng\u1eabu nhi\u00ean" })).toBeVisible();
     expect(
       await page.evaluate(

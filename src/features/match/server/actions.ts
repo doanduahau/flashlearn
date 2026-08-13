@@ -9,7 +9,7 @@ import {
   createSeededMatchRandom,
   getMatchEligibility,
 } from "@/features/match/utils/match-session";
-import { priorityIdsForFilter } from "@/features/learning-modes/types";
+import { applyLearningFilter } from "@/features/learning-modes/types";
 import {
   loadUncoveredIds,
   loadWrongAnswerCardIds,
@@ -29,7 +29,6 @@ export type MatchAvailabilityResult =
       ok: true;
       eligibleCount: number;
       eligibility: { availableCounts: number[]; message: string | null };
-      hasUncovered: boolean;
     }
   | { ok: false; error: string };
 
@@ -44,20 +43,32 @@ export async function getMatchAvailability(input: unknown): Promise<MatchAvailab
 
   try {
     const cards = await loadCards(supabase, parsed.data);
-    const uncovered = await loadUncoveredIds(
-      "match",
-      cards.map((card) => card.id),
-    );
-    const eligibility = getMatchEligibility(cards);
+    const filtered = await filterCardsByMode(cards, parsed.data.filter);
+    const eligibility = getMatchEligibility(filtered);
     return {
       ok: true,
-      eligibleCount: cards.length,
+      eligibleCount: filtered.length,
       eligibility: { availableCounts: eligibility.availableCounts, message: eligibility.message },
-      hasUncovered: uncovered.length > 0,
     };
   } catch {
     return { ok: false, error: "Không thể tải thẻ Match lúc này." };
   }
+}
+
+/**
+ * Strict pool filtering: unseen/wrong never backfill with covered/never-wrong
+ * cards. Random keeps the whole valid pool and is only coverage-aware during
+ * selection.
+ */
+async function filterCardsByMode(
+  cards: MatchCard[],
+  filter: "unseen" | "wrong" | "random",
+): Promise<MatchCard[]> {
+  const allIds = cards.map((card) => card.id);
+  const uncovered = new Set(await loadUncoveredIds("match", allIds));
+  const wrong = await loadWrongAnswerCardIds(allIds);
+  const eligibleIds = new Set(applyLearningFilter(filter, allIds, uncovered, wrong));
+  return cards.filter((card) => eligibleIds.has(card.id));
 }
 
 export async function startMatchCoverageSession(
@@ -73,7 +84,8 @@ export async function startMatchCoverageSession(
 
   try {
     const cards = await loadCards(supabase, parsed.data);
-    const eligibility = getMatchEligibility(cards);
+    const filtered = await filterCardsByMode(cards, parsed.data.filter);
+    const eligibility = getMatchEligibility(filtered);
     if (!eligibility.availableCounts.includes(parsed.data.questionCount)) {
       return {
         ok: false,
@@ -81,16 +93,19 @@ export async function startMatchCoverageSession(
       };
     }
 
-    const uncovered = new Set(
-      await loadUncoveredIds(
-        "match",
-        cards.map((card) => card.id),
-      ),
-    );
-    const wrong = await loadWrongAnswerCardIds(cards.map((card) => card.id));
-    const priority = priorityIdsForFilter(parsed.data.filter, uncovered, wrong);
+    // Random keeps the whole pool but stays coverage-aware; unseen/wrong are
+    // already strict so their selection needs no priority.
+    const priority =
+      parsed.data.filter === "random"
+        ? new Set(
+            await loadUncoveredIds(
+              "match",
+              filtered.map((card) => card.id),
+            ),
+          )
+        : undefined;
     const batches = buildMatchSession(
-      cards,
+      filtered,
       parsed.data.questionCount,
       createSeededMatchRandom(randomInt(0, 2 ** 32)),
       priority,
@@ -103,7 +118,7 @@ export async function startMatchCoverageSession(
       p_user_id: userId,
       p_mode: "match",
       p_session_card_ids: sessionCardIds,
-      p_scope_card_ids: cards.map((card) => card.id),
+      p_scope_card_ids: filtered.map((card) => card.id),
       p_quiz_session_id: null,
     });
     if (error || !coverageSessionId) throw new Error("coverage session creation failed");
@@ -114,7 +129,7 @@ export async function startMatchCoverageSession(
         coverageSessionId,
         batches,
         selectedCount: sessionCardIds.length,
-        eligibleCount: cards.length,
+        eligibleCount: filtered.length,
       },
     };
   } catch {

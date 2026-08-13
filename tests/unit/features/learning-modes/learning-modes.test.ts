@@ -2,24 +2,25 @@ import { describe, expect, it } from "vitest";
 
 import {
   LEARNING_FILTER_OPTIONS,
+  applyLearningFilter,
   learningFilterToQuizMode,
-  priorityIdsForFilter,
+  insufficientPoolMessage,
 } from "@/features/learning-modes/types";
 
 describe("learning mode filters", () => {
-  it("exposes exactly Chưa / Sai / Ngẫu nhiên", () => {
+  it("exposes exactly Chưa làm / Câu sai / Ngẫu nhiên", () => {
     expect(LEARNING_FILTER_OPTIONS.map((option) => option.label)).toEqual([
-      "Chưa",
-      "Sai",
+      "Chưa làm",
+      "Câu sai",
       "Ngẫu nhiên",
     ]);
   });
 
-  it("maps Chưa to the never-tested quiz mode", () => {
+  it("maps Chưa làm to the never-tested quiz mode", () => {
     expect(learningFilterToQuizMode("unseen")).toBe("never_tested");
   });
 
-  it("maps Sai to the wrong-answers quiz mode", () => {
+  it("maps Câu sai to the wrong-answers quiz mode", () => {
     expect(learningFilterToQuizMode("wrong")).toBe("wrong_answers");
   });
 
@@ -27,21 +28,29 @@ describe("learning mode filters", () => {
     expect(learningFilterToQuizMode("random")).toBe("pure_random");
   });
 
-  it("prioritises mode-specific uncovered ids for Chưa", () => {
-    const uncovered = new Set(["a"]);
+  it("strict Chưa làm keeps only uncovered ids (no backfill)", () => {
+    const ids = ["a", "b", "c", "d"];
+    const uncovered = new Set(["a", "c"]);
     const wrong = new Set(["b"]);
-    expect(priorityIdsForFilter("unseen", uncovered, wrong)).toBe(uncovered);
+    expect(applyLearningFilter("unseen", ids, uncovered, wrong)).toEqual(["a", "c"]);
   });
 
-  it("prioritises the shared wrong-answer history for Sai", () => {
-    const uncovered = new Set(["a"]);
-    const wrong = new Set(["b"]);
-    expect(priorityIdsForFilter("wrong", uncovered, wrong)).toBe(wrong);
+  it("strict Câu sai keeps only wrong ids (no never-wrong backfill)", () => {
+    const ids = ["a", "b", "c", "d"];
+    const uncovered = new Set(["a", "c"]);
+    const wrong = new Set(["b", "d"]);
+    expect(applyLearningFilter("wrong", ids, uncovered, wrong)).toEqual(["b", "d"]);
   });
 
-  it("keeps coverage fairness for Ngẫu nhiên", () => {
+  it("Ngẫu nhiên keeps the whole pool", () => {
+    const ids = ["a", "b", "c"];
     const uncovered = new Set(["a"]);
     const wrong = new Set(["b"]);
-    expect(priorityIdsForFilter("random", uncovered, wrong)).toBe(uncovered);
+    expect(applyLearningFilter("random", ids, uncovered, wrong)).toEqual(["a", "b", "c"]);
+  });
+
+  it("provides filter-specific insufficient messages", () => {
+    expect(insufficientPoolMessage("unseen")).toBe("Không đủ thẻ chưa làm để bắt đầu.");
+    expect(insufficientPoolMessage("wrong")).toBe("Không đủ câu sai để bắt đầu.");
   });
 });

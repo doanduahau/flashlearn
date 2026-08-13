@@ -3,14 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  getQuizCardCount: vi.fn(),
+  getQuizEligibility: vi.fn(),
   push: vi.fn(),
   startQuiz: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push, replace: vi.fn() }) }));
 vi.mock("@/features/quiz/server/actions", () => ({
-  getQuizCardCount: mocks.getQuizCardCount,
+  getQuizEligibility: mocks.getQuizEligibility,
   startQuiz: mocks.startQuiz,
 }));
 
@@ -32,42 +32,81 @@ const SOURCE_PAGE: SourcePage = {
   type: "all",
 };
 
+function eligibility(uncovered: number, total = 25, wrong = 0) {
+  mocks.getQuizEligibility.mockResolvedValue({ ok: true, total, uncovered, wrong });
+}
+
 describe("QuizSetup", () => {
   beforeEach(() => {
-    mocks.getQuizCardCount.mockReset();
+    mocks.getQuizEligibility.mockReset();
     mocks.startQuiz.mockReset();
+    eligibility(25);
   });
 
-  it("shows exactly the shared three filters and no Cân bằng", () => {
+  it("shows exactly Chưa làm / Câu sai / Ngẫu nhiên and no Cân bằng or old labels", () => {
     render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} />);
 
-    expect(screen.getByRole("button", { name: "Chưa" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sai" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Chưa làm" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Câu sai" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ngẫu nhiên" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cân bằng" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Chưa" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sai" })).not.toBeInTheDocument();
   });
 
-  it("offers only fixed feasible question counts and disables impossible counts", () => {
+  it("offers fixed counts below N plus Tất cả N", async () => {
     render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} />);
 
-    expect(screen.getByText("25 thẻ hợp lệ")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "10" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "20" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "30" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "50" })).toBeDisabled();
-    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    await waitFor(() => expect(mocks.getQuizEligibility).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "10" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "20" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tất cả 25" })).toBeInTheDocument();
+    // Fixed counts >= N are not shown at all.
+    expect(screen.queryByRole("button", { name: "30" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "50" })).not.toBeInTheDocument();
   });
 
-  it("renders the All source card with the total count and disables start below ten", () => {
+  it("renders the All source card with the total count and disables start below ten", async () => {
+    eligibility(7, 7);
     render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={7} />);
 
     expect(screen.getByRole("radio", { name: "Tất cả 7 thẻ" })).toBeChecked();
+    await waitFor(() => expect(mocks.getQuizEligibility).toHaveBeenCalled());
+    // N=7 -> only "Tất cả 7", which is below the 10-question minimum.
+    expect(screen.getByRole("button", { name: "Tất cả 7" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Bắt đầu kiểm tra" })).toBeDisabled();
+    expect(screen.getByText("Không đủ thẻ chưa làm để bắt đầu.")).toBeInTheDocument();
   });
 
-  it("renders the All source card with the eligible count by default", () => {
-    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} />);
-    expect(screen.getByRole("radio", { name: "Tất cả 25 thẻ" })).toBeChecked();
+  it("offers 10 + Tất cả 13 when N=13", async () => {
+    eligibility(13, 13);
+    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={13} />);
+
+    await waitFor(() => expect(mocks.getQuizEligibility).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "10" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tất cả 13" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "20" })).not.toBeInTheDocument();
+  });
+
+  it("offers 10 + Tất cả 20 with no duplicate 20 when N=20", async () => {
+    eligibility(20, 20);
+    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={20} />);
+
+    await waitFor(() => expect(mocks.getQuizEligibility).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "10" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tất cả 20" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "20" })).not.toBeInTheDocument();
+  });
+
+  it("offers 10 + 20 + Tất cả 27 when N=27", async () => {
+    eligibility(27, 27);
+    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={27} />);
+
+    await waitFor(() => expect(mocks.getQuizEligibility).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "10" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "20" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tất cả 27" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "30" })).not.toBeInTheDocument();
   });
 
   it("orders mode and count above the source list", () => {
@@ -83,14 +122,15 @@ describe("QuizSetup", () => {
   });
 
   it("uses an exact server count for selected sources before starting", async () => {
-    mocks.getQuizCardCount.mockResolvedValue({ ok: true, count: 20 });
     mocks.startQuiz.mockResolvedValue({ ok: true, sessionId: "quiz-1" });
     const user = userEvent.setup();
     render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} />);
+    await waitFor(() => expect(mocks.getQuizEligibility).toHaveBeenCalled());
 
     await user.click(screen.getByRole("checkbox", { name: /Bộ lớn/ }));
     await waitFor(() =>
-      expect(mocks.getQuizCardCount).toHaveBeenCalledWith({
+      expect(mocks.getQuizEligibility).toHaveBeenCalledWith({
+        all: false,
         setIds: ["11111111-1111-4111-8111-111111111111"],
         collectionIds: [],
       }),
@@ -108,27 +148,14 @@ describe("QuizSetup", () => {
     );
   });
 
-  it("offers a dynamic all-card count option when eligible is not a fixed count", () => {
-    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={24} />);
-
-    expect(screen.getByRole("button", { name: "Tất cả (24)" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Tất cả (24)" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-  });
-
-  it("does not duplicate an existing fixed count option", () => {
-    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={20} />);
-    expect(screen.queryByRole("button", { name: "Tất cả (20)" })).not.toBeInTheDocument();
-  });
-
-  it("maps the Sai filter to the wrong-answers quiz mode", async () => {
+  it("maps the Câu sai filter to the wrong-answers quiz mode", async () => {
+    eligibility(0, 25, 25);
     mocks.startQuiz.mockResolvedValue({ ok: true, sessionId: "quiz-2" });
     const user = userEvent.setup();
     render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} />);
+    await waitFor(() => expect(mocks.getQuizEligibility).toHaveBeenCalled());
 
-    await user.click(screen.getByRole("button", { name: "Sai" }));
+    await user.click(screen.getByRole("button", { name: "Câu sai" }));
     await user.click(screen.getByRole("button", { name: "Bắt đầu kiểm tra" }));
     await waitFor(() =>
       expect(mocks.startQuiz).toHaveBeenCalledWith(
@@ -141,6 +168,7 @@ describe("QuizSetup", () => {
     mocks.startQuiz.mockResolvedValue({ ok: true, sessionId: "quiz-3" });
     const user = userEvent.setup();
     render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} />);
+    await waitFor(() => expect(mocks.getQuizEligibility).toHaveBeenCalled());
 
     await user.click(screen.getByRole("button", { name: "Ngẫu nhiên" }));
     await user.click(screen.getByRole("button", { name: "Bắt đầu kiểm tra" }));

@@ -5,7 +5,7 @@ import { randomInt } from "node:crypto";
 import { memoryStartSchema } from "@/features/memory/schemas/memory-schema";
 import type { MemoryCard, StartedMemorySession } from "@/features/memory/types/memory-types";
 import { buildMemorySession, getMemoryEligibility } from "@/features/memory/utils/memory-session";
-import { priorityIdsForFilter } from "@/features/learning-modes/types";
+import { applyLearningFilter } from "@/features/learning-modes/types";
 import {
   loadUncoveredIds,
   loadWrongAnswerCardIds,
@@ -25,7 +25,6 @@ export type MemoryAvailabilityResult =
       ok: true;
       eligibleCount: number;
       eligibility: { availableCounts: number[]; message: string | null };
-      hasUncovered: boolean;
     }
   | { ok: false; error: string };
 
@@ -40,20 +39,32 @@ export async function getMemoryAvailability(input: unknown): Promise<MemoryAvail
 
   try {
     const cards = await loadCards(supabase, parsed.data);
-    const uncovered = await loadUncoveredIds(
-      "memory",
-      cards.map((card) => card.id),
-    );
-    const eligibility = getMemoryEligibility(cards);
+    const filtered = await filterCardsByMode(cards, parsed.data.filter);
+    const eligibility = getMemoryEligibility(filtered);
     return {
       ok: true,
-      eligibleCount: cards.length,
+      eligibleCount: filtered.length,
       eligibility,
-      hasUncovered: uncovered.length > 0,
     };
   } catch {
     return { ok: false, error: "Không thể tải thẻ Memory lúc này." };
   }
+}
+
+/**
+ * Strict pool filtering: unseen/wrong never backfill with covered/never-wrong
+ * cards. Random keeps the whole valid pool and is only coverage-aware during
+ * selection.
+ */
+async function filterCardsByMode(
+  cards: MemoryCard[],
+  filter: "unseen" | "wrong" | "random",
+): Promise<MemoryCard[]> {
+  const allIds = cards.map((card) => card.id);
+  const uncovered = new Set(await loadUncoveredIds("memory", allIds));
+  const wrong = await loadWrongAnswerCardIds(allIds);
+  const eligibleIds = new Set(applyLearningFilter(filter, allIds, uncovered, wrong));
+  return cards.filter((card) => eligibleIds.has(card.id));
 }
 
 export async function startMemoryCoverageSession(
@@ -69,7 +80,8 @@ export async function startMemoryCoverageSession(
 
   try {
     const cards = await loadCards(supabase, parsed.data);
-    const eligibility = getMemoryEligibility(cards);
+    const filtered = await filterCardsByMode(cards, parsed.data.filter);
+    const eligibility = getMemoryEligibility(filtered);
     if (!eligibility.availableCounts.includes(parsed.data.questionCount)) {
       return {
         ok: false,
@@ -77,16 +89,17 @@ export async function startMemoryCoverageSession(
       };
     }
 
-    const uncovered = new Set(
-      await loadUncoveredIds(
-        "memory",
-        cards.map((card) => card.id),
-      ),
-    );
-    const wrong = await loadWrongAnswerCardIds(cards.map((card) => card.id));
-    const priority = priorityIdsForFilter(parsed.data.filter, uncovered, wrong);
+    const priority =
+      parsed.data.filter === "random"
+        ? new Set(
+            await loadUncoveredIds(
+              "memory",
+              filtered.map((card) => card.id),
+            ),
+          )
+        : undefined;
     const batches = buildMemorySession(
-      cards,
+      filtered,
       parsed.data.questionCount,
       () => randomInt(0, 2 ** 32) / 2 ** 32,
       priority,
@@ -101,7 +114,7 @@ export async function startMemoryCoverageSession(
       p_user_id: userId,
       p_mode: "memory",
       p_session_card_ids: sessionCardIds,
-      p_scope_card_ids: cards.map((card) => card.id),
+      p_scope_card_ids: filtered.map((card) => card.id),
       p_quiz_session_id: null,
     });
     if (error || !coverageSessionId) throw new Error("coverage session creation failed");
@@ -112,7 +125,7 @@ export async function startMemoryCoverageSession(
         coverageSessionId,
         batches,
         selectedCount: sessionCardIds.length,
-        eligibleCount: cards.length,
+        eligibleCount: filtered.length,
       },
     };
   } catch {

@@ -51,25 +51,47 @@ construction and side-effect boundary.
 
 ### Shared mode filter
 
-Only three filters exist: **Chưa**, **Sai**, **Ngẫu nhiên**. "Cân bằng" is no
-longer exposed to users (the Quiz engine keeps its internal balanced ordering
-as the fallback for the other modes). Traditional Study never shows these
-filters.
+Only three filters exist: **Chưa làm**, **Câu sai**, **Ngẫu nhiên**. "Cân bằng"
+is no longer exposed to users (the Quiz engine keeps its internal balanced
+ordering as the fallback for the other modes). Traditional Study never shows
+these filters. Each filter defines a **strict eligible pool** over the selected
+source scope; the setup UI never backfills.
 
-- **Chưa** — mode-specific coverage. Quiz uses cards uncovered for
-  `mode = 'quiz'`; Match uses `mode = 'match'`; Memory uses `mode = 'memory'`.
-  Insufficient coverage falls back to covered cards.
-- **Sai** — the canonical shared wrong-answer history (completed Quiz sessions'
-  incorrect answers). Match and Memory reuse this same set and never create
-  their own wrong history. Selecting "Sai" only changes which cards may be
-  selected; it does not make Match/Memory graded.
-- **Ngẫu nhiên** — the entire valid selected pool, still ordered with
-  coverage fairness so repeated sessions eventually cover the whole pool
-  instead of repeating the same small subset.
+- **Chưa làm** — the mode-specific uncovered pool. Quiz uses cards uncovered
+  for `mode = 'quiz'`; Match uses `mode = 'match'`; Memory uses `mode =
+'memory'`. Insufficient coverage never backfills covered cards.
+- **Câu sai** — the canonical shared wrong-answer history (completed Quiz
+  sessions' incorrect answers). Match and Memory reuse this same set and never
+  create their own wrong history. Cards that were never wrong are not added.
+  Selecting "Câu sai" only changes which cards may be selected; it does not
+  make Match/Memory graded.
+- **Ngẫu nhiên** — the entire valid selected pool, still ordered with coverage
+  fairness so repeated sessions eventually cover the whole pool instead of
+  repeating the same small subset.
 
-The shared filter maps to the existing Quiz RPC modes: Chưa → `never_tested`,
-Sai → `wrong_answers`, Ngẫu nhiên → `pure_random`. For Match and Memory the
-filter resolves to the priority id set passed to their session builders.
+The shared filter maps to the existing Quiz RPC modes: Chưa làm →
+`never_tested`, Câu sai → `wrong_answers`, Ngẫu nhiên → `pure_random`. For
+Match and Memory the filter is applied as a strict pool filter before their
+session builders run.
+
+### Question counts
+
+- **Quiz** offers the fixed counts `10 / 20 / 30 / 50` (only those strictly
+  below the strict pool N) plus **"Tất cả N"** where N is the strict eligible
+  pool after applying the source scope and filter. When N equals a fixed count,
+  only "Tất cả N" is offered. "Tất cả N" is Quiz-only. The Quiz engine keeps a
+  10-question minimum, so N below 10 disables Start with an insufficient-pool
+  message.
+- **Match** and **Memory** offer `12 / 18 / 24` only, enabled when the strict
+  pool can construct that session under the existing six-pairs-per-batch and
+  content-feasibility rules. They never show "Tất cả N" and never pad the pool.
+
+### Insufficient pool
+
+When no session size is possible, the sticky Start CTA is disabled and a
+filter-specific message is shown: "Không đủ thẻ chưa làm để bắt đầu." for Chưa
+làm, "Không đủ câu sai để bắt đầu." for Câu sai, and an empty-state message
+when the pool is zero.
 
 ## Shared learning-mode coverage (Phase 5C.0)
 

@@ -139,8 +139,8 @@ test.describe("Match learning mode", () => {
     await importSet(page, "Bộ nhỏ", "tests/fixtures/quiz-cards.csv");
 
     await page.goto("/match");
-    await expect(page.getByText("Match yêu cầu ít nhất 12 thẻ có thể ghép rõ ràng.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "12 câu" })).toBeDisabled();
+    await expect(page.getByText("Không đủ thẻ chưa làm để bắt đầu.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "12 câu" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Bắt đầu Match" })).toBeDisabled();
   });
 

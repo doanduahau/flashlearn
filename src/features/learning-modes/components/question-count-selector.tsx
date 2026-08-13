@@ -2,21 +2,19 @@
 
 import { Button } from "@/components/ui/button";
 
+export type CountOption = { value: number; label: string };
+
 export function QuestionCountSelector({
-  counts,
+  options,
   value,
   eligible,
   counting,
-  suffix,
-  allCount,
   onChange,
 }: Readonly<{
-  counts: readonly number[];
+  options: readonly CountOption[];
   value: number;
   eligible: number;
   counting: boolean;
-  suffix?: string;
-  allCount?: number | null;
   onChange: (count: number) => void;
 }>) {
   return (
@@ -33,32 +31,19 @@ export function QuestionCountSelector({
         </p>
       </div>
       <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Chọn số câu">
-        {counts.map((count) => (
+        {options.map((option) => (
           <Button
             type="button"
-            key={count}
+            key={option.value}
             size="sm"
-            variant={value === count ? "soft" : "outline"}
-            disabled={count > eligible || counting}
-            aria-pressed={value === count}
-            onClick={() => onChange(count)}
+            variant={value === option.value ? "soft" : "outline"}
+            disabled={counting}
+            aria-pressed={value === option.value}
+            onClick={() => onChange(option.value)}
           >
-            {count}
-            {suffix ? ` ${suffix}` : ""}
+            {option.label}
           </Button>
         ))}
-        {allCount !== undefined && allCount !== null && !counts.includes(allCount) ? (
-          <Button
-            type="button"
-            size="sm"
-            variant={value === allCount ? "soft" : "outline"}
-            disabled={counting}
-            aria-pressed={value === allCount}
-            onClick={() => onChange(allCount)}
-          >
-            Tất cả ({allCount})
-          </Button>
-        ) : null}
       </div>
     </section>
   );

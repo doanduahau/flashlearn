@@ -2,10 +2,14 @@
 
 import {
   answerSchema,
-  quizSourceSchema,
+  quizEligibilitySchema,
   quizStartSchema,
 } from "@/features/quiz/schemas/quiz-schema";
-import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
+import {
+  completeLearningCoverageSession,
+  loadUncoveredIds,
+  loadWrongAnswerCardIds,
+} from "@/features/practice-coverage/server/actions";
 import { collectStudyCardIds } from "@/features/study/server/load-study-cards";
 import { reconcileCardSchedule } from "@/features/spaced-repetition/server/reconcile-card-schedule";
 import { createClient } from "@/lib/supabase/server";
@@ -53,20 +57,29 @@ export async function startQuiz(input: unknown): Promise<Result> {
   return error || !data ? { ok: false, error: generic } : { ok: true, sessionId: data };
 }
 
-export async function getQuizCardCount(
+/**
+ * Reports the strict eligible pool sizes for the three filters over the
+ * selected source scope, so the setup UI can render "Tất cả N" and cap fixed
+ * counts without ever backfilling.
+ */
+export async function getQuizEligibility(
   input: unknown,
-): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  const parsed = quizSourceSchema.safeParse(input);
+): Promise<
+  { ok: true; total: number; uncovered: number; wrong: number } | { ok: false; error: string }
+> {
+  const parsed = quizEligibilitySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? generic };
   const supabase = await createClient();
   if (!(await signedIn(supabase))) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
 
   const ids = await collectStudyCardIds(supabase, {
-    all: false,
+    all: parsed.data.all,
     setIds: parsed.data.setIds,
     collectionIds: parsed.data.collectionIds,
   });
-  return { ok: true, count: ids.length };
+  const uncovered = await loadUncoveredIds("quiz", ids);
+  const wrong = await loadWrongAnswerCardIds(ids);
+  return { ok: true, total: ids.length, uncovered: uncovered.length, wrong: wrong.size };
 }
 
 export async function submitQuizAnswer(input: unknown): Promise<Result> {

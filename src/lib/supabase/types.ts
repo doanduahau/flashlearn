@@ -510,6 +510,38 @@ export type Database = {
         }
         Relationships: []
       }
+      runner_sessions: {
+        Row: {
+          coverage_session_id: string
+          created_at: string
+          difficulty: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          coverage_session_id: string
+          created_at?: string
+          difficulty: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          coverage_session_id?: string
+          created_at?: string
+          difficulty?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "runner_sessions_user_coverage_fk"
+            columns: ["user_id", "coverage_session_id"]
+            isOneToOne: false
+            referencedRelation: "learning_coverage_sessions"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
       special_collection_items: {
         Row: {
           collection_id: string
@@ -598,7 +630,7 @@ export type Database = {
       create_learning_coverage_session: {
         Args: {
           p_mode: string
-          p_quiz_session_id?: string | null
+          p_quiz_session_id?: string
           p_scope_card_ids: string[]
           p_session_card_ids: string[]
           p_user_id: string
@@ -627,6 +659,15 @@ export type Database = {
         Args: { p_card_ids: string[] }
         Returns: string
       }
+      create_runner_session: {
+        Args: {
+          p_difficulty: string
+          p_scope_card_ids: string[]
+          p_session_card_ids: string[]
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_special_collection: {
         Args: { p_color?: string; p_icon?: string; p_name: string }
         Returns: string
@@ -647,13 +688,18 @@ export type Database = {
           total: number
         }[]
       }
-      load_runner_candidates: {
+      load_runner_candidate_eligibility: {
         Args: { p_card_ids: string[] }
         Returns: {
-          correct_answer: string
-          distractor_1: string
-          distractor_2: string
           eligible: boolean
+          flashcard_id: string
+        }[]
+      }
+      load_runner_session_questions: {
+        Args: { p_runner_session_id: string }
+        Returns: {
+          choices: Json
+          correct_answer: string
           flashcard_id: string
           front: string
         }[]
@@ -677,11 +723,7 @@ export type Database = {
         }[]
       }
       submit_runner_best_time: {
-        Args: {
-          p_difficulty: string
-          p_elapsed_ms: number
-          p_session_id: string
-        }
+        Args: { p_elapsed_ms: number; p_runner_session_id: string }
         Returns: {
           is_new_best: boolean
           result_best_ms: number

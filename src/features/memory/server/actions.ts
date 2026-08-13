@@ -115,7 +115,6 @@ export async function startMemoryCoverageSession(
       p_mode: "memory",
       p_session_card_ids: sessionCardIds,
       p_scope_card_ids: filtered.map((card) => card.id),
-      p_quiz_session_id: null,
     });
     if (error || !coverageSessionId) throw new Error("coverage session creation failed");
 

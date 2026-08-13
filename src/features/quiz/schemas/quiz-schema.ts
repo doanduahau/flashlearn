@@ -62,7 +62,7 @@ export const quizStartSchema = z
     setIds: idList.default([]),
     collectionIds: idList.default([]),
     all: z.boolean(),
-    questionCount: z.number().int().min(QUIZ_MIN_QUESTIONS).max(QUIZ_MAX_QUESTIONS),
+    questionCount: z.number().int().min(1).max(QUIZ_MAX_QUESTIONS),
   })
   .superRefine((value, context) => {
     if (value.setIds.length + value.collectionIds.length > QUIZ_MAX_SOURCES) {

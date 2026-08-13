@@ -66,16 +66,24 @@ describe("QuizSetup", () => {
     expect(screen.queryByRole("button", { name: "50" })).not.toBeInTheDocument();
   });
 
-  it("renders the All source card with the total count and disables start below ten", async () => {
+  it("renders the All source card and allows a sub-10 Tất cả N", async () => {
     eligibility(7, 7);
     render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={7} />);
 
     expect(screen.getByRole("radio", { name: "Tất cả 7 thẻ" })).toBeChecked();
     await waitFor(() => expect(mocks.getQuizEligibility).toHaveBeenCalled());
-    // N=7 -> only "Tất cả 7", which is below the 10-question minimum.
+    // N=7 -> only "Tất cả 7", which is now startable.
     expect(screen.getByRole("button", { name: "Tất cả 7" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Bắt đầu kiểm tra" })).toBeEnabled();
+  });
+
+  it("disables start and shows an empty state when the pool is zero", async () => {
+    eligibility(0, 0);
+    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={0} />);
+
+    await waitFor(() => expect(mocks.getQuizEligibility).toHaveBeenCalled());
     expect(screen.getByRole("button", { name: "Bắt đầu kiểm tra" })).toBeDisabled();
-    expect(screen.getByText("Không đủ thẻ chưa làm để bắt đầu.")).toBeInTheDocument();
+    expect(screen.getByText("Chưa có thẻ chưa làm.")).toBeInTheDocument();
   });
 
   it("offers 10 + Tất cả 13 when N=13", async () => {

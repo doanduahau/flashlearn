@@ -11,7 +11,6 @@ import {
 import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
 import {
   emptyPoolMessage,
-  insufficientPoolMessage,
   learningFilterToQuizMode,
   type LearningFilter,
 } from "@/features/learning-modes/types";
@@ -163,15 +162,10 @@ export function QuizSetup({
     });
   }
 
-  const canStart =
-    !pending && !counting && countError === null && effectiveCount >= QUIZ_MIN_QUESTIONS;
+  const canStart = !pending && !counting && countError === null && effectiveCount >= 1;
 
   const poolMessage =
-    countError === null && !counting && eligibleN < QUIZ_MIN_QUESTIONS
-      ? eligibleN === 0
-        ? emptyPoolMessage(filter)
-        : insufficientPoolMessage(filter)
-      : null;
+    countError === null && !counting && eligibleN === 0 ? emptyPoolMessage(filter) : null;
 
   return (
     <div className="mt-2 space-y-3 pb-28 sm:mt-5 sm:space-y-4 md:pb-0">

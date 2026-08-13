@@ -6,16 +6,26 @@ const ids = Array.from(
   (_, index) => `00000000-0000-0000-0000-${String(index + 1).padStart(12, "0")}`,
 );
 describe("quizStartSchema", () => {
-  it("requires the minimum question count", () =>
+  it("requires at least one question", () =>
     expect(
       quizStartSchema.safeParse({
         all: true,
         setIds: [],
         collectionIds: [],
         mode: "balanced",
-        questionCount: 9,
+        questionCount: 0,
       }).success,
     ).toBe(false));
+  it("accepts sub-10 question counts for Tất cả N", () =>
+    expect(
+      quizStartSchema.safeParse({
+        all: true,
+        setIds: [],
+        collectionIds: [],
+        mode: "never_tested",
+        questionCount: 7,
+      }).success,
+    ).toBe(true));
   it("accepts every server selection mode", () =>
     ["balanced", "never_tested", "wrong_answers", "pure_random"].forEach((mode) =>
       expect(

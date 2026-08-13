@@ -121,6 +121,20 @@ test.describe("Shared learning-mode setup", () => {
     }
   });
 
+  test("quiz Chưa làm with 7 cards offers a startable Tất cả 7", async ({ page }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("ia_quiz7"));
+    await createCards(page, "Bộ 7 quiz", 7);
+
+    await page.goto("/quiz");
+    await expect(page.getByRole("button", { name: "Tất cả 7" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Bắt đầu kiểm tra" })).toBeEnabled();
+
+    await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+    await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+/);
+    await expect(page.getByText("Câu 1 / 7")).toBeVisible();
+  });
+
   test("match with 7 eligible cards has no count and disables Start", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("ia_match7"));

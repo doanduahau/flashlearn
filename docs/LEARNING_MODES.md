@@ -79,9 +79,9 @@ session builders run.
 - **Quiz** offers the fixed counts `10 / 20 / 30 / 50` (only those strictly
   below the strict pool N) plus **"Tất cả N"** where N is the strict eligible
   pool after applying the source scope and filter. When N equals a fixed count,
-  only "Tất cả N" is offered. "Tất cả N" is Quiz-only. The Quiz engine keeps a
-  10-question minimum, so N below 10 disables Start with an insufficient-pool
-  message.
+  only "Tất cả N" is offered. "Tất cả N" is Quiz-only and is the only way to
+  start a manual Quiz below 10 questions: for `1 <= N < 10` the session is
+  created with exactly N questions, and `N = 0` cannot start.
 - **Match** and **Memory** offer `12 / 18 / 24` only, enabled when the strict
   pool can construct that session under the existing six-pairs-per-batch and
   content-feasibility rules. They never show "Tất cả N" and never pad the pool.

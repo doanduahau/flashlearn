@@ -17,7 +17,7 @@ select is((select min(position) from public.quiz_questions),0,'positions begin a
 select is((select max(position) from public.quiz_questions),9,'positions are deterministic');
 select is((select count(distinct flashcard_id) from public.quiz_questions),10::bigint,'cards are deduplicated in a session');
 select ok((select bool_and(jsonb_array_length(choices) between 2 and 4) from public.quiz_questions),'choices obey count constraint');
-select throws_ok($$select public.create_quiz_session('balanced', array['11111111-aaaa-aaaa-aaaa-111111111111']::uuid[], '{}'::uuid[], false, 9)$$,'22023','invalid quiz request','minimum question count is enforced');
+select throws_ok($$select public.create_quiz_session('balanced', array['11111111-aaaa-aaaa-aaaa-111111111111']::uuid[], '{}'::uuid[], false, 0)$$,'22023','invalid quiz request','minimum question count is enforced');
 select throws_ok($$select public.create_quiz_session('balanced', array['22222222-bbbb-bbbb-bbbb-222222222222']::uuid[], '{}'::uuid[], false, 10)$$,'22023','source not found','foreign source is non-disclosing');
 select throws_ok($$select public.create_quiz_session('balanced', '{}'::uuid[], '{}'::uuid[], false, 10)$$,'22023','invalid quiz request','empty custom source is rejected');
 select lives_ok($$select public.submit_quiz_answer((select id from public.quiz_questions order by position limit 1),0)$$,'answer is accepted once');

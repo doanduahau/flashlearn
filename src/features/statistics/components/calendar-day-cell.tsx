@@ -115,7 +115,9 @@ export function CalendarDayCell({
       {/* Mobile coarse-pointer tap detail — rendered inline so it opens within the cell
           context (clipping/stacking is acceptable since the mobile sheet shows below the
           cell and other cells are not overlapping it on small viewports). */}
-      {isCoarse && day.detail ? (
+      {/* A closed absolute detail can still expand document scroll width, so it
+          is mounted only for the active mobile cell. */}
+      {shown && day.detail ? (
         <span
           role="dialog"
           aria-label="Chi tiết hoạt động"

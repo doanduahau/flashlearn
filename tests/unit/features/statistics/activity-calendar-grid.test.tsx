@@ -58,12 +58,18 @@ describe("ActivityCalendarGrid", () => {
     );
 
     const [augustSixth, augustSeventh] = activeButtons();
-    expect(dialogOf(augustSixth)).not.toHaveClass("visible");
-    expect(dialogOf(augustSeventh)).not.toHaveClass("visible");
+    expect(
+      within(augustSixth).queryByRole("dialog", { name: "Chi tiết hoạt động" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(augustSeventh).queryByRole("dialog", { name: "Chi tiết hoạt động" }),
+    ).not.toBeInTheDocument();
 
     await user.click(augustSixth);
     expect(dialogOf(augustSixth)).toHaveClass("visible");
-    expect(dialogOf(augustSeventh)).not.toHaveClass("visible");
+    expect(
+      within(augustSeventh).queryByRole("dialog", { name: "Chi tiết hoạt động" }),
+    ).not.toBeInTheDocument();
   });
 
   it("switches to the tapped day and keeps only one open", async () => {
@@ -78,7 +84,9 @@ describe("ActivityCalendarGrid", () => {
     await user.click(augustSeventh);
 
     expect(dialogOf(augustSeventh)).toHaveClass("visible");
-    expect(dialogOf(augustSixth)).not.toHaveClass("visible");
+    expect(
+      within(augustSixth).queryByRole("dialog", { name: "Chi tiết hoạt động" }),
+    ).not.toBeInTheDocument();
   });
 
   it("closes the open day when tapping outside or pressing Escape", async () => {
@@ -93,12 +101,16 @@ describe("ActivityCalendarGrid", () => {
     expect(dialogOf(augustSixth)).toHaveClass("visible");
 
     fireEvent.pointerDown(document.body);
-    expect(dialogOf(augustSixth)).not.toHaveClass("visible");
+    expect(
+      within(augustSixth).queryByRole("dialog", { name: "Chi tiết hoạt động" }),
+    ).not.toBeInTheDocument();
 
     await user.click(augustSixth);
     expect(dialogOf(augustSixth)).toHaveClass("visible");
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(dialogOf(augustSixth)).not.toHaveClass("visible");
+    expect(
+      within(augustSixth).queryByRole("dialog", { name: "Chi tiết hoạt động" }),
+    ).not.toBeInTheDocument();
   });
 
   // ── Desktop / fine-pointer tests ──────────────────────────────────────────

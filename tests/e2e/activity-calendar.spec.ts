@@ -288,9 +288,137 @@ test.describe("Activity calendar interactions", () => {
     await mpage.getByRole("button", { name: /Đăng nhập/ }).click();
     await expect(mpage).toHaveURL(/\/dashboard$/);
 
-    await mpage.goto("/dashboard");
+    // Reproduce the reported path: a normal app page -> the actual bottom
+    // navigation's Dashboard link. Record every animation frame so a brief
+    // route-transition overflow or nav unmount cannot be hidden by a final
+    // settled-state assertion.
+    await mpage.goto("/sets");
+    const navigation = mpage.getByRole("navigation", { name: "Điều hướng chính" }).last();
+    await expect(navigation).toBeVisible();
+    const initialNavigationBox = await navigation.boundingBox();
+    const initialRightmostNavItemBox = await navigation
+      .getByRole("link", { name: "Cá nhân" })
+      .boundingBox();
+    const initialViewport = mpage.viewportSize();
+    expect(initialNavigationBox).not.toBeNull();
+    expect(initialRightmostNavItemBox).not.toBeNull();
+    expect(initialViewport).not.toBeNull();
+    if (!initialNavigationBox || !initialRightmostNavItemBox || !initialViewport) {
+      throw new Error("Missing initial mobile navigation geometry");
+    }
+    expect(initialNavigationBox.x).toBeGreaterThanOrEqual(0);
+    expect(initialNavigationBox.x + initialNavigationBox.width).toBeLessThanOrEqual(
+      initialViewport.width,
+    );
+    expect(initialRightmostNavItemBox.x).toBeGreaterThanOrEqual(0);
+    expect(initialRightmostNavItemBox.x + initialRightmostNavItemBox.width).toBeLessThanOrEqual(
+      initialViewport.width,
+    );
+    expect(
+      await mpage.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    await navigation.evaluate((element) => {
+      const nav = element as HTMLElement;
+      nav.dataset.dashboardTransitionProbe = "active";
+
+      const samples: Array<{
+        connected: boolean;
+        display: string;
+        visibility: string;
+        scrollWidth: number;
+        clientWidth: number;
+      }> = [];
+      const record = (): void => {
+        const style = getComputedStyle(nav);
+        samples.push({
+          connected: nav.isConnected,
+          display: style.display,
+          visibility: style.visibility,
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+        });
+      };
+      const state = {
+        animationFrame: 0,
+        observer: new MutationObserver(record),
+        samples,
+      };
+      state.observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class", "style", "hidden"],
+        childList: true,
+        subtree: true,
+      });
+      const sampleFrame = (): void => {
+        record();
+        state.animationFrame = requestAnimationFrame(sampleFrame);
+      };
+      record();
+      state.animationFrame = requestAnimationFrame(sampleFrame);
+      (
+        window as typeof window & { __dashboardTransitionProbe?: typeof state }
+      ).__dashboardTransitionProbe = state;
+    });
+
+    await navigation.getByRole("link", { name: "Tổng quan" }).tap();
+    await expect(mpage).toHaveURL(/\/dashboard$/);
     const cell = mpage.locator(DAY_CELL).filter({ has: mpage.getByText("9", { exact: true }) });
     await expect(cell).toBeVisible();
+
+    const transition = await mpage.evaluate(() => {
+      const state = (
+        window as typeof window & {
+          __dashboardTransitionProbe?: {
+            animationFrame: number;
+            observer: MutationObserver;
+            samples: Array<{
+              connected: boolean;
+              display: string;
+              visibility: string;
+              scrollWidth: number;
+              clientWidth: number;
+            }>;
+          };
+        }
+      ).__dashboardTransitionProbe;
+      if (!state) throw new Error("Dashboard transition probe was not initialized");
+      cancelAnimationFrame(state.animationFrame);
+      state.observer.disconnect();
+      return state.samples;
+    });
+    expect(transition.length).toBeGreaterThan(0);
+    expect(transition.every((sample) => sample.connected)).toBe(true);
+    expect(transition.every((sample) => sample.display !== "none")).toBe(true);
+    expect(transition.every((sample) => sample.visibility !== "hidden")).toBe(true);
+    expect(transition.every((sample) => sample.scrollWidth <= sample.clientWidth)).toBe(true);
+    expect(
+      await mpage.evaluate(() => document.body.scrollWidth <= document.documentElement.clientWidth),
+    ).toBe(true);
+
+    const rightmostNavItem = navigation.getByRole("link", { name: "Cá nhân" });
+    await expect(rightmostNavItem).toBeVisible();
+    for (const label of ["Tổng quan", "Bộ flashcard", "Học", "Kiểm tra", "Cá nhân"]) {
+      await expect(navigation.getByRole("link", { name: label })).toBeVisible();
+    }
+    const navigationBoxAfterTransition = await navigation.boundingBox();
+    const rightmostNavItemBox = await rightmostNavItem.boundingBox();
+    const transitionViewport = mpage.viewportSize();
+    expect(navigationBoxAfterTransition).not.toBeNull();
+    expect(rightmostNavItemBox).not.toBeNull();
+    expect(transitionViewport).not.toBeNull();
+    if (!navigationBoxAfterTransition || !rightmostNavItemBox || !transitionViewport) {
+      throw new Error("Missing mobile navigation geometry after Dashboard transition");
+    }
+    expect(navigationBoxAfterTransition.x).toBeGreaterThanOrEqual(0);
+    expect(navigationBoxAfterTransition.x + navigationBoxAfterTransition.width).toBeLessThanOrEqual(
+      transitionViewport.width,
+    );
+    expect(rightmostNavItemBox.x).toBeGreaterThanOrEqual(0);
+    expect(rightmostNavItemBox.x + rightmostNavItemBox.width).toBeLessThanOrEqual(
+      transitionViewport.width,
+    );
 
     const cellBox = await cell.boundingBox();
     const viewport = mpage.viewportSize();
@@ -314,7 +442,6 @@ test.describe("Activity calendar interactions", () => {
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       ),
     ).toBe(true);
-    const navigation = mpage.getByRole("navigation", { name: "Điều hướng chính" }).last();
     const navigationBox = await navigation.boundingBox();
     expect(navigationBox).not.toBeNull();
     if (!navigationBox) throw new Error("Missing bottom navigation geometry");
@@ -324,5 +451,19 @@ test.describe("Activity calendar interactions", () => {
     // Tapping outside closes it
     await mpage.getByRole("heading", { level: 1 }).tap();
     await expect(cell.locator(DAY_DETAIL_INLINE)).toBeHidden();
+
+    // Compare a second normal app-to-app transition after Dashboard.
+    await navigation.getByRole("link", { name: "Bộ flashcard" }).tap();
+    await expect(mpage).toHaveURL(/\/sets$/);
+    expect(
+      await mpage.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    const setsNavigationBox = await navigation.boundingBox();
+    expect(setsNavigationBox).not.toBeNull();
+    if (!setsNavigationBox) throw new Error("Missing navigation geometry after normal transition");
+    expect(setsNavigationBox.x).toBeGreaterThanOrEqual(0);
+    expect(setsNavigationBox.x + setsNavigationBox.width).toBeLessThanOrEqual(viewport.width);
   });
 });

@@ -97,7 +97,7 @@ describe("CalendarDayCell", () => {
     expect(overlay).toHaveTextContent("14 câu đúng · Độ chính xác 70%");
   });
 
-  it("in coarse mode keeps the inline overlay hidden when isOpen=false", () => {
+  it("in coarse mode does not mount the inline overlay when isOpen=false", () => {
     render(
       <CalendarDayCell
         {...defaultProps}
@@ -109,8 +109,7 @@ describe("CalendarDayCell", () => {
       />,
     );
 
-    const overlay = screen.getByRole("dialog", { name: "Chi tiết hoạt động" });
-    expect(overlay).not.toHaveClass("visible");
+    expect(screen.queryByRole("dialog", { name: "Chi tiết hoạt động" })).not.toBeInTheDocument();
   });
 
   it("fires onTap on click", async () => {

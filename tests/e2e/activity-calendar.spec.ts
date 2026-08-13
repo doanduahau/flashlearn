@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { signUpAndConfirm, TEST_PASSWORD, uniqueEmail } from "./support/auth-helpers";
+import { authSubject, localSupabaseAdminRest } from "./support/supabase-api";
 
 const QUIZ_CSV = "tests/fixtures/quiz-cards.csv";
 const DAY_CELL = 'button[aria-haspopup="dialog"]:not([disabled])';
@@ -230,6 +231,27 @@ test.describe("Activity calendar interactions", () => {
     const email = uniqueEmail("calendar_coarse");
     await signUpAndConfirm(page, email);
     await completeTenQuestionQuiz(page);
+    const userId = await authSubject(desktop);
+
+    // Seed an active Sunday in the current test month. This makes the mobile
+    // interaction exercise a real rightmost calendar column, rather than only
+    // asserting the bottom navigation after an unopened calendar.
+    const seededDay = "2026-08-09";
+    const seededActivity = await localSupabaseAdminRest("daily_learning_records", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        user_id: userId,
+        local_date: seededDay,
+        timezone: "Asia/Ho_Chi_Minh",
+        completed_quiz_count: 1,
+        questions_answered: 1,
+        correct_answers: 1,
+        first_completed_at: "2026-08-09T12:00:00.000Z",
+        last_completed_at: "2026-08-09T12:00:00.000Z",
+      }),
+    });
+    expect(seededActivity.ok).toBe(true);
 
     const mobile = await browser.newContext({
       hasTouch: true,
@@ -266,13 +288,38 @@ test.describe("Activity calendar interactions", () => {
     await mpage.getByRole("button", { name: /Đăng nhập/ }).click();
     await expect(mpage).toHaveURL(/\/dashboard$/);
 
-    await mpage.goto("/profile?tab=statistics");
-    const cell = mpage.locator(DAY_CELL).first();
+    await mpage.goto("/dashboard");
+    const cell = mpage.locator(DAY_CELL).filter({ has: mpage.getByText("9", { exact: true }) });
     await expect(cell).toBeVisible();
 
-    // Mobile: tap shows the INLINE detail (not the portal)
+    const cellBox = await cell.boundingBox();
+    const viewport = mpage.viewportSize();
+    expect(cellBox).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    if (!cellBox || !viewport) throw new Error("Missing mobile calendar geometry");
+    expect(cellBox.x + cellBox.width / 2).toBeGreaterThan(viewport.width * 0.8);
+
+    // Mobile Dashboard: tap the rightmost active cell and prove the actual
+    // inline dialog and fixed bottom navigation remain inside the viewport.
     await cell.tap();
-    await expect(cell.locator(DAY_DETAIL_INLINE)).toBeVisible();
+    const detail = cell.locator(DAY_DETAIL_INLINE);
+    await expect(detail).toBeVisible();
+    const detailBox = await detail.boundingBox();
+    expect(detailBox).not.toBeNull();
+    if (!detailBox) throw new Error("Missing mobile day-detail geometry");
+    expect(detailBox.x).toBeGreaterThanOrEqual(0);
+    expect(detailBox.x + detailBox.width).toBeLessThanOrEqual(viewport.width);
+    expect(
+      await mpage.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    const navigation = mpage.getByRole("navigation", { name: "Điều hướng chính" }).last();
+    const navigationBox = await navigation.boundingBox();
+    expect(navigationBox).not.toBeNull();
+    if (!navigationBox) throw new Error("Missing bottom navigation geometry");
+    expect(navigationBox.x).toBeGreaterThanOrEqual(0);
+    expect(navigationBox.x + navigationBox.width).toBeLessThanOrEqual(viewport.width);
 
     // Tapping outside closes it
     await mpage.getByRole("heading", { level: 1 }).tap();

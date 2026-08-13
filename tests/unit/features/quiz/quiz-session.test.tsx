@@ -41,6 +41,11 @@ describe("QuizSession", () => {
     await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
 
     expect(await screen.findByText("Chính xác.")).toHaveFocus();
+    expect(submitQuizAnswer).toHaveBeenCalledTimes(1);
+    expect(submitQuizAnswer).toHaveBeenCalledWith({
+      questionId: first.id,
+      selectedChoiceIndex: 0,
+    });
     await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1), { timeout: 2000 });
     expect(router.push).not.toHaveBeenCalled();
     // A correct answer must not offer a manual "Câu tiếp theo" action.

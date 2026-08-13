@@ -87,6 +87,8 @@ async function memoryCoverageCount(page: Page, userId: string): Promise<number> 
 }
 
 test.describe("Memory Matching", () => {
+  test.describe.configure({ timeout: 90_000 });
+
   test("runs a full 12-pair Memory session with practice-only side effects", async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await signUpAndConfirm(page, uniqueEmail("memory_full"));
@@ -182,6 +184,52 @@ test.describe("Memory Matching", () => {
     // After one second both flip back face down.
     await expect(t0).toHaveAttribute("aria-pressed", "false", { timeout: 2000 });
     await expect(mismatchTile).toHaveAttribute("aria-pressed", "false", { timeout: 2000 });
+  });
+
+  test("all 12 tiles fit in one mobile viewport with no page scroll at 390x844", async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("memory_viewport"));
+    await importSet(page, "Bộ memory viewport");
+
+    await openMemory(page);
+    await page.getByRole("button", { name: "12 câu" }).click();
+    await page.getByRole("button", { name: "Bắt đầu Memory" }).click();
+    await expect(page).toHaveURL(/\/memory\/session/);
+
+    const tiles = page.locator("[data-memory-tile-key]");
+    await expect(tiles).toHaveCount(12);
+
+    const boxes: { x: number; y: number; width: number; height: number }[] = [];
+    for (let i = 0; i < 12; i += 1) {
+      const box = await tiles.nth(i).boundingBox();
+      expect(box, `tile ${i} should be rendered`).toBeTruthy();
+      if (box) boxes.push(box);
+    }
+
+    for (let i = 0; i < boxes.length; i += 1) {
+      const box = boxes[i];
+      expect(box.y, `tile ${i} top inside viewport`).toBeGreaterThanOrEqual(0);
+      expect(box.y + box.height, `tile ${i} bottom inside viewport`).toBeLessThanOrEqual(844);
+      expect(box.x, `tile ${i} left inside viewport`).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, `tile ${i} right inside viewport`).toBeLessThanOrEqual(390);
+    }
+
+    // Reaching any tile must not require page scrolling, and there must be no
+    // horizontal overflow.
+    const scroll = await page.evaluate(() => ({
+      scrollHeight: document.documentElement.scrollHeight,
+      clientHeight: document.documentElement.clientHeight,
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(scroll.scrollHeight).toBeLessThanOrEqual(scroll.clientHeight);
+    expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.clientWidth);
+
+    // The correct pair must still resolve after its one-second review delay.
+    await page.locator('[data-memory-tile-key][data-memory-side="front"]').first().click();
+    await expect(page.getByTestId("memory-preview")).toContainText(/Smart (prompt|answer) \d+/);
   });
 
   test("long Vietnamese text stays in preview and the grid has no overflow", async ({ page }) => {

@@ -47,40 +47,95 @@ describe("MemoryBoard mismatch timing", () => {
     expect(screen.getByTestId("b:back")).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("resolves a correct pair after the celebration window without completing", () => {
+  it("resolves a correct pair after the review window without completing", () => {
     const onComplete = vi.fn();
     render(<MemoryBoard batches={[BATCH]} questionCount={12} onComplete={onComplete} />);
 
     fireEvent.click(screen.getByTestId("a:front"));
     fireEvent.click(screen.getByTestId("a:back"));
-    expect(screen.getByTestId("a:front")).toHaveAttribute("aria-pressed", "true");
 
+    // Both stay flipped and previewable; no matched/celebration state yet.
+    expect(screen.getByTestId("a:front")).toHaveAttribute("aria-label", "Đã lật");
+    expect(screen.getByTestId("a:back")).toHaveAttribute("aria-label", "Đã lật");
+    expect(screen.getByTestId("memory-preview")).toHaveTextContent("a-back");
+    expect(document.querySelector(".confetti-piece")).toBeNull();
+
+    // At 999ms the second tile is still visible and no celebration has started.
     act(() => {
-      vi.advanceTimersByTime(700);
+      vi.advanceTimersByTime(999);
     });
-    expect(screen.getByTestId("a:front")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("a:front")).toHaveAttribute("aria-label", "Đã lật");
+    expect(screen.getByTestId("a:back")).toHaveAttribute("aria-label", "Đã lật");
+    expect(screen.getByTestId("memory-preview")).toHaveTextContent("a-back");
+    expect(document.querySelector(".confetti-piece")).toBeNull();
+
+    // At exactly 1000ms the pair resolves and the celebration begins.
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.getByTestId("a:front")).toHaveAttribute("aria-label", "Đã ghép đúng");
+    expect(screen.getByTestId("a:back")).toHaveAttribute("aria-label", "Đã ghép đúng");
+    expect(document.querySelector(".confetti-piece")).not.toBeNull();
     expect(onComplete).not.toHaveBeenCalled();
   });
 
-  it("stops the whole-session timer at final-pair resolution before any celebration delay", () => {
+  it("ignores a third tap during the correct-pair review delay", () => {
+    const onComplete = vi.fn();
+    render(<MemoryBoard batches={[BATCH]} questionCount={12} onComplete={onComplete} />);
+
+    fireEvent.click(screen.getByTestId("a:front"));
+    fireEvent.click(screen.getByTestId("a:back"));
+    fireEvent.click(screen.getByTestId("c:front"));
+
+    expect(screen.getByTestId("c:front")).toHaveAttribute("aria-label", "Ô úp");
+    expect(screen.getByTestId("a:front")).toHaveAttribute("aria-label", "Đã lật");
+    expect(screen.getByTestId("a:back")).toHaveAttribute("aria-label", "Đã lật");
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(screen.getByTestId("a:front")).toHaveAttribute("aria-label", "Đã ghép đúng");
+    expect(screen.getByTestId("a:back")).toHaveAttribute("aria-label", "Đã ghép đúng");
+    expect(screen.getByTestId("c:front")).toHaveAttribute("aria-label", "Ô úp");
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("stops the whole-session timer at final-pair detection before the review delay", () => {
     const onComplete = vi.fn().mockResolvedValue(undefined);
     vi.setSystemTime(new Date("2026-08-13T00:00:00.000Z"));
     render(<MemoryBoard batches={[BATCH]} questionCount={6} onComplete={onComplete} />);
 
-    for (const cardId of ["a", "b", "c", "d", "e"]) {
+    const resolvePair = (cardId: string) => {
       fireEvent.click(screen.getByTestId(`${cardId}:front`));
       fireEvent.click(screen.getByTestId(`${cardId}:back`));
-      act(() => vi.advanceTimersByTime(700));
-    }
-    act(() => vi.advanceTimersByTime(57_700));
+      act(() => vi.advanceTimersByTime(1000)); // correct-pending review delay
+      act(() => vi.advanceTimersByTime(700)); // celebration delay
+    };
+
+    for (const cardId of ["a", "b", "c", "d", "e"]) resolvePair(cardId);
+
+    // After 5 resolved pairs elapsed = 5 * (1000 + 700) = 8500ms.
+    act(() => vi.advanceTimersByTime(85_000));
     fireEvent.click(screen.getByTestId("f:front"));
     fireEvent.click(screen.getByTestId("f:back"));
 
-    // The final pair occurs at 61.2s; completion must not wait for or include
-    // a final celebration transition.
-    expect(onComplete).toHaveBeenCalledTimes(1);
-    expect(onComplete).toHaveBeenCalledWith(61_200);
+    // The timer freezes at the logical final-pair match (t = 93_500ms) and the
+    // final pair still resolves visually before completion is reported.
+    act(() => vi.advanceTimersByTime(999));
+    expect(onComplete).not.toHaveBeenCalled();
+    expect(screen.getByTestId("f:front")).toHaveAttribute("aria-label", "Đã lật");
+
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByTestId("f:front")).toHaveAttribute("aria-label", "Đã ghép đúng");
+    expect(onComplete).not.toHaveBeenCalled();
+
     act(() => vi.advanceTimersByTime(700));
     expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete).toHaveBeenCalledWith(93_500);
+
+    // Neither the celebration nor further time changes the recorded elapsed.
+    act(() => vi.advanceTimersByTime(1000));
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete).toHaveBeenCalledWith(93_500);
   });
 });

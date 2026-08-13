@@ -20,8 +20,6 @@ export type MemoryBatch = {
 export type MemoryQuestionCount = 12 | 18 | 24;
 
 export const MEMORY_PAIR_COUNT = 6 as const;
-export const MEMORY_GRID_COLUMNS = 3 as const;
-export const MEMORY_GRID_ROWS = 4 as const;
 
 export const MEMORY_QUESTION_COUNTS: readonly MemoryQuestionCount[] = [12, 18, 24];
 

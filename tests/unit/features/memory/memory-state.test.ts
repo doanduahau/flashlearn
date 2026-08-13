@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import type { MemoryBatch } from "@/features/memory/types/memory-types";
 import {
   createMemoryState,
+  isFinalPendingPair,
   isTileFlipped,
   isTileMatched,
   previewTile,
   resolveCelebration,
+  resolveCorrectPair,
   resolveMismatch,
   tapTile,
 } from "@/features/memory/utils/memory-state";
@@ -45,13 +47,34 @@ describe("memory state machine", () => {
     expect(again.matchedKeys.size).toBe(0);
   });
 
-  it("a correct pair marks both tiles matched and disabled", () => {
+  it("a correct pair enters the review window without marking matched yet", () => {
     const state = createMemoryState([BATCH]);
     const first = tapTile(state, "a:front");
-    const second = tapTile(first, "a:back");
-    expect(isTileMatched(second, "a:front")).toBe(true);
-    expect(isTileMatched(second, "a:back")).toBe(true);
-    expect(second.completedCount).toBe(1);
+    const pending = tapTile(first, "a:back");
+    expect(pending.phase).toBe("correct-pending");
+    expect(isTileFlipped(pending, "a:front")).toBe(true);
+    expect(isTileFlipped(pending, "a:back")).toBe(true);
+    expect(isTileMatched(pending, "a:front")).toBe(false);
+    expect(isTileMatched(pending, "a:back")).toBe(false);
+    expect(pending.completedCount).toBe(0);
+    expect(previewTile(pending)?.content).toBe("a-back");
+  });
+
+  it("resolveCorrectPair marks both tiles matched after the review window", () => {
+    const state = createMemoryState([BATCH]);
+    const pending = tapTile(tapTile(state, "a:front"), "a:back");
+    const resolved = resolveCorrectPair(pending);
+    expect(isTileMatched(resolved, "a:front")).toBe(true);
+    expect(isTileMatched(resolved, "a:back")).toBe(true);
+    expect(resolved.completedCount).toBe(1);
+  });
+
+  it("a correct pair produces a celebration signal after the review window", () => {
+    const state = createMemoryState([BATCH]);
+    const pending = tapTile(tapTile(state, "a:front"), "a:back");
+    expect(pending.phase).toBe("correct-pending");
+    const resolved = resolveCorrectPair(pending);
+    expect(resolved.phase).toBe("celebration");
   });
 
   it("an incorrect pair keeps both flipped during resolution and does not mark matched", () => {
@@ -85,24 +108,25 @@ describe("memory state machine", () => {
     expect(previewTile(resolved)).toBeNull();
   });
 
-  it("a correct pair produces a celebration signal (celebration phase)", () => {
+  it("a correct pair produces a celebration signal after the review window", () => {
     const state = createMemoryState([BATCH]);
-    const first = tapTile(state, "a:front");
-    const second = tapTile(first, "a:back");
-    expect(second.phase).toBe("celebration");
+    const pending = tapTile(tapTile(state, "a:front"), "a:back");
+    expect(pending.phase).toBe("correct-pending");
+    const resolved = resolveCorrectPair(pending);
+    expect(resolved.phase).toBe("celebration");
   });
 
   it("a matched tile cannot be selected again", () => {
     const state = createMemoryState([BATCH]);
-    const first = tapTile(state, "a:front");
-    const matched = tapTile(first, "a:back");
-    const celebrationResolved = resolveCelebration(matched);
+    const pending = tapTile(tapTile(state, "a:front"), "a:back");
+    const resolved = resolveCorrectPair(pending);
+    const celebrationResolved = resolveCelebration(resolved);
     const reselect = tapTile(celebrationResolved, "a:front");
     expect(reselect.matchedKeys.has("a:front")).toBe(true);
     expect(reselect.firstKey).not.toBe("a:front");
   });
 
-  it("a third tap is ignored during resolution", () => {
+  it("a third tap is ignored during mismatch resolution", () => {
     const state = createMemoryState([BATCH]);
     const first = tapTile(state, "a:front");
     const mismatch = tapTile(first, "b:back");
@@ -111,6 +135,17 @@ describe("memory state machine", () => {
     expect(third.phase).toBe("mismatch");
     expect(third.firstKey).toBe("a:front");
     expect(third.secondKey).toBe("b:back");
+  });
+
+  it("a third tap is ignored during the correct-pair review window", () => {
+    const state = createMemoryState([BATCH]);
+    const pending = tapTile(tapTile(state, "a:front"), "a:back");
+    const third = tapTile(pending, "c:front");
+    expect(third.phase).toBe("correct-pending");
+    expect(third.firstKey).toBe("a:front");
+    expect(third.secondKey).toBe("a:back");
+    expect(isTileFlipped(third, "c:front")).toBe(false);
+    expect(isTileMatched(third, "a:front")).toBe(false);
   });
 
   it("resolving the sixth pair advances the batch once", () => {
@@ -122,6 +157,7 @@ describe("memory state machine", () => {
     for (const cardId of ["a", "b", "c", "d", "e", "f"]) {
       current = tapTile(current, `${cardId}:front`);
       current = tapTile(current, `${cardId}:back`);
+      if (current.phase === "correct-pending") current = resolveCorrectPair(current);
       if (current.phase === "celebration") current = resolveCelebration(current);
     }
     expect(current.currentBatchIndex).toBe(1);
@@ -137,6 +173,7 @@ describe("memory state machine", () => {
     for (const cardId of ["a", "b", "c", "d", "e", "f"]) {
       current = tapTile(current, `${cardId}:front`);
       current = tapTile(current, `${cardId}:back`);
+      if (current.phase === "correct-pending") current = resolveCorrectPair(current);
       if (current.phase === "celebration") current = resolveCelebration(current);
     }
     expect(current.currentBatchIndex).toBe(1);
@@ -144,10 +181,45 @@ describe("memory state machine", () => {
     for (const cardId of ["g", "h", "i", "j", "k", "l"]) {
       current = tapTile(current, `${cardId}:front`);
       current = tapTile(current, `${cardId}:back`);
+      if (current.phase === "correct-pending") current = resolveCorrectPair(current);
       if (current.phase === "celebration") current = resolveCelebration(current);
     }
     expect(current.phase).toBe("completed");
     expect(current.completedCount).toBe(12);
+  });
+
+  it("isFinalPendingPair is only true for the pending pair that finishes the final batch", () => {
+    const batch1 = BATCH;
+    const batch2 = batchFor(["g", "h", "i", "j", "k", "l"]);
+    const state = createMemoryState([batch1, batch2]);
+
+    let current = state;
+    for (const cardId of ["a", "b", "c", "d", "e"]) {
+      current = tapTile(current, `${cardId}:front`);
+      current = tapTile(current, `${cardId}:back`);
+      if (current.phase === "correct-pending") current = resolveCorrectPair(current);
+      if (current.phase === "celebration") current = resolveCelebration(current);
+    }
+
+    // Pair f completes batch 1, but batch 2 still exists, so it is not final.
+    current = tapTile(current, "f:front");
+    current = tapTile(current, "f:back");
+    expect(isFinalPendingPair(current)).toBe(false);
+    if (current.phase === "correct-pending") current = resolveCorrectPair(current);
+    if (current.phase === "celebration") current = resolveCelebration(current);
+
+    for (const cardId of ["g", "h", "i", "j", "k"]) {
+      current = tapTile(current, `${cardId}:front`);
+      current = tapTile(current, `${cardId}:back`);
+      if (current.phase === "correct-pending") current = resolveCorrectPair(current);
+      if (current.phase === "celebration") current = resolveCelebration(current);
+    }
+
+    // Pair l completes batch 2, the last batch: this is the final pair.
+    current = tapTile(current, "l:front");
+    current = tapTile(current, "l:back");
+    expect(current.phase).toBe("correct-pending");
+    expect(isFinalPendingPair(current)).toBe(true);
   });
 
   it("correctness is by card identity, not text equality", () => {
@@ -155,8 +227,9 @@ describe("memory state machine", () => {
     const state = createMemoryState([batch]);
     // Same card (a) but opposite side is a match even though contents differ.
     const first = tapTile(state, "a:front");
-    const second = tapTile(first, "a:back");
-    expect(isTileMatched(second, "a:front")).toBe(true);
-    expect(isTileMatched(second, "a:back")).toBe(true);
+    const pending = tapTile(first, "a:back");
+    const resolved = resolveCorrectPair(pending);
+    expect(isTileMatched(resolved, "a:front")).toBe(true);
+    expect(isTileMatched(resolved, "a:back")).toBe(true);
   });
 });

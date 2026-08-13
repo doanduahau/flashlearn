@@ -1,22 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 
 import type { MemoryBatch, MemoryTile } from "@/features/memory/types/memory-types";
 import {
   CELEBRATION_DELAY_MS,
+  CORRECT_REVIEW_DELAY_MS,
   createMemoryState,
   currentBatch,
+  isFinalPendingPair,
   isTileFlipped,
   isTileMatched,
   MISMATCH_DELAY_MS,
   previewTile,
   resolveCelebration,
+  resolveCorrectPair,
   resolveMismatch,
   tapTile,
   type MemoryState,
 } from "@/features/memory/utils/memory-state";
+import {
+  DEFAULT_MEMORY_GRID_LAYOUT,
+  computeMemoryGridLayout,
+  type MemoryGridLayout,
+} from "@/features/memory/utils/memory-grid-layout";
 import { cn } from "@/lib/utils";
 
 type MemoryBoardProps = {
@@ -37,6 +45,10 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
   const [elapsedMs, setElapsedMs] = useState(0);
   const [startTime] = useState(() => Date.now());
   const completedRef = useRef(false);
+  const finalElapsedRef = useRef<number | null>(null);
+
+  const gridRef = useRef<HTMLUListElement | null>(null);
+  const [gridSize, setGridSize] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -46,8 +58,32 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
   }, [startTime]);
 
   useEffect(() => {
+    const element = gridRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      setGridSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  const gridLayout: MemoryGridLayout = useMemo(
+    () =>
+      gridSize
+        ? computeMemoryGridLayout(gridSize.width, gridSize.height)
+        : DEFAULT_MEMORY_GRID_LAYOUT,
+    [gridSize],
+  );
+
+  useEffect(() => {
     if (state.phase === "mismatch") {
       const timer = setTimeout(() => setState(resolveMismatch), MISMATCH_DELAY_MS);
+      return () => clearTimeout(timer);
+    }
+    if (state.phase === "correct-pending") {
+      const timer = setTimeout(() => setState(resolveCorrectPair), CORRECT_REVIEW_DELAY_MS);
       return () => clearTimeout(timer);
     }
     if (state.phase === "celebration") {
@@ -58,26 +94,33 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
   }, [state.phase]);
 
   useEffect(() => {
-    if (state.phase === "completed" && !completedRef.current) {
-      completedRef.current = true;
-      const finalElapsed = Date.now() - startTime;
-      setElapsedMs(finalElapsed);
-      void onComplete(finalElapsed);
+    if (state.phase === "completed" && finalElapsedRef.current !== null) {
+      void onComplete(finalElapsedRef.current);
     }
-  }, [state.phase, onComplete, startTime]);
+  }, [state.phase, onComplete]);
 
   const batch = currentBatch(state);
   const preview = previewTile(state);
   const completed = state.completedCount;
 
-  function handleTap(tile: MemoryTile): void {
+  function handleTap(tile: MemoryTile, now: number): void {
     if (state.matchedKeys.has(tile.key)) return;
-    setState((prev) => tapTile(prev, tile.key));
+    const next = tapTile(state, tile.key);
+    setState(next);
+
+    // Freeze the session timer at the logical match moment of the final pair,
+    // before its one-second review delay and the celebration run.
+    if (isFinalPendingPair(next) && !completedRef.current) {
+      completedRef.current = true;
+      const finalElapsed = now - startTime;
+      finalElapsedRef.current = finalElapsed;
+      setElapsedMs(finalElapsed);
+    }
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-4">
+      <div className="flex shrink-0 items-center justify-between gap-2">
         <p className="text-sm text-text-secondary">
           Bộ {state.currentBatchIndex + 1} / {batches.length}
         </p>
@@ -90,7 +133,7 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
       <div
         aria-live="polite"
         className={cn(
-          "max-h-44 overflow-y-auto overscroll-contain rounded-xl border p-3 text-sm sm:max-h-52 sm:rounded-2xl sm:p-4 sm:text-base",
+          "max-h-44 min-h-16 shrink-0 overflow-y-auto overscroll-contain rounded-xl border p-3 text-sm sm:max-h-52 sm:rounded-2xl sm:p-4 sm:text-base",
           state.phase === "mismatch" ? "border-danger" : "border-border-soft",
         )}
         data-testid="memory-preview"
@@ -110,7 +153,16 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
         </div>
       </div>
 
-      <ul className="grid grid-cols-3 gap-2 sm:gap-3" role="group" aria-label="Lưới Memory">
+      <ul
+        ref={gridRef}
+        className="grid min-h-0 flex-1 gap-2 sm:gap-3"
+        role="group"
+        aria-label="Lưới Memory"
+        style={{
+          gridTemplateColumns: `repeat(${gridLayout.columns}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${gridLayout.rows}, minmax(0, 1fr))`,
+        }}
+      >
         {batch.tiles.map((tile) => (
           <MemoryTileButton
             key={tile.key}
@@ -118,7 +170,7 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
             matched={isTileMatched(state, tile.key)}
             flipped={isTileFlipped(state, tile.key)}
             disabled={state.matchedKeys.has(tile.key)}
-            onTap={() => handleTap(tile)}
+            onTap={() => handleTap(tile, Date.now())}
           />
         ))}
       </ul>
@@ -126,7 +178,7 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
       <span className="sr-only" aria-live="assertive">
         {state.phase === "mismatch"
           ? "Không khớp"
-          : state.phase === "celebration"
+          : state.phase === "celebration" || state.phase === "correct-pending"
             ? "Ghép đúng"
             : ""}
       </span>
@@ -149,7 +201,7 @@ function MemoryTileButton({
 }>) {
   const revealed = matched || flipped;
   return (
-    <li>
+    <li className="h-full w-full min-h-0 min-w-0">
       <button
         type="button"
         disabled={disabled}
@@ -161,7 +213,7 @@ function MemoryTileButton({
         aria-label={matched ? "Đã ghép đúng" : flipped ? "Đã lật" : "Ô úp"}
         onClick={onTap}
         className={cn(
-          "flex aspect-square w-full items-center justify-center rounded-xl border transition-colors sm:rounded-2xl",
+          "flex h-full w-full items-center justify-center rounded-xl border transition-colors sm:rounded-2xl",
           matched
             ? "border-border-soft bg-surface-subtle opacity-50"
             : flipped

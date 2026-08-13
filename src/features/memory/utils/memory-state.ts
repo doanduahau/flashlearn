@@ -1,6 +1,6 @@
 import type { MemoryBatch, MemoryTile } from "../types/memory-types";
 
-export type MemoryPhase = "playing" | "mismatch" | "celebration" | "completed";
+export type MemoryPhase = "playing" | "correct-pending" | "mismatch" | "celebration" | "completed";
 
 export type MemoryState = {
   batches: MemoryBatch[];
@@ -13,6 +13,7 @@ export type MemoryState = {
 };
 
 export const MISMATCH_DELAY_MS = 1000;
+export const CORRECT_REVIEW_DELAY_MS = 1000;
 export const CELEBRATION_DELAY_MS = 700;
 
 export function createMemoryState(batches: MemoryBatch[]): MemoryState {
@@ -77,35 +78,52 @@ export function tapTile(state: MemoryState, key: string): MemoryState {
   const matched = first.cardId === tile.cardId && first.side !== tile.side;
 
   if (matched) {
-    const matchedKeys = new Set(state.matchedKeys);
-    matchedKeys.add(first.key);
-    matchedKeys.add(tile.key);
-    const completedCount = state.completedCount + 1;
-    const batchComplete = batch.tiles.every((candidate) => matchedKeys.has(candidate.key));
-    const finalBatch = state.currentBatchIndex === state.batches.length - 1;
-
-    if (batchComplete && finalBatch) {
-      return {
-        ...state,
-        firstKey: null,
-        secondKey: null,
-        phase: "completed",
-        matchedKeys,
-        completedCount,
-      };
-    }
-
-    return {
-      ...state,
-      firstKey: null,
-      secondKey: null,
-      phase: "celebration",
-      matchedKeys,
-      completedCount,
-    };
+    // A correct pair first enters a review window: both tiles stay flipped and
+    // the preview keeps showing the second tile for exactly one second before
+    // the pair is resolved.
+    return { ...state, firstKey: first.key, secondKey: tile.key, phase: "correct-pending" };
   }
 
   return { ...state, firstKey: state.firstKey, secondKey: key, phase: "mismatch" };
+}
+
+/** Called after the correct-pair review delay; marks the pair as resolved. */
+export function resolveCorrectPair(state: MemoryState): MemoryState {
+  if (state.phase !== "correct-pending") return state;
+  if (state.firstKey === null || state.secondKey === null) {
+    return { ...state, firstKey: null, secondKey: null, phase: "playing" };
+  }
+
+  const matchedKeys = new Set(state.matchedKeys);
+  matchedKeys.add(state.firstKey);
+  matchedKeys.add(state.secondKey);
+  const completedCount = state.completedCount + 1;
+
+  return {
+    ...state,
+    firstKey: null,
+    secondKey: null,
+    phase: "celebration",
+    matchedKeys,
+    completedCount,
+  };
+}
+
+/**
+ * True when the pending correct pair would complete the final batch. The
+ * session timer stops at this logical match moment, not after the one-second
+ * review delay or the celebration.
+ */
+export function isFinalPendingPair(state: MemoryState): boolean {
+  if (state.phase !== "correct-pending") return false;
+  if (state.firstKey === null || state.secondKey === null) return false;
+  const matchedKeys = new Set(state.matchedKeys);
+  matchedKeys.add(state.firstKey);
+  matchedKeys.add(state.secondKey);
+  const batchComplete = currentBatch(state).tiles.every((candidate) =>
+    matchedKeys.has(candidate.key),
+  );
+  return batchComplete && state.currentBatchIndex === state.batches.length - 1;
 }
 
 /** Called after the mismatch one-second delay; both tiles flip back down. */
@@ -118,11 +136,10 @@ export function resolveMismatch(state: MemoryState): MemoryState {
 export function resolveCelebration(state: MemoryState): MemoryState {
   if (state.phase !== "celebration") return state;
   if (isBatchComplete(state)) {
-    const nextIndex = state.currentBatchIndex + 1;
-    if (nextIndex >= state.batches.length) {
-      return { ...state, currentBatchIndex: nextIndex, phase: "completed" };
+    if (state.currentBatchIndex >= state.batches.length - 1) {
+      return { ...state, phase: "completed" };
     }
-    return { ...state, currentBatchIndex: nextIndex, phase: "playing" };
+    return { ...state, currentBatchIndex: state.currentBatchIndex + 1, phase: "playing" };
   }
   return { ...state, phase: "playing" };
 }

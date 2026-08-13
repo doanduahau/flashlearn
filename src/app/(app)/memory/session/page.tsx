@@ -31,7 +31,7 @@ export default async function MemorySessionPage({
   const sessionHref = `/memory/session${buildQuery({ all, setIds, collectionIds, count: questionCount })}`;
 
   return (
-    <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
+    <main className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col p-3 sm:p-8">
       <MemorySession sessionHref={sessionHref} questionCount={questionCount} />
     </main>
   );

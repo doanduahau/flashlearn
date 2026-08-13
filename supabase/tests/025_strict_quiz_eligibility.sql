@@ -1,5 +1,5 @@
 begin;
-select plan(18);
+select plan(26);
 
 insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values ('00000000-0000-0000-0000-000000000000', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'authenticated', 'authenticated', 'strict-quiz@example.com', now(), '{"provider":"email","providers":["email"]}', '{}', now(), now());
@@ -8,7 +8,8 @@ insert into public.flashcard_sets (id, user_id, name) values
   ('bbbbbbbb-0000-4000-8000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'BIG'),
   ('bbbbbbbb-0000-4000-8000-000000000002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'SMALL7'),
   ('bbbbbbbb-0000-4000-8000-000000000003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'TINY2'),
-  ('bbbbbbbb-0000-4000-8000-000000000004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'ZERO');
+  ('bbbbbbbb-0000-4000-8000-000000000004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'ZERO'),
+  ('bbbbbbbb-0000-4000-8000-000000000005', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'RACE2');
 
 -- BIG: 30 cards. Wrong = positions 1..7, covered = positions 1..10.
 insert into public.flashcards (id, user_id, set_id, front, back, position)
@@ -19,6 +20,66 @@ insert into public.flashcards (id, user_id, set_id, front, back, position)
 select ('30000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-0000-4000-8000-000000000003', 'Q ' || n, 'A ' || n, n from generate_series(1, 2) n;
 insert into public.flashcards (id, user_id, set_id, front, back, position)
 select ('40000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-0000-4000-8000-000000000004', 'Q ' || n, 'A ' || n, n from generate_series(1, 2) n;
+insert into public.flashcards (id, user_id, set_id, front, back, position)
+select ('50000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-0000-4000-8000-000000000005', 'Q ' || n, 'A ' || n, n from generate_series(1, 2) n;
+
+-- Simulate a coverage mutation between strict-pool counting and selection.
+-- The production advisory lock serializes canonical completion writes; this
+-- trigger additionally proves the final cardinality guard rolls back rather
+-- than persisting an underfilled session if the pool changes in-flight.
+create function public.test_strict_quiz_cover_race()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.source_set_ids = array['bbbbbbbb-0000-4000-8000-000000000005'::uuid] then
+    insert into public.flashcard_coverage (user_id, mode, flashcard_id)
+    select new.user_id, 'quiz', f.id
+    from public.flashcards f
+    where f.user_id = new.user_id
+      and f.set_id = 'bbbbbbbb-0000-4000-8000-000000000005'
+    on conflict (user_id, mode, flashcard_id) do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger test_strict_quiz_cover_race_after_insert
+after insert on public.quiz_sessions
+for each row execute function public.test_strict_quiz_cover_race();
+
+-- The CREATE OR REPLACE correction must retain the public manual-Quiz RPC's
+-- exact security boundary.
+select ok(
+  (select prosecdef from pg_proc where oid = 'public.create_quiz_session(text,uuid[],uuid[],boolean,integer)'::regprocedure),
+  'strict Quiz replacement remains SECURITY DEFINER'
+);
+select ok(
+  (select proconfig[1] = 'search_path=""' from pg_proc where oid = 'public.create_quiz_session(text,uuid[],uuid[],boolean,integer)'::regprocedure),
+  'strict Quiz replacement retains empty search_path'
+);
+select is(
+  has_function_privilege('authenticated', 'public.create_quiz_session(text,uuid[],uuid[],boolean,integer)', 'execute'),
+  true,
+  'authenticated can execute the manual Quiz RPC'
+);
+select is(
+  has_function_privilege('anon', 'public.create_quiz_session(text,uuid[],uuid[],boolean,integer)', 'execute'),
+  false,
+  'anon cannot execute the manual Quiz RPC'
+);
+select is(
+  has_function_privilege('service_role', 'public.create_quiz_session(text,uuid[],uuid[],boolean,integer)', 'execute'),
+  false,
+  'service_role has no direct manual Quiz RPC grant'
+);
+select is(
+  (select count(*) from pg_proc p cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) acl where p.oid = 'public.create_quiz_session(text,uuid[],uuid[],boolean,integer)'::regprocedure and acl.grantee = 0 and acl.privilege_type = 'EXECUTE'),
+  0::bigint,
+  'PUBLIC has no manual Quiz RPC execute privilege'
+);
 
 -- Canonical wrong history: BIG positions 1..7 answered wrong in a completed Quiz.
 insert into public.quiz_sessions (id, user_id, mode, requested_question_count, actual_question_count, completed_at)
@@ -125,6 +186,18 @@ select is(
 select throws_ok(
   $$select public.create_quiz_session('never_tested', array['bbbbbbbb-0000-4000-8000-000000000004']::uuid[], '{}'::uuid[], false, 1)$$,
   '22023', 'not enough eligible cards', 'zero uncovered cards cannot start'
+);
+
+-- G. An in-flight strict-pool change must roll back instead of leaving a
+-- session declared as two questions with fewer snapshots.
+select throws_ok(
+  $$select public.create_quiz_session('never_tested', array['bbbbbbbb-0000-4000-8000-000000000005']::uuid[], '{}'::uuid[], false, 2)$$,
+  '22023', 'not enough eligible cards', 'in-flight strict coverage change cannot persist an underfilled session'
+);
+select is(
+  (select count(*)::integer from public.quiz_sessions where source_set_ids = array['bbbbbbbb-0000-4000-8000-000000000005'::uuid]),
+  0,
+  'the in-flight strict coverage change leaves no partial Quiz session'
 );
 
 -- G. Random keeps the whole pool and is not restricted to uncovered/wrong.

@@ -91,6 +91,19 @@ select
 from public.flashcards
 where user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and set_id = 'bbbbbbbb-0000-4000-8000-000000000001' and position <= 7;
 
+-- Position 1 was later corrected. It must leave the strict Câu sai pool even
+-- though it has an earlier wrong answer.
+insert into public.quiz_sessions (id, user_id, mode, requested_question_count, actual_question_count, completed_at)
+values ('dddddddd-0000-4000-8000-000000000002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'balanced', 1, 1, now() + interval '1 minute');
+insert into public.quiz_questions (session_id, user_id, position, flashcard_id, source_flashcard_id, prompt, correct_answer, choices, correct_choice_index, selected_choice_index, is_correct, answered_at)
+select
+  'dddddddd-0000-4000-8000-000000000002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 0,
+  id, id, front, back, jsonb_build_array(back, 'other'), 0, 0, true, now() + interval '1 minute'
+from public.flashcards
+where user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+  and set_id = 'bbbbbbbb-0000-4000-8000-000000000001'
+  and position = 1;
+
 -- Quiz coverage: BIG 1..10 covered; TINY2 position 2 covered; ZERO all covered.
 insert into public.flashcard_coverage (user_id, mode, flashcard_id)
 select 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'quiz', id
@@ -108,30 +121,30 @@ where user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and set_id = 'bbbbbbbb-00
 set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
--- A. Câu sai is strict: only wrong-history cards.
+-- A. Câu sai is strict: only cards whose latest completed Quiz answer is wrong.
 select lives_ok(
-  $$select set_config('test.wrong_session', public.create_quiz_session('wrong_answers', array['bbbbbbbb-0000-4000-8000-000000000001']::uuid[], '{}'::uuid[], false, 7)::text, true)$$,
+  $$select set_config('test.wrong_session', public.create_quiz_session('wrong_answers', array['bbbbbbbb-0000-4000-8000-000000000001']::uuid[], '{}'::uuid[], false, 6)::text, true)$$,
   'Câu sai creates a session from the wrong pool'
 );
 select is(
   (select count(*)::integer from public.quiz_questions where session_id = current_setting('test.wrong_session')::uuid),
-  7,
-  'Câu sai 7 creates exactly 7 questions'
+  6,
+  'Câu sai 6 creates exactly 6 questions'
 );
 select is(
   (select count(*)::integer from public.quiz_questions q
    where q.session_id = current_setting('test.wrong_session')::uuid
      and q.flashcard_id = any(array(
        select f.id from public.flashcards f
-       where f.user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and f.set_id = 'bbbbbbbb-0000-4000-8000-000000000001' and f.position <= 7
+       where f.user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and f.set_id = 'bbbbbbbb-0000-4000-8000-000000000001' and f.position between 2 and 7
      ))),
-  7,
-  'all Câu sai questions come from the canonical wrong history'
+  6,
+  'all Câu sai questions come from cards whose latest answer remains wrong'
 );
 
--- B. No strict backfill: 7 wrong cards cannot produce 10.
+-- B. No strict backfill: six latest-wrong cards cannot produce seven.
 select throws_ok(
-  $$select public.create_quiz_session('wrong_answers', array['bbbbbbbb-0000-4000-8000-000000000001']::uuid[], '{}'::uuid[], false, 10)$$,
+  $$select public.create_quiz_session('wrong_answers', array['bbbbbbbb-0000-4000-8000-000000000001']::uuid[], '{}'::uuid[], false, 7)$$,
   '22023', 'not enough eligible cards', 'Câu sai never backfills never-wrong cards'
 );
 

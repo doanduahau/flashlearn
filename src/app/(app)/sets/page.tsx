@@ -250,7 +250,7 @@ async function SetsTabContent({
     let listQuery = supabase
       .from("flashcard_sets")
       .select("id, name, flashcards(count)")
-      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false })
       .order("id", { ascending: true });
     if (query) {
       countQuery = countQuery.ilike("name", `%${query}%`);
@@ -300,7 +300,8 @@ async function SetsTabContent({
   let listQuery = supabase
     .from("special_collections")
     .select("id, name, special_collection_items(count)")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true });
   if (query) {
     countQuery = countQuery.ilike("name", `%${query}%`);
     listQuery = listQuery.ilike("name", `%${query}%`);

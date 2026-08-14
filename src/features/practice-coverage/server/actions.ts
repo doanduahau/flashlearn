@@ -8,6 +8,7 @@ type CoverageMode = "quiz" | "match" | "memory" | "runner";
 
 const coverageSessionIdSchema = z.uuid();
 const COVERAGE_ID_BATCH_SIZE = 200;
+const WRONG_ANSWER_PAGE_SIZE = 1000;
 
 /** Reads only the authenticated user's current-cycle coverage. */
 export async function loadUncoveredIds(
@@ -51,25 +52,42 @@ export async function loadWrongAnswerCardIds(eligibleIds: string[]): Promise<Set
     (_, index) =>
       eligibleIds.slice(index * COVERAGE_ID_BATCH_SIZE, (index + 1) * COVERAGE_ID_BATCH_SIZE),
   );
-  const results = await Promise.all(
-    chunks.map((ids) =>
-      supabase
-        .from("quiz_questions")
-        .select("flashcard_id, quiz_sessions(completed_at)")
-        .eq("is_correct", false)
-        .in("flashcard_id", ids),
-    ),
-  );
-  if (results.some((result) => result.error)) throw new Error("wrong-answer query failed");
+  const results = await Promise.all(chunks.map((ids) => loadCompletedAnswers(supabase, ids)));
   const wrong = new Set<string>();
-  for (const result of results) {
-    for (const row of result.data ?? []) {
-      if (!row.flashcard_id) continue;
-      const session = Array.isArray(row.quiz_sessions) ? row.quiz_sessions[0] : row.quiz_sessions;
-      if (session && session.completed_at !== null) wrong.add(row.flashcard_id);
+  for (const rows of results) {
+    const seen = new Set<string>();
+    for (const row of rows) {
+      if (!row.flashcard_id || seen.has(row.flashcard_id)) continue;
+      seen.add(row.flashcard_id);
+      if (row.is_correct === false) wrong.add(row.flashcard_id);
     }
   }
   return wrong;
+}
+
+async function loadCompletedAnswers(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: string[],
+) {
+  const rows: Array<{ id: string; flashcard_id: string | null; is_correct: boolean | null }> = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("quiz_questions")
+      .select("id, flashcard_id, is_correct, answered_at, quiz_sessions!inner(completed_at)")
+      .in("flashcard_id", ids)
+      .not("answered_at", "is", null)
+      .not("quiz_sessions.completed_at", "is", null)
+      .order("answered_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, from + WRONG_ANSWER_PAGE_SIZE - 1);
+    if (error) throw new Error("wrong-answer query failed");
+
+    rows.push(...(data ?? []));
+    if ((data?.length ?? 0) < WRONG_ANSWER_PAGE_SIZE) return rows;
+    from += WRONG_ANSWER_PAGE_SIZE;
+  }
 }
 
 /**

@@ -60,7 +60,8 @@ async function sourceQuery(
     let request = supabase
       .from("flashcard_sets")
       .select("id, name, flashcards(count)", { count: "exact" })
-      .order("name", { ascending: true })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
       .range(from, to);
     if (query) request = request.ilike("name", `%${query}%`);
     const { data, count } = await request;
@@ -78,7 +79,8 @@ async function sourceQuery(
   let request = supabase
     .from("special_collections")
     .select("id, name, special_collection_items(count)", { count: "exact" })
-    .order("name", { ascending: true })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
     .range(from, to);
   if (query) request = request.ilike("name", `%${query}%`);
   const { data, count } = await request;

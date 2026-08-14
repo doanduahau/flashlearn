@@ -59,9 +59,10 @@ source scope; the setup UI never backfills.
 - **Chưa làm** — the mode-specific uncovered pool. Quiz uses cards uncovered
   for `mode = 'quiz'`; Match uses `mode = 'match'`; Memory uses `mode =
 'memory'`. Insufficient coverage never backfills covered cards.
-- **Câu sai** — the canonical shared wrong-answer history (completed Quiz
-  sessions' incorrect answers). Match and Memory reuse this same set and never
-  create their own wrong history. Cards that were never wrong are not added.
+- **Câu sai** — a card whose latest answer by `answered_at` in a completed Quiz
+  session is incorrect. Match and Memory reuse this same set and never create
+  their own wrong history. A later correct answer removes a card from this
+  pool; cards that were never answered are not added.
   Selecting "Câu sai" only changes which cards may be selected; it does not
   make Match/Memory graded.
 - **Ngẫu nhiên** — the entire valid selected pool, still ordered with coverage

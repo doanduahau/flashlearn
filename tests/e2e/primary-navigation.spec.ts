@@ -93,4 +93,28 @@ test.describe("Primary application navigation", () => {
       ),
     ).toBe(true);
   });
+
+  test("header content is customized per viewport and mascot/sign-out is absent from mobile header", async ({
+    page,
+  }) => {
+    await signUpAndConfirm(page, uniqueEmail("header_content"));
+
+    // Mobile Viewport
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/dashboard");
+
+    const mobileHeader = page.locator("header");
+    await expect(mobileHeader.locator('img[src="/mascot/logo.png"]')).toBeVisible();
+    await expect(mobileHeader).toContainText("CapyStudy");
+    await expect(mobileHeader.locator('a[href="/profile?tab=statistics"]')).toBeVisible();
+
+    // Avatar, Name, and Sign out absent on mobile header
+    await expect(mobileHeader.getByRole("button", { name: "Đăng xuất" })).toHaveCount(0);
+
+    // Desktop Viewport
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const sidebar = page.locator("aside");
+    await expect(sidebar.locator('img[src="/mascot/logo.png"]')).toBeVisible();
+    await expect(sidebar).toContainText("CapyStudy");
+  });
 });

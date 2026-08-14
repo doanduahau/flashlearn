@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { AnchorHTMLAttributes } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -37,7 +37,7 @@ describe("AppShell", () => {
     });
   });
 
-  it("shows the streak indicator in the sidebar and the mobile header", () => {
+  it("shows the streak indicator in the sidebar and the mobile header, and keeps user controls in sidebar only", () => {
     render(
       <AppShell streak={5} completedToday>
         <div>Page content</div>
@@ -49,6 +49,14 @@ describe("AppShell", () => {
     indicators.forEach((indicator) => {
       expect(indicator).toHaveTextContent("5");
     });
+
+    const header = screen.getByRole("banner");
+    expect(within(header).queryByTestId("current-user")).not.toBeInTheDocument();
+    expect(within(header).queryByTestId("sign-out-button")).not.toBeInTheDocument();
+
+    const sidebar = screen.getByRole("complementary");
+    expect(within(sidebar).getByTestId("current-user")).toBeInTheDocument();
+    expect(within(sidebar).getByTestId("sign-out-button")).toBeInTheDocument();
   });
 
   it("links every streak indicator to the statistics tab", () => {

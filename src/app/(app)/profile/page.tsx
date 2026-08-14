@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { SectionTabs } from "@/components/shared/section-tabs";
+import { SignOutButton } from "@/features/auth/components/sign-out-button";
 import { ProfileSettingsForm } from "@/features/profile/components/profile-settings-form";
 import { loadProfileSettings } from "@/features/profile/server/load-profile";
 import { StatisticsPanel } from "@/features/statistics/components/statistics-panel";
@@ -73,13 +74,29 @@ async function ProfileDetails({ tab }: Readonly<{ tab: Exclude<ProfileTab, "stat
 
   if (tab === "settings") {
     return (
-      <ProfileSettingsForm
-        email={profile.email}
-        displayName={profile.displayName}
-        timezone={profile.timezone}
-        timezoneChangeAvailableAt={profile.timezoneChangeAvailableAt}
-        timezoneChangeCooldownHours={profile.timezoneChangeCooldownHours}
-      />
+      <div className="space-y-6">
+        <ProfileSettingsForm
+          email={profile.email}
+          displayName={profile.displayName}
+          timezone={profile.timezone}
+          timezoneChangeAvailableAt={profile.timezoneChangeAvailableAt}
+          timezoneChangeCooldownHours={profile.timezoneChangeCooldownHours}
+        />
+        <section
+          className="rounded-3xl border border-border-soft bg-surface p-5"
+          aria-labelledby="sign-out-heading"
+        >
+          <h2 id="sign-out-heading" className="text-xl font-bold">
+            Đăng xuất
+          </h2>
+          <p className="mt-1 text-sm text-text-secondary">
+            Đăng xuất khỏi tài khoản trên thiết bị này.
+          </p>
+          <div className="mt-4">
+            <SignOutButton />
+          </div>
+        </section>
+      </div>
     );
   }
 

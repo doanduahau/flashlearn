@@ -3,7 +3,6 @@ import Link from "next/link";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
 import { CurrentUser } from "@/features/auth/components/current-user";
-import { levelFromStreak } from "@/features/mascot/utils/mascot-level";
 import { StreakIndicator } from "@/features/statistics/components/streak-indicator";
 
 export function AppShell({
@@ -17,7 +16,6 @@ export function AppShell({
 }>) {
   return (
     <AppChrome
-      mascotLevel={levelFromStreak(streak)}
       sidebarFooter={
         <>
           <Link
@@ -46,8 +44,6 @@ export function AppShell({
           >
             <StreakIndicator streak={streak} completedToday={completedToday} />
           </Link>
-          <CurrentUser />
-          <SignOutButton />
         </>
       }
     >

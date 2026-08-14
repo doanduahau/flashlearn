@@ -168,21 +168,23 @@ be changed casually.
 
 ### Runner reuse limitation
 
-Capy Runner must use this exact canonical operation rather than a second
-distractor algorithm. It needs exactly three candidates: one correct and two
-wrong. The current public application/domain layer has no read-only,
-configurable option-builder: option generation is coupled to transactional Quiz
-snapshot insertion in SQL. Generalizing it would require a future additive
-database design, which is deliberately out of scope for Phase 5A.
+Capy Runner reuses the canonical Quiz normalization, correct-answer exclusion,
+normalized de-duplication, and deterministic MD5 ordering rules rather than a
+client-side distractor algorithm. It needs exactly three candidates: one correct
+and two wrong. Its wrong answers are deliberately restricted to the other cards
+in its immutable Runner session snapshot, so each question remains grounded in
+the selected session rather than the user's whole library. The session id and
+target flashcard id provide a deterministic per-question seed.
 
 The current Quiz rule also permits a target with only one unique wrong answer,
 which yields two total choices. Consequently, Runner cannot guarantee its three
-unique candidates for every eligible card. Runner V1 resolves the insufficient
+unique candidates for every selected scope. Runner V1 resolves the insufficient
 case deterministically: `load_runner_candidate_eligibility` rejects cards
-without two distinct canonical wrong answers before session creation, and
-`load_runner_session_questions` fails the whole load (errcode `22023`) when a
-snapshotted card cannot form exactly three distinct choices. It never invents
-placeholder or duplicated answers.
+without two distinct canonical wrong answers among the supplied scope,
+`create_runner_session` revalidates the actual selected session snapshot
+atomically, and `load_runner_session_questions` fails the whole load (errcode
+`22023`) when a snapshotted card cannot form exactly three distinct choices. It
+never invents placeholder or duplicated answers.
 
 ## Side-effect boundary
 

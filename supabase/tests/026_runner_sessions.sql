@@ -1,5 +1,5 @@
 begin;
-select plan(31);
+select plan(38);
 
 insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -13,13 +13,16 @@ insert into public.flashcard_sets (id, user_id, name) values
 
 insert into public.flashcards (id, user_id, set_id, front, back) values
   ('ca000001-c2c2-4000-8000-000000000001', 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'a1a1a1a1-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'F1', '  Solo  '),
-  ('ca000002-c2c2-4000-8000-000000000002', 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'a1a1a1a1-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'F2', 'SOLO'),
+  ('ca000002-c2c2-4000-8000-000000000002', 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'a1a1a1a1-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'F2', 'Epsilon'),
   ('ca000003-c2c2-4000-8000-000000000003', 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'a2a2a2a2-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'F3', 'Beta'),
   ('ca000004-c2c2-4000-8000-000000000004', 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'a2a2a2a2-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'F4', 'GAMMA'),
   ('ca000005-c2c2-4000-8000-000000000005', 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'a2a2a2a2-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'F5', 'delta'),
   ('cb000001-c2c2-4000-8000-000000000001', 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'b1b1b1b1-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'BF1', 'Only'),
   ('cb000002-c2c2-4000-8000-000000000002', 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'b1b1b1b1-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'BF2', 'Other'),
-  ('cb000003-c2c2-4000-8000-000000000003', 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'b1b1b1b1-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'BF3', '  ONLY ');
+  ('cb000003-c2c2-4000-8000-000000000003', 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'b1b1b1b1-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'BF3', '  ONLY '),
+  ('cb000004-c2c2-4000-8000-000000000004', 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'b1b1b1b1-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'BF4', 'Alpha  Beta'),
+  ('cb000005-c2c2-4000-8000-000000000005', 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'b1b1b1b1-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'BF5', 'alpha beta'),
+  ('cb000006-c2c2-4000-8000-000000000006', 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'b1b1b1b1-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'BF6', 'Gamma');
 
 -- Trusted config is never created or mutated by a browser.
 set local role authenticated;
@@ -39,8 +42,8 @@ reset role;
 -- setting so it remains readable across the later role switches.
 select set_config('runner.test_sid', public.create_runner_session(
   'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2',
-  array['ca000001-c2c2-4000-8000-000000000001'::uuid, 'ca000003-c2c2-4000-8000-000000000003'::uuid],
-  array['ca000001-c2c2-4000-8000-000000000001'::uuid, 'ca000003-c2c2-4000-8000-000000000003'::uuid],
+  array['ca000001-c2c2-4000-8000-000000000001'::uuid, 'ca000003-c2c2-4000-8000-000000000003'::uuid, 'ca000004-c2c2-4000-8000-000000000004'::uuid],
+  array['ca000001-c2c2-4000-8000-000000000001'::uuid, 'ca000003-c2c2-4000-8000-000000000003'::uuid, 'ca000004-c2c2-4000-8000-000000000004'::uuid],
   'easy'
 )::text, false);
 
@@ -86,6 +89,22 @@ select is(
   'ineligible creation leaves no partial coverage session'
 );
 
+select throws_ok(
+  $$select public.create_runner_session(
+    'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2',
+    array['ca000001-c2c2-4000-8000-000000000001'::uuid, 'ca000003-c2c2-4000-8000-000000000003'::uuid],
+    array['ca000001-c2c2-4000-8000-000000000001'::uuid, 'ca000003-c2c2-4000-8000-000000000003'::uuid],
+    'easy'
+  )$$,
+  '22023', NULL,
+  'whole-library distractors cannot make an undersized Runner session eligible'
+);
+select is(
+  (select count(*)::integer from public.runner_sessions where user_id = 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2'),
+  1,
+  'session-scoped eligibility rejection leaves no partial Runner session'
+);
+
 -- One-to-one: the same coverage session cannot be linked to a second runner config.
 select throws_ok(
   format($$insert into public.runner_sessions (user_id, coverage_session_id, difficulty) values ('aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2', '%s', 'easy')$$,
@@ -115,7 +134,7 @@ select is(
   'foreign user cannot read runner sessions'
 );
 
--- Eligibility: whole-library, side-effect free, no seed.
+-- Eligibility: supplied scope only, side-effect free, no seed.
 set local request.jwt.claim.sub = 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2';
 select is(
   (select cardinality(lcs.session_card_ids) from public.learning_coverage_sessions lcs join public.runner_sessions rs on rs.coverage_session_id = lcs.id where rs.id = current_setting('runner.test_sid')::uuid),
@@ -123,9 +142,18 @@ select is(
   'every trusted session card produces exactly one Runner question'
 );
 select is(
-  (select eligible from public.load_runner_candidate_eligibility(array['ca000001-c2c2-4000-8000-000000000001'::uuid]) where flashcard_id = 'ca000001-c2c2-4000-8000-000000000001'),
+  (select eligible from public.load_runner_candidate_eligibility(array[
+    'ca000001-c2c2-4000-8000-000000000001'::uuid,
+    'ca000003-c2c2-4000-8000-000000000003'::uuid,
+    'ca000004-c2c2-4000-8000-000000000004'::uuid
+  ]) where flashcard_id = 'ca000001-c2c2-4000-8000-000000000001'),
   true,
-  'card with two distinct wrong answers is eligible'
+  'card with two distinct in-scope wrong answers is eligible'
+);
+select is(
+  (select eligible from public.load_runner_candidate_eligibility(array['ca000001-c2c2-4000-8000-000000000001'::uuid]) where flashcard_id = 'ca000001-c2c2-4000-8000-000000000001'),
+  false,
+  'card with fewer than two in-scope wrong answers is ineligible'
 );
 
 set local request.jwt.claim.sub = 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2';
@@ -145,12 +173,12 @@ select is(
   'card whose only other answer normalizes to itself is ineligible'
 );
 
--- Session-seeded question generation: questions come only from the immutable
--- session snapshot; distractors may come from the whole user library.
+-- Session-seeded question generation: questions and distractors come only from
+-- the immutable session snapshot.
 set local request.jwt.claim.sub = 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2';
 select is(
   (select count(*)::integer from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid)),
-  2,
+  3,
   'session questions come only from the session snapshot'
 );
 select is(
@@ -173,9 +201,62 @@ select is(
 );
 select is(
   (select array_agg(flashcard_id order by flashcard_id) from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid)),
-  array['ca000001-c2c2-4000-8000-000000000001'::uuid, 'ca000003-c2c2-4000-8000-000000000003'::uuid],
+  array['ca000001-c2c2-4000-8000-000000000001'::uuid, 'ca000003-c2c2-4000-8000-000000000003'::uuid, 'ca000004-c2c2-4000-8000-000000000004'::uuid],
   'outside cards never become questions'
 );
+select is(
+  (select bool_and(
+    lower(regexp_replace(btrim(choice), '\s+', ' ', 'g')) = any (array['solo', 'beta', 'gamma'])
+  )
+   from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid) q
+   cross join lateral jsonb_array_elements_text(q.choices) as choice),
+  true,
+  'every correct answer and distractor comes from the Runner session snapshot'
+);
+select isnt(
+  (select array_agg(lower(regexp_replace(btrim(choice), '\s+', ' ', 'g')) order by lower(regexp_replace(btrim(choice), '\s+', ' ', 'g')))
+   from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid) q
+   cross join lateral jsonb_array_elements_text(q.choices) as choice
+   where q.flashcard_id = 'ca000001-c2c2-4000-8000-000000000001'::uuid
+     and lower(regexp_replace(btrim(choice), '\s+', ' ', 'g')) <> lower(regexp_replace(btrim(q.correct_answer), '\s+', ' ', 'g'))),
+  (select array_agg(lower(regexp_replace(btrim(choice), '\s+', ' ', 'g')) order by lower(regexp_replace(btrim(choice), '\s+', ' ', 'g')))
+   from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid) q
+   cross join lateral jsonb_array_elements_text(q.choices) as choice
+   where q.flashcard_id = 'ca000003-c2c2-4000-8000-000000000003'::uuid
+     and lower(regexp_replace(btrim(choice), '\s+', ' ', 'g')) <> lower(regexp_replace(btrim(q.correct_answer), '\s+', ' ', 'g'))),
+  'different questions in one session use different distractor sets'
+);
+set local request.jwt.claim.sub = 'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2';
+select is(
+  (select eligible from public.load_runner_candidate_eligibility(array[
+    'cb000004-c2c2-4000-8000-000000000004'::uuid,
+    'cb000005-c2c2-4000-8000-000000000005'::uuid,
+    'cb000006-c2c2-4000-8000-000000000006'::uuid
+  ]) where flashcard_id = 'cb000004-c2c2-4000-8000-000000000004'),
+  false,
+  'internal whitespace variants are one normalized answer for eligibility'
+);
+reset role;
+select throws_ok(
+  $$select public.create_runner_session(
+    'bbbbbbbb-c2c2-c2c2-c2c2-c2c2c2c2c2c2',
+    array[
+      'cb000004-c2c2-4000-8000-000000000004'::uuid,
+      'cb000005-c2c2-4000-8000-000000000005'::uuid,
+      'cb000006-c2c2-4000-8000-000000000006'::uuid
+    ],
+    array[
+      'cb000004-c2c2-4000-8000-000000000004'::uuid,
+      'cb000005-c2c2-4000-8000-000000000005'::uuid,
+      'cb000006-c2c2-4000-8000-000000000006'::uuid
+    ],
+    'easy'
+  )$$,
+  '22023', NULL,
+  'creation revalidates internal-whitespace normalization in its own session scope'
+);
+set local role authenticated;
+set local request.jwt.claim.sub = 'aaaaaaaa-c2c2-c2c2-c2c2-c2c2c2c2c2c2';
 select is(
   (select choices from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid) where flashcard_id = 'ca000001-c2c2-4000-8000-000000000001'),
   (select choices from public.load_runner_session_questions(current_setting('runner.test_sid')::uuid) where flashcard_id = 'ca000001-c2c2-4000-8000-000000000001'),

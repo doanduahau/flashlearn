@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { TrashIcon } from "lucide-react";
 
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { importFlashcards } from "@/features/imports/server/actions";
@@ -10,7 +11,7 @@ import { validateDraftCards } from "@/features/imports/utils/validate-draft-card
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { IMPORT_MAX_ROWS, SET_NAME_MAX_LENGTH } from "@/lib/constants";
+import { IMPORT_MAX_ROWS, IMPORT_PREVIEW_ROWS, SET_NAME_MAX_LENGTH } from "@/lib/constants";
 
 export type CreateSummaryMetadata = {
   label?: string;
@@ -38,13 +39,21 @@ export function CreateSummary({
   const [error, setError] = useState("");
   const importInFlightRef = useRef(false);
 
+  const [editableCards, setEditableCards] = useState<DraftFlashcard[]>(sourceCards);
+  const [prevSourceCards, setPrevSourceCards] = useState<DraftFlashcard[]>(sourceCards);
+
+  if (sourceCards !== prevSourceCards) {
+    setPrevSourceCards(sourceCards);
+    setEditableCards(sourceCards);
+  }
+
   const validation = useMemo(() => {
     try {
-      return validateDraftCards(sourceCards);
+      return validateDraftCards(editableCards);
     } catch {
       return null;
     }
-  }, [sourceCards]);
+  }, [editableCards]);
 
   const overLimit = limitExceeded === true || validation === null;
   const hasValidCards = validation !== null && validation.valid > 0;
@@ -163,6 +172,58 @@ export function CreateSummary({
             )}
           </Button>
         </>
+      )}
+
+      {hasValidCards && !overLimit && editableCards.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h3 className="font-semibold text-text-primary">Xem trước thẻ</h3>
+          <ul className="flex flex-col gap-3">
+            {editableCards.slice(0, IMPORT_PREVIEW_ROWS).map((card, i) => (
+              <li key={i} className="flex gap-2">
+                <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+                  <Input
+                    placeholder="Mặt trước"
+                    value={card.front}
+                    onChange={(e) => {
+                      const newCards = [...editableCards];
+                      newCards[i] = { ...card, front: e.target.value };
+                      setEditableCards(newCards);
+                    }}
+                  />
+                  <Input
+                    placeholder="Mặt sau"
+                    value={card.back}
+                    onChange={(e) => {
+                      const newCards = [...editableCards];
+                      newCards[i] = { ...card, back: e.target.value };
+                      setEditableCards(newCards);
+                    }}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 shrink-0"
+                  aria-label={`Xóa thẻ ${i + 1}`}
+                  onClick={() => {
+                    const newCards = [...editableCards];
+                    newCards.splice(i, 1);
+                    setEditableCards(newCards);
+                  }}
+                >
+                  <TrashIcon className="size-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+          {editableCards.length > IMPORT_PREVIEW_ROWS && (
+            <p className="text-sm text-text-secondary">
+              ... và {editableCards.length - IMPORT_PREVIEW_ROWS} thẻ khác (vẫn sẽ được tạo nhưng bị
+              ẩn để tối ưu tốc độ).
+            </p>
+          )}
+        </div>
       )}
 
       {error && (

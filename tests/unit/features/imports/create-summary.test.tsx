@@ -111,4 +111,56 @@ describe("CreateSummary", () => {
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Tên bộ đã tồn tại."));
     expect(mocks.push).not.toHaveBeenCalled();
   });
+
+  it("displays preview cards in editable inputs", () => {
+    render(<CreateSummary sourceCards={[{ front: "FrontA", back: "Back1" }]} />);
+    expect(screen.getByDisplayValue("FrontA")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Back1")).toBeInTheDocument();
+  });
+
+  it("updates validation when a card is edited to be blank", async () => {
+    const user = userEvent.setup();
+    render(
+      <CreateSummary
+        sourceCards={[
+          { front: "FrontA", back: "Back1" },
+          { front: "FrontB", back: "Back2" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText(/2 thẻ hợp lệ/)).toBeInTheDocument();
+    const frontInput = screen.getByDisplayValue("FrontA");
+    await user.clear(frontInput);
+
+    expect(screen.getByText(/1 thẻ hợp lệ/)).toBeInTheDocument();
+    expect(screen.getByText(/1 thẻ thiếu mặt trước/)).toBeInTheDocument();
+  });
+
+  it("updates validation when a card is deleted", async () => {
+    const user = userEvent.setup();
+    render(
+      <CreateSummary
+        sourceCards={[
+          { front: "FrontA", back: "Back1" },
+          { front: "FrontB", back: "Back2" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText(/2 thẻ hợp lệ/)).toBeInTheDocument();
+    const deleteButtons = screen.getAllByRole("button", { name: /^Xóa thẻ/ });
+    await user.click(deleteButtons[0]!);
+
+    expect(screen.getByText(/1 thẻ hợp lệ/)).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("FrontA")).not.toBeInTheDocument();
+  });
+
+  it("shows a notice when there are more than 100 cards", () => {
+    const manyCards = Array.from({ length: 105 }, (_, i) => ({ front: `F${i}`, back: `B${i}` }));
+    render(<CreateSummary sourceCards={manyCards} />);
+
+    expect(screen.getByText(/105 thẻ hợp lệ/)).toBeInTheDocument();
+    expect(screen.getByText(/\.\.\. và 5 thẻ khác/)).toBeInTheDocument();
+  });
 });

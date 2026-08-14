@@ -119,15 +119,15 @@ export function QuizModeSelect({
         <BackButton fallbackHref={backHref} label="Quay lại chọn nguồn" />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="flex flex-col gap-3">
         {/* Trắc nghiệm card */}
         <article className={cn(CARD_CLS, !quizEnabled && "opacity-60")}>
           <div className="flex items-center gap-3">
             <MascotImage
               level={1}
               state="normal"
-              size={64}
-              className="size-16 shrink-0 object-contain"
+              size={96}
+              className="size-24 shrink-0 object-contain"
             />
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-bold">Trắc nghiệm</h2>

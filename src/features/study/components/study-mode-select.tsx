@@ -124,8 +124,8 @@ export function StudyModeSelect({
           <MascotImage
             level={1}
             state="normal"
-            size={64}
-            className="size-16 shrink-0 object-contain"
+            size={96}
+            className="size-24 shrink-0 object-contain"
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold">Lật thẻ</h2>
@@ -156,8 +156,8 @@ export function StudyModeSelect({
           <MascotImage
             level={1}
             state="thinking"
-            size={64}
-            className="size-16 shrink-0 object-contain"
+            size={96}
+            className="size-24 shrink-0 object-contain"
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold">Memory matching</h2>
@@ -221,8 +221,8 @@ export function StudyModeSelect({
           <MascotImage
             level={1}
             state="run"
-            size={64}
-            className="size-16 shrink-0 object-contain"
+            size={96}
+            className="size-24 shrink-0 object-contain"
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold">Capy runner</h2>

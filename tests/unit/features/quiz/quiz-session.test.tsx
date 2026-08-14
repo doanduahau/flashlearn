@@ -35,7 +35,7 @@ describe("QuizSession", () => {
   it("advances automatically after a correct answer", async () => {
     submitQuizAnswer.mockResolvedValue({ ok: true, correct: true, completed: false });
     const user = userEvent.setup();
-    render(<QuizSession sessionId="session" total={2} question={first} />);
+    render(<QuizSession exitHref="/quiz/mode" sessionId="session" total={2} question={first} />);
 
     await user.click(screen.getByRole("radio", { name: "One" }));
     await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
@@ -57,7 +57,7 @@ describe("QuizSession", () => {
     vi.useFakeTimers();
     try {
       submitQuizAnswer.mockResolvedValue({ ok: true, correct: true, completed: false });
-      render(<QuizSession sessionId="session" total={2} question={first} />);
+      render(<QuizSession exitHref="/quiz/mode" sessionId="session" total={2} question={first} />);
       fireEvent.click(screen.getByRole("radio", { name: "One" }));
       fireEvent.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
 
@@ -76,7 +76,7 @@ describe("QuizSession", () => {
   it("keeps a wrong answer visible until the learner explicitly advances", async () => {
     submitQuizAnswer.mockResolvedValue({ ok: true, correct: false, completed: false });
     const user = userEvent.setup();
-    render(<QuizSession sessionId="session" total={2} question={first} />);
+    render(<QuizSession exitHref="/quiz/mode" sessionId="session" total={2} question={first} />);
 
     await user.click(screen.getByRole("radio", { name: "One" }));
     await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
@@ -98,14 +98,28 @@ describe("QuizSession", () => {
     submitQuizAnswer.mockResolvedValue({ ok: true, correct: false, completed: false });
     const user = userEvent.setup();
     const view = render(
-      <QuizSession key={first.id} sessionId="session" total={2} question={first} />,
+      <QuizSession
+        exitHref="/quiz/mode"
+        key={first.id}
+        sessionId="session"
+        total={2}
+        question={first}
+      />,
     );
 
     await user.click(screen.getByRole("radio", { name: "One" }));
     await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
     await user.click(screen.getByRole("button", { name: "Câu tiếp theo" }));
 
-    view.rerender(<QuizSession key={second.id} sessionId="session" total={2} question={second} />);
+    view.rerender(
+      <QuizSession
+        exitHref="/quiz/mode"
+        key={second.id}
+        sessionId="session"
+        total={2}
+        question={second}
+      />,
+    );
     await waitFor(() =>
       expect(screen.getByRole("heading", { name: "Second question" })).toHaveFocus(),
     );
@@ -130,7 +144,7 @@ describe("QuizSession", () => {
         }),
     );
     const user = userEvent.setup();
-    render(<QuizSession sessionId="session" total={2} question={first} />);
+    render(<QuizSession exitHref="/quiz/mode" sessionId="session" total={2} question={first} />);
 
     await user.click(screen.getByRole("radio", { name: "One" }));
     await user.dblClick(screen.getByRole("button", { name: "Xác nhận đáp án" }));
@@ -144,7 +158,7 @@ describe("QuizSession", () => {
   it("auto-opens results after the final answer", async () => {
     submitQuizAnswer.mockResolvedValue({ ok: true, correct: false, completed: true });
     const user = userEvent.setup();
-    render(<QuizSession sessionId="session" total={1} question={first} />);
+    render(<QuizSession exitHref="/quiz/mode" sessionId="session" total={1} question={first} />);
 
     await user.click(screen.getByRole("radio", { name: "Two" }));
     await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
@@ -157,7 +171,7 @@ describe("QuizSession", () => {
   });
 
   it("does not pollute the quiz correctness UI with mastery colors", async () => {
-    render(<QuizSession sessionId="session" total={2} question={first} />);
+    render(<QuizSession exitHref="/quiz/mode" sessionId="session" total={2} question={first} />);
     expect(
       screen.queryByRole("img", { name: /Chưa học|Cần ôn|Đang học|Đã nhớ/ }),
     ).not.toBeInTheDocument();

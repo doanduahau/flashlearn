@@ -3,13 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { ModeFilter } from "@/features/learning-modes/components/mode-filter";
 import {
   QuestionCountSelector,
   type CountOption,
 } from "@/features/learning-modes/components/question-count-selector";
 import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
-import { insufficientPoolMessage, type LearningFilter } from "@/features/learning-modes/types";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { DifficultySelector } from "@/features/runner/components/difficulty-selector";
@@ -42,7 +40,6 @@ export function RunnerSetup({
   const router = useRouter();
   const [all, setAll] = useState(true);
   const [selected, setSelected] = useState<Map<string, SourceOption>>(() => new Map());
-  const [filter, setFilter] = useState<LearningFilter>("unseen");
   const [count, setCount] = useState<RunnerQuestionCount>(12);
   const [difficulty, setDifficulty] = useState<RunnerDifficulty>("medium");
   const [availability, setAvailability] = useState<{
@@ -79,7 +76,6 @@ export function RunnerSetup({
           setIds: currentSources.setIds,
           collectionIds: currentSources.collectionIds,
           questionCount: 12,
-          filter,
           difficulty,
         });
         if (cancelled) return;
@@ -102,7 +98,7 @@ export function RunnerSetup({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [all, currentSources, filter, difficulty]);
+  }, [all, currentSources, difficulty]);
 
   const counting =
     availability === null ||
@@ -150,7 +146,6 @@ export function RunnerSetup({
         setIds: currentSources.setIds,
         collectionIds: currentSources.collectionIds,
         questionCount: effectiveCount,
-        filter,
         difficulty,
       });
       if (!result.ok) {
@@ -163,7 +158,6 @@ export function RunnerSetup({
         setIds: currentSources.setIds,
         collectionIds: currentSources.collectionIds,
         questionCount: effectiveCount,
-        filter,
         difficulty,
       };
       router.push(buildRunnerSessionHref(result.session.runnerSessionId, replaySource));
@@ -174,16 +168,12 @@ export function RunnerSetup({
 
   const poolMessage =
     countError === null && !counting && availableCounts.length === 0
-      ? filter === "unseen" || filter === "wrong"
-        ? insufficientPoolMessage(filter)
-        : (baseMessage ?? insufficientPoolMessage(filter))
+      ? (baseMessage ?? "Chưa đủ thẻ hợp lệ để bắt đầu Runner.")
       : null;
   const hiddenNotice = !counting && hiddenByEligibility ? HIDDEN_NOTICE : null;
 
   return (
     <div className="mt-2 space-y-3 pb-28 sm:mt-5 sm:space-y-4 md:pb-0">
-      <ModeFilter value={filter} onChange={setFilter} />
-
       <DifficultySelector value={difficulty} onChange={setDifficulty} />
 
       <QuestionCountSelector

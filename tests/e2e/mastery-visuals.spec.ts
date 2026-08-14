@@ -89,6 +89,8 @@ test.describe("Visual mastery", () => {
 
     await page.goto("/study");
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
+    await expect(page).toHaveURL(/\/study\/mode/);
+    await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
     await expect(page).toHaveURL(/\/study\/session/);
 
     const card = page.getByTestId("study-card");

@@ -3,13 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { ModeFilter } from "@/features/learning-modes/components/mode-filter";
 import {
   QuestionCountSelector,
   type CountOption,
 } from "@/features/learning-modes/components/question-count-selector";
 import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
-import { insufficientPoolMessage, type LearningFilter } from "@/features/learning-modes/types";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { getMemoryAvailability } from "@/features/memory/server/actions";
@@ -34,7 +32,6 @@ export function MemorySetup({
   const router = useRouter();
   const [all, setAll] = useState(true);
   const [selected, setSelected] = useState<Map<string, SourceOption>>(() => new Map());
-  const [filter, setFilter] = useState<LearningFilter>("unseen");
   const [count, setCount] = useState<12 | 18 | 24>(12);
   const [availability, setAvailability] = useState<{
     eligibleCount: number;
@@ -69,7 +66,6 @@ export function MemorySetup({
           setIds: currentSources.setIds,
           collectionIds: currentSources.collectionIds,
           questionCount: 12,
-          filter,
         });
         if (cancelled) return;
         if (result.ok) {
@@ -90,7 +86,7 @@ export function MemorySetup({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [all, currentSources, filter]);
+  }, [all, currentSources]);
 
   const counting =
     availability === null ||
@@ -137,7 +133,6 @@ export function MemorySetup({
         setIds: currentSources.setIds,
         collectionIds: currentSources.collectionIds,
         questionCount: effectiveCount,
-        filter,
       });
       if (!result.ok) {
         setPending(false);
@@ -155,7 +150,6 @@ export function MemorySetup({
       if (currentSources.collectionIds.length)
         query.set("collections", currentSources.collectionIds.join(","));
       query.set("count", String(effectiveCount));
-      query.set("filter", filter);
       router.push(`/memory/session?${query.toString()}`);
     })();
   }
@@ -164,15 +158,11 @@ export function MemorySetup({
 
   const poolMessage =
     countError === null && !counting && availableCounts.length === 0
-      ? filter === "unseen" || filter === "wrong"
-        ? insufficientPoolMessage(filter)
-        : (baseMessage ?? insufficientPoolMessage(filter))
+      ? (baseMessage ?? "Chưa đủ thẻ hợp lệ để bắt đầu Memory.")
       : null;
 
   return (
     <div className="mt-2 space-y-3 pb-28 sm:mt-5 sm:space-y-4 md:pb-0">
-      <ModeFilter value={filter} onChange={setFilter} />
-
       <QuestionCountSelector
         options={options}
         value={effectiveCount}

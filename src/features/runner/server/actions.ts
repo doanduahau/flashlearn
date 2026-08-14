@@ -2,11 +2,7 @@
 
 import { randomInt } from "node:crypto";
 
-import {
-  applyLearningFilter,
-  insufficientPoolMessage,
-  type LearningFilter,
-} from "@/features/learning-modes/types";
+import { selectCardsByPriority } from "@/features/learning-modes/types";
 import {
   loadUncoveredIds,
   loadWrongAnswerCardIds,
@@ -49,9 +45,7 @@ export type SubmitRunnerBestTimeResult =
   | { ok: true; bestMs: number; questionCount: number; isNewBest: boolean }
   | { ok: false; error: string };
 
-function poolMessage(filter: LearningFilter): string {
-  if (filter === "unseen") return insufficientPoolMessage("unseen");
-  if (filter === "wrong") return insufficientPoolMessage("wrong");
+function poolMessage(): string {
   return "Không đủ thẻ hợp lệ để bắt đầu Runner.";
 }
 
@@ -68,38 +62,43 @@ async function loadCards(
       .order("position", { ascending: true });
     if (error) throw new Error("runner card query failed");
     rows = data ?? [];
-  } else if (source.setIds.length) {
-    const { data: sources, error: sourceError } = await supabase
-      .from("flashcard_sets")
-      .select("id")
-      .in("id", source.setIds);
-    if (sourceError || (sources ?? []).length !== source.setIds.length) {
-      throw new Error("runner source ownership failed");
-    }
-    const { data, error } = await supabase
-      .from("flashcards")
-      .select("id, front, back")
-      .in("set_id", source.setIds)
-      .order("set_id", { ascending: true })
-      .order("position", { ascending: true });
-    if (error) throw new Error("runner set card query failed");
-    rows = data ?? [];
   } else {
-    const { data: sources, error: sourceError } = await supabase
-      .from("special_collections")
-      .select("id")
-      .in("id", source.collectionIds);
-    if (sourceError || (sources ?? []).length !== source.collectionIds.length) {
-      throw new Error("runner source ownership failed");
+    if (source.setIds.length) {
+      const { data: sources, error: sourceError } = await supabase
+        .from("flashcard_sets")
+        .select("id")
+        .in("id", source.setIds);
+      if (sourceError || (sources ?? []).length !== source.setIds.length) {
+        throw new Error("runner source ownership failed");
+      }
+      const { data, error } = await supabase
+        .from("flashcards")
+        .select("id, front, back")
+        .in("set_id", source.setIds)
+        .order("set_id", { ascending: true })
+        .order("position", { ascending: true });
+      if (error) throw new Error("runner set card query failed");
+      rows.push(...(data ?? []));
     }
-    const { data, error } = await supabase
-      .from("special_collection_items")
-      .select("flashcard_id, flashcards(id, front, back)")
-      .in("collection_id", source.collectionIds);
-    if (error) throw new Error("runner collection card query failed");
-    rows = (data ?? [])
-      .map((item) => item.flashcards)
-      .filter((card): card is RunnerCard => card !== null);
+    if (source.collectionIds.length) {
+      const { data: sources, error: sourceError } = await supabase
+        .from("special_collections")
+        .select("id")
+        .in("id", source.collectionIds);
+      if (sourceError || (sources ?? []).length !== source.collectionIds.length) {
+        throw new Error("runner source ownership failed");
+      }
+      const { data, error } = await supabase
+        .from("special_collection_items")
+        .select("flashcard_id, flashcards(id, front, back)")
+        .in("collection_id", source.collectionIds);
+      if (error) throw new Error("runner collection card query failed");
+      rows.push(
+        ...(data ?? [])
+          .map((item) => item.flashcards)
+          .filter((card): card is RunnerCard => card !== null),
+      );
+    }
   }
 
   const seen = new Set<string>();
@@ -108,17 +107,6 @@ async function loadCards(
     seen.add(row.id);
     return [{ id: row.id, front: row.front, back: row.back }];
   });
-}
-
-async function filterCardsByMode(
-  cards: RunnerCard[],
-  filter: LearningFilter,
-): Promise<RunnerCard[]> {
-  const allIds = cards.map((card) => card.id);
-  const uncovered = new Set(await loadUncoveredIds("runner", allIds));
-  const wrong = await loadWrongAnswerCardIds(allIds);
-  const eligibleIds = new Set(applyLearningFilter(filter, allIds, uncovered, wrong));
-  return cards.filter((card) => eligibleIds.has(card.id));
 }
 
 async function filterByEligibility(
@@ -149,10 +137,9 @@ export async function getRunnerAvailability(input: unknown): Promise<RunnerAvail
 
   try {
     const cards = await loadCards(supabase, parsed.data);
-    const filtered = await filterCardsByMode(cards, parsed.data.filter);
-    const { eligible, hiddenByEligibility } = await filterByEligibility(supabase, filtered);
+    const { eligible, hiddenByEligibility } = await filterByEligibility(supabase, cards);
     const availableCounts = RUNNER_QUESTION_COUNTS.filter((count) => count <= eligible.length);
-    const message = availableCounts.length === 0 ? poolMessage(parsed.data.filter) : null;
+    const message = availableCounts.length === 0 ? poolMessage() : null;
     return {
       ok: true,
       eligibleCount: eligible.length,
@@ -175,28 +162,31 @@ export async function startRunnerSession(input: unknown): Promise<StartRunnerSes
 
   try {
     const cards = await loadCards(supabase, parsed.data);
-    const filtered = await filterCardsByMode(cards, parsed.data.filter);
-    const { eligible } = await filterByEligibility(supabase, filtered);
+    const { eligible } = await filterByEligibility(supabase, cards);
     const availableCounts = RUNNER_QUESTION_COUNTS.filter((count) => count <= eligible.length);
     if (!availableCounts.includes(parsed.data.questionCount)) {
-      return { ok: false, error: poolMessage(parsed.data.filter) };
+      return { ok: false, error: poolMessage() };
     }
 
-    const priority =
-      parsed.data.filter === "random"
-        ? new Set(
-            await loadUncoveredIds(
-              "runner",
-              eligible.map((card) => card.id),
-            ),
-          )
-        : undefined;
-    const plan = buildRunnerSession(
-      eligible,
+    const random = createSeededRunnerRandom(randomInt(0, 2 ** 32));
+    const shuffled = buildRunnerSession(eligible, eligible.length, random);
+    if (!shuffled) return { ok: false, error: poolMessage() };
+    const eligibleById = new Map(eligible.map((card) => [card.id, card]));
+    const [uncovered, wrong] = await Promise.all([
+      loadUncoveredIds("runner", shuffled.sessionCardIds),
+      loadWrongAnswerCardIds(shuffled.sessionCardIds),
+    ]);
+    const selectedIds = selectCardsByPriority(
+      shuffled.sessionCardIds,
+      wrong,
+      new Set(uncovered),
       parsed.data.questionCount,
-      createSeededRunnerRandom(randomInt(0, 2 ** 32)),
-      priority,
     );
+    const selectedCards = selectedIds.flatMap((id) => {
+      const card = eligibleById.get(id);
+      return card ? [card] : [];
+    });
+    const plan = buildRunnerSession(selectedCards, parsed.data.questionCount, random);
     if (!plan) return { ok: false, error: "Không thể tạo phiên Runner với phạm vi hiện tại." };
 
     const admin = createAdminClient();

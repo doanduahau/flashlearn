@@ -18,8 +18,7 @@ async function importSet(page: Page, name: string, csv = MEMORY_CSV): Promise<st
 }
 
 async function openMemory(page: Page): Promise<void> {
-  await page.goto("/study?tab=play");
-  await page.getByRole("link", { name: /Memory Matching/ }).click();
+  await page.goto("/memory");
   await expect(page).toHaveURL(/\/memory$/);
 }
 

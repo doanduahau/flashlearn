@@ -1,0 +1,21 @@
+import { redirect } from "next/navigation";
+
+import { StudyModeSelect } from "@/features/study/components/study-mode-select";
+import { collectStudyCardIds } from "@/features/study/server/load-study-cards";
+import { parseStudySessionParams } from "@/features/study/schemas/study-schema";
+import { createClient } from "@/lib/supabase/server";
+
+export default async function StudyModePage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<Record<string, string | string[] | undefined>> }>) {
+  const source = parseStudySessionParams(await searchParams);
+  if (!source) redirect("/study");
+  const supabase = await createClient();
+  const cardIds = await collectStudyCardIds(supabase, source);
+  return (
+    <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
+      <h1 className="text-2xl font-bold sm:text-3xl">Chọn chế độ học</h1>
+      <StudyModeSelect source={source} totalCards={cardIds.length} />
+    </main>
+  );
+}

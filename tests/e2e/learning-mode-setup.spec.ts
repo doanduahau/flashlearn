@@ -25,31 +25,44 @@ async function createCards(page: Page, name: string, count: number): Promise<voi
 }
 
 test.describe("Shared learning-mode setup", () => {
-  test("Học page has two top tabs and the play area links to Runner", async ({ page }) => {
+  test("Học page has no tabs and the mode cards live behind Bắt đầu học", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("ia_study"));
     await importSet(page, "Bộ IA");
 
     await page.goto("/study");
 
-    const traditional = page.getByRole("link", { name: "Học truyền thống" });
-    const play = page.getByRole("link", { name: "Vừa học vừa chơi" });
-    await expect(traditional).toHaveAttribute("aria-current", "page");
-    await expect(play).toBeVisible();
+    // No traditional/play tabs remain on /study.
+    await expect(page.getByRole("link", { name: "Học truyền thống" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Vừa học vừa chơi" })).toHaveCount(0);
 
-    // Traditional study has no Chưa làm / Câu sai / Ngẫu nhiên filter.
+    // No Chưa làm / Câu sai / Ngẫu nhiên filter on /study.
     await expect(page.getByRole("button", { name: "Chưa làm" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Câu sai" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Ngẫu nhiên" })).toHaveCount(0);
 
-    await play.click();
-    await expect(play).toHaveAttribute("aria-current", "page");
-    const memoryLink = page.getByRole("link", { name: /Memory Matching/ });
-    await expect(memoryLink).toHaveAttribute("href", "/memory");
+    // Bắt đầu học leads to the three mode cards.
+    await page.getByRole("button", { name: /Bắt đầu học/ }).click();
+    await expect(page).toHaveURL(/\/study\/mode\?all=1$/);
+    await expect(page.getByRole("heading", { name: "Lật thẻ" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Memory matching" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Capy runner" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Memory Matching" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Capy Runner/ })).toHaveCount(0);
+  });
 
-    const runnerLink = page.getByRole("link", { name: /Capy Runner/ });
-    await expect(runnerLink).toHaveAttribute("href", "/runner");
-    await expect(page.getByText("Sắp ra mắt")).toHaveCount(0);
+  test("Memory and Runner mode cards are disabled below 12 cards with a clear notice", async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("ia_mode_min"));
+    await createCards(page, "Bộ ít thẻ", 7);
+
+    await page.goto("/study");
+    await page.getByRole("button", { name: /Bắt đầu học/ }).click();
+    await expect(page).toHaveURL(/\/study\/mode/);
+    await expect(page.getByRole("button", { name: "Bắt đầu lật thẻ" })).toBeEnabled();
+    await expect(page.getByText("Cần tối thiểu 12 thẻ — phạm vi hiện có 7 thẻ")).toHaveCount(2);
   });
 
   test("Kiểm tra tabs are shared between Trắc nghiệm and Match", async ({ page }) => {
@@ -78,7 +91,7 @@ test.describe("Shared learning-mode setup", () => {
     await signUpAndConfirm(page, uniqueEmail("ia_filter"));
     await importSet(page, "Bộ IA filter");
 
-    for (const route of ["/quiz", "/match", "/memory", "/runner"]) {
+    for (const route of ["/quiz", "/match"]) {
       await page.goto(route);
       await expect(page.getByRole("button", { name: "Chưa làm" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Câu sai" })).toBeVisible();
@@ -87,6 +100,14 @@ test.describe("Shared learning-mode setup", () => {
       await expect(page.getByRole("button", { name: "Chưa", exact: true })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Sai", exact: true })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Chưa kiểm tra" })).toHaveCount(0);
+    }
+
+    // Memory and Runner no longer expose a filter; they self-prioritize.
+    for (const route of ["/memory", "/runner"]) {
+      await page.goto(route);
+      await expect(page.getByRole("button", { name: "Chưa làm" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Câu sai" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Ngẫu nhiên" })).toHaveCount(0);
     }
   });
 

@@ -5,7 +5,6 @@ import { randomInt } from "node:crypto";
 import { memoryStartSchema } from "@/features/memory/schemas/memory-schema";
 import type { MemoryCard, StartedMemorySession } from "@/features/memory/types/memory-types";
 import { buildMemorySession, getMemoryEligibility } from "@/features/memory/utils/memory-session";
-import { applyLearningFilter } from "@/features/learning-modes/types";
 import {
   loadUncoveredIds,
   loadWrongAnswerCardIds,
@@ -39,11 +38,10 @@ export async function getMemoryAvailability(input: unknown): Promise<MemoryAvail
 
   try {
     const cards = await loadCards(supabase, parsed.data);
-    const filtered = await filterCardsByMode(cards, parsed.data.filter);
-    const eligibility = getMemoryEligibility(filtered);
+    const eligibility = getMemoryEligibility(cards);
     return {
       ok: true,
-      eligibleCount: filtered.length,
+      eligibleCount: cards.length,
       eligibility,
     };
   } catch {
@@ -52,19 +50,19 @@ export async function getMemoryAvailability(input: unknown): Promise<MemoryAvail
 }
 
 /**
- * Strict pool filtering: unseen/wrong never backfill with covered/never-wrong
- * cards. Random keeps the whole valid pool and is only coverage-aware during
- * selection.
+ * Reads the shared priority inputs without changing coverage. Session creation
+ * chooses latest-wrong cards first, then uncovered cards, then the remainder.
  */
-async function filterCardsByMode(
-  cards: MemoryCard[],
-  filter: "unseen" | "wrong" | "random",
-): Promise<MemoryCard[]> {
+async function loadPriorityIds(cards: MemoryCard[]): Promise<{
+  wrong: Set<string>;
+  uncovered: Set<string>;
+}> {
   const allIds = cards.map((card) => card.id);
-  const uncovered = new Set(await loadUncoveredIds("memory", allIds));
-  const wrong = await loadWrongAnswerCardIds(allIds);
-  const eligibleIds = new Set(applyLearningFilter(filter, allIds, uncovered, wrong));
-  return cards.filter((card) => eligibleIds.has(card.id));
+  const [uncovered, wrong] = await Promise.all([
+    loadUncoveredIds("memory", allIds),
+    loadWrongAnswerCardIds(allIds),
+  ]);
+  return { wrong, uncovered: new Set(uncovered) };
 }
 
 export async function startMemoryCoverageSession(
@@ -80,8 +78,7 @@ export async function startMemoryCoverageSession(
 
   try {
     const cards = await loadCards(supabase, parsed.data);
-    const filtered = await filterCardsByMode(cards, parsed.data.filter);
-    const eligibility = getMemoryEligibility(filtered);
+    const eligibility = getMemoryEligibility(cards);
     if (!eligibility.availableCounts.includes(parsed.data.questionCount)) {
       return {
         ok: false,
@@ -89,20 +86,18 @@ export async function startMemoryCoverageSession(
       };
     }
 
-    const priority =
-      parsed.data.filter === "random"
-        ? new Set(
-            await loadUncoveredIds(
-              "memory",
-              filtered.map((card) => card.id),
-            ),
-          )
-        : undefined;
+    const priority = await loadPriorityIds(cards);
+    const priorityRanks = new Map(
+      cards.map((card) => [
+        card.id,
+        priority.wrong.has(card.id) ? 0 : priority.uncovered.has(card.id) ? 1 : 2,
+      ]),
+    );
     const batches = buildMemorySession(
-      filtered,
+      cards,
       parsed.data.questionCount,
       () => randomInt(0, 2 ** 32) / 2 ** 32,
-      priority,
+      priorityRanks,
     );
     if (!batches) return { ok: false, error: "Không thể tạo phiên Memory với phạm vi hiện tại." };
 
@@ -114,7 +109,7 @@ export async function startMemoryCoverageSession(
       p_user_id: userId,
       p_mode: "memory",
       p_session_card_ids: sessionCardIds,
-      p_scope_card_ids: filtered.map((card) => card.id),
+      p_scope_card_ids: cards.map((card) => card.id),
     });
     if (error || !coverageSessionId) throw new Error("coverage session creation failed");
 
@@ -124,7 +119,7 @@ export async function startMemoryCoverageSession(
         coverageSessionId,
         batches,
         selectedCount: sessionCardIds.length,
-        eligibleCount: filtered.length,
+        eligibleCount: cards.length,
       },
     };
   } catch {
@@ -145,38 +140,43 @@ async function loadCards(
       .order("position", { ascending: true });
     if (error) throw new Error("memory card query failed");
     rows = data ?? [];
-  } else if (source.setIds.length) {
-    const { data: sources, error: sourceError } = await supabase
-      .from("flashcard_sets")
-      .select("id")
-      .in("id", source.setIds);
-    if (sourceError || (sources ?? []).length !== source.setIds.length) {
-      throw new Error("memory source ownership failed");
-    }
-    const { data, error } = await supabase
-      .from("flashcards")
-      .select("id, front, back")
-      .in("set_id", source.setIds)
-      .order("set_id", { ascending: true })
-      .order("position", { ascending: true });
-    if (error) throw new Error("memory set card query failed");
-    rows = data ?? [];
   } else {
-    const { data: sources, error: sourceError } = await supabase
-      .from("special_collections")
-      .select("id")
-      .in("id", source.collectionIds);
-    if (sourceError || (sources ?? []).length !== source.collectionIds.length) {
-      throw new Error("memory source ownership failed");
+    if (source.setIds.length) {
+      const { data: sources, error: sourceError } = await supabase
+        .from("flashcard_sets")
+        .select("id")
+        .in("id", source.setIds);
+      if (sourceError || (sources ?? []).length !== source.setIds.length) {
+        throw new Error("memory source ownership failed");
+      }
+      const { data, error } = await supabase
+        .from("flashcards")
+        .select("id, front, back")
+        .in("set_id", source.setIds)
+        .order("set_id", { ascending: true })
+        .order("position", { ascending: true });
+      if (error) throw new Error("memory set card query failed");
+      rows.push(...(data ?? []));
     }
-    const { data, error } = await supabase
-      .from("special_collection_items")
-      .select("flashcard_id, flashcards(id, front, back)")
-      .in("collection_id", source.collectionIds);
-    if (error) throw new Error("memory collection card query failed");
-    rows = (data ?? [])
-      .map((item) => item.flashcards)
-      .filter((card): card is { id: string; front: string; back: string } => card !== null);
+    if (source.collectionIds.length) {
+      const { data: sources, error: sourceError } = await supabase
+        .from("special_collections")
+        .select("id")
+        .in("id", source.collectionIds);
+      if (sourceError || (sources ?? []).length !== source.collectionIds.length) {
+        throw new Error("memory source ownership failed");
+      }
+      const { data, error } = await supabase
+        .from("special_collection_items")
+        .select("flashcard_id, flashcards(id, front, back)")
+        .in("collection_id", source.collectionIds);
+      if (error) throw new Error("memory collection card query failed");
+      rows.push(
+        ...(data ?? [])
+          .map((item) => item.flashcards)
+          .filter((card): card is { id: string; front: string; back: string } => card !== null),
+      );
+    }
   }
 
   const seen = new Set<string>();

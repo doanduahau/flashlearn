@@ -15,7 +15,6 @@ describe("runner session replay URL", () => {
       setIds: [SET_A, SET_B],
       collectionIds: [],
       questionCount: 18 as const,
-      filter: "wrong" as const,
       difficulty: "hard" as const,
     };
     const href = buildRunnerSessionHref("00000000-0000-4000-8000-000000000010", source);
@@ -24,16 +23,25 @@ describe("runner session replay URL", () => {
     expect(parseRunnerReplaySource(params)).toEqual(source);
   });
 
-  it("rejects replay params that mix source areas or omit required fields", () => {
+  it("round-trips mixed regular and special sources", () => {
+    const source = {
+      all: false,
+      setIds: [SET_A],
+      collectionIds: [SET_B],
+      questionCount: 12 as const,
+      difficulty: "medium" as const,
+    };
+    const href = buildRunnerSessionHref("00000000-0000-4000-8000-000000000010", source);
+    const params = Object.fromEntries(new URL(`https://flashlearn.local${href}`).searchParams);
+
+    expect(parseRunnerReplaySource(params)).toEqual(source);
+  });
+
+  it("rejects replay params that mix all with sources or omit required fields", () => {
     expect(
-      parseRunnerReplaySource({
-        sets: SET_A,
-        collections: SET_B,
-        count: "12",
-        filter: "unseen",
-        difficulty: "medium",
-      }),
+      parseRunnerReplaySource({ all: "1", sets: SET_A, count: "12", difficulty: "medium" }),
     ).toBeNull();
     expect(parseRunnerReplaySource({ all: "1", count: "12" })).toBeNull();
+    expect(parseRunnerReplaySource({ all: "0", count: "12", difficulty: "medium" })).toBeNull();
   });
 });

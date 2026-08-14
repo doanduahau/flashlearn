@@ -221,7 +221,6 @@ describe("RunnerSession", () => {
       setIds: [],
       collectionIds: [],
       questionCount: 12 as const,
-      filter: "unseen" as const,
       difficulty: "medium" as const,
     };
     renderSession(false, source);
@@ -232,7 +231,7 @@ describe("RunnerSession", () => {
 
     await waitFor(() => expect(mocks.startRunner).toHaveBeenCalledWith(source));
     expect(mocks.push).toHaveBeenCalledWith(
-      "/runner/session?sessionId=00000000-0000-4000-8000-000000000099&count=12&filter=unseen&difficulty=medium&all=1",
+      "/runner/session?sessionId=00000000-0000-4000-8000-000000000099&count=12&difficulty=medium&all=1",
     );
   });
 
@@ -251,7 +250,6 @@ describe("RunnerSession", () => {
       setIds: [],
       collectionIds: [],
       questionCount: 12,
-      filter: "unseen",
       difficulty: "medium",
     });
 
@@ -281,7 +279,6 @@ describe("RunnerSession", () => {
       setIds: [],
       collectionIds: [],
       questionCount: 12 as const,
-      filter: "unseen" as const,
       difficulty: "medium" as const,
     };
     const firstSession = renderSession(false, source);

@@ -22,6 +22,12 @@ function uniqueById(cards: readonly MemoryCard[]): MemoryCard[] {
 }
 
 type BatchState = { values: Set<string>; cards: MemoryCard[] };
+type Priority = ReadonlyMap<string, number> | ReadonlySet<string>;
+
+function priorityRank(priority: Priority | undefined, cardId: string): number {
+  if (!priority) return 2;
+  return "get" in priority ? (priority.get(cardId) ?? 2) : priority.has(cardId) ? 1 : 2;
+}
 
 /**
  * A card is Memory-eligible only when its own Front and Back are distinct after
@@ -36,8 +42,8 @@ export function isMemoryEligibleCard(card: MemoryCard): boolean {
  * Selects `batchCount * 6` cards and partitions them into six-card batches
  * whose combined twelve content values are all distinct after normalization.
  *
- * Uncovered cards are tried first (coverage priority), then covered cards are
- * ordered by value rarity to help feasibility. Selection + partition share one
+ * Latest-wrong cards are tried first, then uncovered cards, then the remaining
+ * cards ordered by value rarity to help feasibility. Selection + partition share one
  * bounded backtracking pass, so availability is a property of the card set
  * rather than a lucky shuffle order.
  */
@@ -45,13 +51,14 @@ function selectAndPartition(
   eligible: readonly MemoryCard[],
   batchCount: number,
   random: () => number,
-  priorityIds?: ReadonlySet<string>,
+  priorityRanks?: Priority,
 ): MemoryCard[][] | null {
   const target = batchCount * MEMORY_PAIR_COUNT;
   if (eligible.length < target) return null;
 
-  const uncovered = eligible.filter((card) => priorityIds?.has(card.id));
-  const covered = eligible.filter((card) => !priorityIds?.has(card.id));
+  const latestWrong = eligible.filter((card) => priorityRank(priorityRanks, card.id) === 0);
+  const uncovered = eligible.filter((card) => priorityRank(priorityRanks, card.id) === 1);
+  const remaining = eligible.filter((card) => priorityRank(priorityRanks, card.id) >= 2);
 
   const valueFrequency = new Map<string, number>();
   for (const card of eligible) {
@@ -66,8 +73,9 @@ function selectAndPartition(
     );
 
   const ordered = [
+    ...shuffle(latestWrong, random),
     ...shuffle(uncovered, random),
-    ...shuffle(covered, random).sort((a, b) => rarity(a) - rarity(b) || a.id.localeCompare(b.id)),
+    ...shuffle(remaining, random).sort((a, b) => rarity(a) - rarity(b) || a.id.localeCompare(b.id)),
   ];
 
   const batches: BatchState[] = Array.from({ length: batchCount }, () => ({
@@ -128,10 +136,10 @@ export function buildMemoryBatches(
   cards: readonly MemoryCard[],
   batchCount: number,
   random: () => number,
-  priorityIds?: ReadonlySet<string>,
+  priorityRanks?: Priority,
 ): MemoryBatch[] | null {
   const eligible = uniqueById(cards).filter(isMemoryEligibleCard);
-  const partitions = selectAndPartition(eligible, batchCount, random, priorityIds);
+  const partitions = selectAndPartition(eligible, batchCount, random, priorityRanks);
   if (!partitions) return null;
   return partitions.map((batch) => ({ tiles: tilesForBatch(batch, random) }));
 }
@@ -157,9 +165,9 @@ export function buildMemorySession(
   eligibleCards: readonly MemoryCard[],
   questionCount: number,
   random: () => number,
-  priorityIds?: ReadonlySet<string>,
+  priorityRanks?: Priority,
 ): MemoryBatch[] | null {
   const batchCount = questionCount / MEMORY_PAIR_COUNT;
   if (!Number.isInteger(batchCount)) return null;
-  return buildMemoryBatches(eligibleCards, batchCount, random, priorityIds);
+  return buildMemoryBatches(eligibleCards, batchCount, random, priorityRanks);
 }

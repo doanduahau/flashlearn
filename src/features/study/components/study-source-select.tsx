@@ -17,6 +17,8 @@ type SourceParams = {
   collectionIds: string[];
 };
 
+type InitialSource = SourceParams & { all: boolean };
+
 function sameSources(a: SourceParams, b: SourceParams): boolean {
   return (
     a.setIds.length === b.setIds.length &&
@@ -31,15 +33,16 @@ export function StudySourceSelect({
   sets,
   collections,
   totalCards,
+  initialSource,
 }: Readonly<{
   sourcePage?: SourcePage;
   sets?: { id: string; name: string; cardCount: number }[];
   collections?: { id: string; name: string; cardCount: number }[];
   totalCards: number;
+  initialSource?: InitialSource;
 }>) {
   const router = useRouter();
-  const [all, setAll] = useState(true);
-  const [selected, setSelected] = useState<Map<string, SourceOption>>(() => new Map());
+  const [all, setAll] = useState(initialSource?.all ?? true);
   const [customCount, setCustomCount] = useState<{
     count: number;
     computedFor: SourceParams;
@@ -57,6 +60,15 @@ export function StudySourceSelect({
     query: "",
     type: "all",
   };
+  const [selected, setSelected] = useState<Map<string, SourceOption>>(() => {
+    if (!initialSource || initialSource.all) return new Map();
+    const selectedIds = new Set([...initialSource.setIds, ...initialSource.collectionIds]);
+    return new Map(
+      resolvedSourcePage.sources
+        .filter((source) => selectedIds.has(source.id))
+        .map((source) => [`${source.kind}:${source.id}`, source]),
+    );
+  });
 
   const selectedSources = useMemo(() => [...selected.values()], [selected]);
   const currentSources = useMemo<SourceParams>(
@@ -119,7 +131,7 @@ export function StudySourceSelect({
         setError("Chưa có thẻ nào để học.");
         return;
       }
-      router.push("/study/session?all=1");
+      router.push("/study/mode?all=1");
       return;
     }
     startTransition(async () => {
@@ -136,7 +148,7 @@ export function StudySourceSelect({
       if (currentSources.setIds.length) query.set("sets", currentSources.setIds.join(","));
       if (currentSources.collectionIds.length)
         query.set("collections", currentSources.collectionIds.join(","));
-      router.push(`/study/session?${query.toString()}`);
+      router.push(`/study/mode?${query.toString()}`);
     });
   }
 

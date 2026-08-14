@@ -105,6 +105,8 @@ test.describe("Study mode", () => {
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
     await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
+    await expect(page).toHaveURL(/\/study\/mode\?sets=/);
+    await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
 
     await expect(page).toHaveURL(/\/study\/session\?sets=/);
     await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuemax", "2");
@@ -148,6 +150,8 @@ test.describe("Study mode", () => {
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
     await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
+    await expect(page).toHaveURL(/\/study\/mode/);
+    await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
     await expect(page).toHaveURL(/\/study\/session/);
 
     expect(
@@ -185,6 +189,8 @@ test.describe("Study mode", () => {
 
     await page.goto("/study");
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
+    await expect(page).toHaveURL(/\/study\/mode\?all=1$/);
+    await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
     await expect(page).toHaveURL(/\/study\/session\?all=1$/);
     await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuemax", "4");
     await expect(page.getByText("1 / 4")).toBeVisible();
@@ -207,6 +213,8 @@ test.describe("Study mode", () => {
 
     await page.goto("/study");
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
+    await expect(page).toHaveURL(/\/study\/mode/);
+    await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
     await expect(page).toHaveURL(/\/study\/session/);
     await expect(page.getByText("1 / 4")).toBeVisible();
 
@@ -244,6 +252,8 @@ test.describe("Study mode", () => {
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
     await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
+    await expect(page).toHaveURL(/\/study\/mode/);
+    await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
     await expect(page).toHaveURL(/\/study\/session/);
 
     const collectionTrigger = page.getByRole("button", { name: "Thêm vào bộ đặc biệt" });

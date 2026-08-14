@@ -19,7 +19,7 @@ async function startRunnerSession(page: Page): Promise<void> {
   const params = new URL(page.url()).searchParams;
   expect(params.get("all")).toBe("1");
   expect(params.get("count")).toBe("12");
-  expect(params.get("filter")).toBe("unseen");
+  expect(params.get("filter")).toBeNull();
   expect(params.get("difficulty")).toBe("medium");
 }
 

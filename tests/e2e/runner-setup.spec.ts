@@ -70,7 +70,7 @@ test.describe("Capy Runner setup", () => {
     await createCards(page, "Bộ 7 thẻ", 7);
 
     await page.goto("/runner");
-    await expect(page.getByText("Không đủ thẻ chưa làm để bắt đầu.")).toBeVisible();
+    await expect(page.getByText("Không đủ thẻ hợp lệ để bắt đầu Runner.")).toBeVisible();
     await expect(page.getByRole("button", { name: "12 câu" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Bắt đầu Runner" })).toBeDisabled();
   });

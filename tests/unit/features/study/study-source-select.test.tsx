@@ -49,7 +49,7 @@ describe("StudySourceSelect", () => {
     const user = userEvent.setup();
     render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
     await user.click(screen.getByRole("button", { name: /Bắt đầu học/ }));
-    expect(mocks.push).toHaveBeenCalledWith("/study/session?all=1");
+    expect(mocks.push).toHaveBeenCalledWith("/study/mode?all=1");
   });
 
   it("prevents starting an all-cards session when there are no cards", () => {
@@ -119,7 +119,20 @@ describe("StudySourceSelect", () => {
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
     await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /Bắt đầu học/ }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(`/study/session?sets=${SET_A_ID}`));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(`/study/mode?sets=${SET_A_ID}`));
+  });
+
+  it("restores custom source selection passed back from mode selection", () => {
+    render(
+      <StudySourceSelect
+        sets={SETS}
+        collections={COLLECTIONS}
+        totalCards={4}
+        initialSource={{ all: false, setIds: [SET_A_ID], collectionIds: [] }}
+      />,
+    );
+    expect(screen.getByRole("checkbox", { name: /Bộ A/ })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Tất cả 4 thẻ" })).not.toBeChecked();
   });
 
   it("re-checks the count on start and shows an error when the selection is empty", async () => {

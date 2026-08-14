@@ -1,4 +1,3 @@
-import { learningFilters, type LearningFilter } from "@/features/learning-modes/types";
 import {
   RUNNER_QUESTION_COUNTS,
   type RunnerDifficulty,
@@ -35,14 +34,12 @@ export function parseRunnerReplaySource(
   const setIds = parseIds(valueOf(searchParams.sets));
   const collectionIds = parseIds(valueOf(searchParams.collections));
   const count = Number(valueOf(searchParams.count));
-  const filter = valueOf(searchParams.filter);
   const difficulty = valueOf(searchParams.difficulty);
 
   if (
     setIds === null ||
     collectionIds === null ||
     !RUNNER_QUESTION_COUNTS.includes(count as RunnerQuestionCount) ||
-    !learningFilters.includes(filter as LearningFilter) ||
     !RUNNER_DIFFICULTIES.includes(difficulty as RunnerDifficulty)
   ) {
     return null;
@@ -50,7 +47,7 @@ export function parseRunnerReplaySource(
 
   const hasSets = setIds.length > 0;
   const hasCollections = collectionIds.length > 0;
-  if ((all && (hasSets || hasCollections)) || (!all && hasSets === hasCollections)) {
+  if ((all && (hasSets || hasCollections)) || (!all && !hasSets && !hasCollections)) {
     return null;
   }
 
@@ -59,7 +56,6 @@ export function parseRunnerReplaySource(
     setIds,
     collectionIds,
     questionCount: count as RunnerQuestionCount,
-    filter: filter as LearningFilter,
     difficulty: difficulty as RunnerDifficulty,
   };
 }
@@ -71,13 +67,12 @@ export function buildRunnerSessionHref(
   const params = new URLSearchParams({
     sessionId: runnerSessionId,
     count: String(source.questionCount),
-    filter: source.filter,
     difficulty: source.difficulty,
   });
 
   if (source.all) params.set("all", "1");
-  else if (source.setIds.length > 0) params.set("sets", source.setIds.join(","));
-  else params.set("collections", source.collectionIds.join(","));
+  if (source.setIds.length > 0) params.set("sets", source.setIds.join(","));
+  if (source.collectionIds.length > 0) params.set("collections", source.collectionIds.join(","));
 
   return `/runner/session?${params.toString()}`;
 }

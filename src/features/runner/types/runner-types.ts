@@ -1,5 +1,3 @@
-import type { LearningFilter } from "@/features/learning-modes/types";
-
 export type RunnerQuestion = {
   flashcardId: string;
   front: string;
@@ -24,7 +22,6 @@ export type RunnerReplaySource = {
   setIds: string[];
   collectionIds: string[];
   questionCount: RunnerQuestionCount;
-  filter: LearningFilter;
   difficulty: RunnerDifficulty;
 };
 

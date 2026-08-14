@@ -11,16 +11,14 @@ function validInput() {
     setIds: [],
     collectionIds: [],
     questionCount: 12,
-    filter: "unseen",
     difficulty: "medium",
   };
 }
 
 describe("runnerStartSchema", () => {
-  it("defaults difficulty to medium and filter to unseen", () => {
+  it("defaults difficulty to medium", () => {
     const parsed = runnerStartSchema.parse({ all: true, questionCount: 12 });
     expect(parsed.difficulty).toBe("medium");
-    expect(parsed.filter).toBe("unseen");
   });
 
   it("accepts each difficulty value", () => {
@@ -53,14 +51,14 @@ describe("runnerStartSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects mixing regular and special sources", () => {
+  it("accepts mixing regular and special sources", () => {
     const result = runnerStartSchema.safeParse({
       ...validInput(),
       all: false,
       setIds: [SET_ID],
       collectionIds: [COLLECTION_ID],
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it("rejects an empty selection when not all", () => {

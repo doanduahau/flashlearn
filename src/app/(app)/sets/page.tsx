@@ -49,7 +49,7 @@ export default async function SetsPage({
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
       <h1 className="text-2xl font-bold sm:text-3xl">Bộ flashcard</h1>
-      <div className="mt-4 grid gap-4 sm:mt-6 sm:grid-cols-2 sm:items-stretch">
+      <div className="mt-4 grid min-h-[calc(100dvh-16rem)] grid-rows-2 gap-4 sm:mt-6 sm:min-h-0 sm:grid-cols-2 sm:grid-rows-none sm:items-stretch">
         <SetLauncherCard
           href="/sets/create"
           mascotState="point-right"

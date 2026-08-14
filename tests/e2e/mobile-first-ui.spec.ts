@@ -111,9 +111,10 @@ test.describe("Mobile-first UI — Sets launcher", () => {
       expect(libraryBox.y).toBeGreaterThanOrEqual(createBox.y + createBox.height - 4);
     }
 
-    // The first card roughly fills one mobile screen.
-    if (createBox) {
-      expect(createBox.height).toBeGreaterThan(500);
+    // Both cards fit within one mobile screen (each roughly half the viewport).
+    if (createBox && libraryBox) {
+      expect(createBox.height).toBeLessThan(MOBILE.height / 2 + 80);
+      expect(libraryBox.y + libraryBox.height).toBeLessThanOrEqual(MOBILE.height);
     }
 
     // No horizontal overflow.

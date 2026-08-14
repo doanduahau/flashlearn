@@ -25,7 +25,7 @@ export type StudyModeSource = {
 type Availability = { count: number; options: number[] };
 
 const PRIMARY_ACTION =
-  "min-h-11 rounded-xl bg-primary px-6 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50";
+  "min-h-12 w-full rounded-xl bg-primary px-6 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-opacity";
 
 function sourceQuery(source: StudyModeSource): string {
   const params = new URLSearchParams();
@@ -115,7 +115,7 @@ export function StudyModeSelect({
 
   return (
     <section aria-label="Chọn chế độ học" className="flex flex-1 flex-col gap-3">
-      <div className="flex justify-end">
+      <div className="flex justify-start">
         <BackButton fallbackHref={`/study?${query}`} label="Quay lại chọn nguồn" />
       </div>
 
@@ -124,8 +124,8 @@ export function StudyModeSelect({
           <MascotImage
             level={1}
             state="normal"
-            size={40}
-            className="size-10 shrink-0 object-contain"
+            size={64}
+            className="size-16 shrink-0 object-contain"
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold">Lật thẻ</h2>
@@ -135,7 +135,7 @@ export function StudyModeSelect({
           </div>
           <p className="shrink-0 text-sm font-medium">{totalCards} thẻ</p>
         </div>
-        <div className="mt-auto flex justify-center pt-3">
+        <div className="mt-auto pt-3">
           <button
             type="button"
             aria-label="Bắt đầu lật thẻ"
@@ -156,8 +156,8 @@ export function StudyModeSelect({
           <MascotImage
             level={1}
             state="thinking"
-            size={40}
-            className="size-10 shrink-0 object-contain"
+            size={64}
+            className="size-16 shrink-0 object-contain"
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold">Memory matching</h2>
@@ -168,21 +168,20 @@ export function StudyModeSelect({
         {memory === null ? (
           <p className="mt-auto pt-3 text-center text-sm text-text-secondary">Đang tính số thẻ…</p>
         ) : memoryOptions.length && selectedMode === "memory" ? (
-          <div
-            className="mt-auto flex flex-wrap justify-center gap-2 pt-3"
-            aria-label="Số câu Memory"
-          >
-            {memoryOptions.map((value) => (
-              <button
-                key={value}
-                type="button"
-                className="min-h-11 rounded-xl border border-border-soft px-3 aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft"
-                aria-pressed={selectedMemoryCount === value}
-                onClick={() => setMemoryCount(value as 12 | 18 | 24)}
-              >
-                {value} câu
-              </button>
-            ))}
+          <div className="mt-auto flex flex-col gap-2 pt-3" aria-label="Số câu Memory">
+            <div className="flex flex-wrap justify-center gap-2">
+              {memoryOptions.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="min-h-11 rounded-xl border border-border-soft px-4 aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft"
+                  aria-pressed={selectedMemoryCount === value}
+                  onClick={() => setMemoryCount(value as 12 | 18 | 24)}
+                >
+                  {value} câu
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               aria-label="Bắt đầu Memory"
@@ -195,7 +194,7 @@ export function StudyModeSelect({
             </button>
           </div>
         ) : memoryOptions.length ? (
-          <div className="mt-auto flex justify-center pt-3">
+          <div className="mt-auto pt-3">
             <button
               type="button"
               aria-label="Bắt đầu Memory"
@@ -222,8 +221,8 @@ export function StudyModeSelect({
           <MascotImage
             level={1}
             state="run"
-            size={40}
-            className="size-10 shrink-0 object-contain"
+            size={64}
+            className="size-16 shrink-0 object-contain"
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold">Capy runner</h2>
@@ -234,33 +233,33 @@ export function StudyModeSelect({
         {runner === null ? (
           <p className="mt-auto pt-3 text-center text-sm text-text-secondary">Đang tính số thẻ…</p>
         ) : runnerOptions.length && selectedMode === "runner" ? (
-          <div className="mt-auto pt-3">
+          <div className="mt-auto flex flex-col gap-2 pt-3">
             <DifficultySelector value={difficulty} onChange={setDifficulty} />
-            <div className="mt-3 flex flex-wrap justify-center gap-2" aria-label="Số câu Runner">
+            <div className="mt-1 flex flex-wrap justify-center gap-2" aria-label="Số câu Runner">
               {runnerOptions.map((value) => (
                 <button
                   key={value}
                   type="button"
-                  className="min-h-11 rounded-xl border border-border-soft px-3 aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft"
+                  className="min-h-11 rounded-xl border border-border-soft px-4 aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft"
                   aria-pressed={selectedRunnerCount === value}
                   onClick={() => setRunnerCount(value as RunnerQuestionCount)}
                 >
                   {value} câu
                 </button>
               ))}
-              <button
-                type="button"
-                aria-label="Bắt đầu Runner"
-                disabled={runnerPending}
-                className={cn(PRIMARY_ACTION, "disabled:opacity-50")}
-                onClick={() => void startRunner()}
-              >
-                {runnerPending ? "Đang mở…" : "Bắt đầu"}
-              </button>
             </div>
+            <button
+              type="button"
+              aria-label="Bắt đầu Runner"
+              disabled={runnerPending}
+              className={cn(PRIMARY_ACTION)}
+              onClick={() => void startRunner()}
+            >
+              {runnerPending ? "Đang mở…" : "Bắt đầu"}
+            </button>
           </div>
         ) : runnerOptions.length ? (
-          <div className="mt-auto flex justify-center pt-3">
+          <div className="mt-auto pt-3">
             <button
               type="button"
               aria-label="Bắt đầu Runner"

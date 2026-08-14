@@ -148,7 +148,9 @@ export function StudySession({
 
   return (
     <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
-      <BackButton fallbackHref={exitHref} label="Quay lại" />
+      <div className="flex justify-start">
+        <BackButton fallbackHref={exitHref} label="Quay lại" />
+      </div>
 
       <div
         role="progressbar"

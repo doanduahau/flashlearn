@@ -1,53 +1,67 @@
+import type { ComponentProps } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { RunnerEndOverlay } from "@/features/runner/components/runner-end-overlay";
 
+function renderOverlay(overrides: Partial<ComponentProps<typeof RunnerEndOverlay>> = {}) {
+  const props: ComponentProps<typeof RunnerEndOverlay> = {
+    status: "completed",
+    elapsedMs: 61_000,
+    level: 1,
+    mascotState: "congrats",
+    difficultyLabel: "Vừa",
+    questionCount: 12,
+    completedCount: 12,
+    best: { bestMs: 60_000, isNewBest: true },
+    persistenceError: null,
+    replayPending: false,
+    onBack: vi.fn(),
+    onReplay: vi.fn(),
+    onRetry: null,
+    ...overrides,
+  };
+  return { props, ...render(<RunnerEndOverlay {...props} />) };
+}
+
 describe("RunnerEndOverlay", () => {
-  it("renders the game-over heading with a back button", () => {
-    const onBack = vi.fn();
-    render(
-      <RunnerEndOverlay
-        status="game-over"
-        elapsedMs={0}
-        level={1}
-        mascotState="sad"
-        onBack={onBack}
-      />,
-    );
-
-    expect(screen.getByText("Hết mạng!")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Quay lại" }));
-    expect(onBack).toHaveBeenCalledTimes(1);
-  });
-
-  it("renders the completed heading with the elapsed time", () => {
-    render(
-      <RunnerEndOverlay
-        status="completed"
-        elapsedMs={61_000}
-        level={1}
-        mascotState="congrats"
-        onBack={() => {}}
-      />,
-    );
+  it("shows a completed new personal best and replay controls", () => {
+    renderOverlay();
 
     expect(screen.getByText("Hoàn thành!")).toBeInTheDocument();
     expect(screen.getByText(/Thời gian 01:01/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Quay lại" })).toBeInTheDocument();
+    expect(screen.getByText(/Kỷ lục mới! 01:00/)).toBeInTheDocument();
+    expect(screen.getByText("12 câu · Vừa")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Chơi lại" })).toBeInTheDocument();
   });
 
-  it("renders the sad mascot for a completed game with many mistakes", () => {
-    const { container } = render(
-      <RunnerEndOverlay
-        status="completed"
-        elapsedMs={10_000}
-        level={3}
-        mascotState="sad"
-        onBack={() => {}}
-      />,
-    );
-    const image = container.querySelector("img");
-    expect(image).toHaveAttribute("src", "/mascot/level-3/sad.png");
+  it("shows the current best when the completed result is not new", () => {
+    renderOverlay({ best: { bestMs: 58_000, isNewBest: false } });
+
+    expect(screen.getByText(/Kỷ lục: 00:58/)).toBeInTheDocument();
+  });
+
+  it("does not show a best or replay button after game over", () => {
+    renderOverlay({
+      status: "game-over",
+      elapsedMs: 0,
+      mascotState: "sad",
+      completedCount: 3,
+      best: null,
+      onReplay: null,
+    });
+
+    expect(screen.getByText("Hết mạng!")).toBeInTheDocument();
+    expect(screen.getByText("Đã hoàn thành 3/12 câu · 12 câu · Vừa")).toBeInTheDocument();
+    expect(screen.queryByText(/Kỷ lục/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Chơi lại" })).toBeNull();
+  });
+
+  it("keeps the back action available", () => {
+    const onBack = vi.fn();
+    renderOverlay({ onBack, onReplay: null });
+
+    fireEvent.click(screen.getByRole("button", { name: "Quay lại" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
   });
 });

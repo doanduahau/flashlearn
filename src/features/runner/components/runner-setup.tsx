@@ -14,7 +14,12 @@ import { SourceBrowser } from "@/features/source-selection/components/source-bro
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { DifficultySelector } from "@/features/runner/components/difficulty-selector";
 import { getRunnerAvailability, startRunnerSession } from "@/features/runner/server/actions";
-import type { RunnerDifficulty, RunnerQuestionCount } from "@/features/runner/types/runner-types";
+import type {
+  RunnerDifficulty,
+  RunnerQuestionCount,
+  RunnerReplaySource,
+} from "@/features/runner/types/runner-types";
+import { buildRunnerSessionHref } from "@/features/runner/utils/runner-session-url";
 
 const COUNT_DEBOUNCE_MS = 250;
 const HIDDEN_NOTICE = "Một số thẻ bị ẩn vì không đủ đáp án sai khác trong thư viện.";
@@ -153,7 +158,15 @@ export function RunnerSetup({
         setError(result.error);
         return;
       }
-      router.push(`/runner/session?sessionId=${result.session.runnerSessionId}`);
+      const replaySource: RunnerReplaySource = {
+        all,
+        setIds: currentSources.setIds,
+        collectionIds: currentSources.collectionIds,
+        questionCount: effectiveCount,
+        filter,
+        difficulty,
+      };
+      router.push(buildRunnerSessionHref(result.session.runnerSessionId, replaySource));
     })();
   }
 

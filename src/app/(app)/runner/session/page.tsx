@@ -5,6 +5,7 @@ import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { RunnerSession } from "@/features/runner/components/runner-session";
 import type { RunnerDifficulty } from "@/features/runner/types/runner-types";
 import { mapRunnerSessionRows } from "@/features/runner/utils/map-runner-session-payload";
+import { parseRunnerReplaySource } from "@/features/runner/utils/runner-session-url";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Phiên Runner" };
@@ -24,7 +25,7 @@ export default async function RunnerSessionPage({
 
   const { data: sessionRow, error: sessionError } = await supabase
     .from("runner_sessions")
-    .select("difficulty")
+    .select("difficulty, coverage_session_id")
     .eq("id", sessionId)
     .maybeSingle();
   if (sessionError || !sessionRow) redirect("/runner");
@@ -33,6 +34,7 @@ export default async function RunnerSessionPage({
     redirect("/runner");
   }
   const difficulty = sessionRow.difficulty as RunnerDifficulty;
+  const replaySource = parseRunnerReplaySource(raw);
 
   const { data, error } = await supabase.rpc("load_runner_session_questions", {
     p_runner_session_id: sessionId,
@@ -50,7 +52,17 @@ export default async function RunnerSessionPage({
 
   const mascotLevel = await loadMascotLevel(supabase);
 
-  return <RunnerSession questions={questions} difficulty={difficulty} mascotLevel={mascotLevel} />;
+  return (
+    <RunnerSession
+      key={sessionId}
+      questions={questions}
+      difficulty={difficulty}
+      mascotLevel={mascotLevel}
+      runnerSessionId={sessionId}
+      coverageSessionId={sessionRow.coverage_session_id}
+      replaySource={replaySource}
+    />
+  );
 }
 
 function SessionError() {

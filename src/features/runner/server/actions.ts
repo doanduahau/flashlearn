@@ -13,7 +13,7 @@ import {
 } from "@/features/practice-coverage/server/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { runnerStartSchema } from "../schemas/runner-schema";
+import { runnerBestTimeSchema, runnerStartSchema } from "../schemas/runner-schema";
 import {
   RUNNER_QUESTION_COUNTS,
   type RunnerCard,
@@ -43,6 +43,10 @@ export type StartRunnerSessionResult =
       ok: true;
       session: { runnerSessionId: string; selectedCount: number; eligibleCount: number };
     }
+  | { ok: false; error: string };
+
+export type SubmitRunnerBestTimeResult =
+  | { ok: true; bestMs: number; questionCount: number; isNewBest: boolean }
   | { ok: false; error: string };
 
 function poolMessage(filter: LearningFilter): string {
@@ -216,5 +220,46 @@ export async function startRunnerSession(input: unknown): Promise<StartRunnerSes
     };
   } catch {
     return { ok: false, error: "Không thể tạo phiên Runner lúc này." };
+  }
+}
+
+export async function submitRunnerBestTime(
+  runnerSessionId: string,
+  elapsedMs: number,
+): Promise<SubmitRunnerBestTimeResult> {
+  const parsed = runnerBestTimeSchema.safeParse({ runnerSessionId, elapsedMs });
+  if (!parsed.success) {
+    return { ok: false, error: "Không thể lưu kỷ lục lúc này." };
+  }
+
+  try {
+    const supabase = await createClient();
+    if (!(await authenticatedUserId(supabase))) {
+      return { ok: false, error: "Không thể lưu kỷ lục lúc này." };
+    }
+
+    const { data, error } = await supabase.rpc("submit_runner_best_time", {
+      p_runner_session_id: parsed.data.runnerSessionId,
+      p_elapsed_ms: parsed.data.elapsedMs,
+    });
+    const result = data?.[0];
+    if (
+      error ||
+      !result ||
+      typeof result.result_best_ms !== "number" ||
+      typeof result.result_question_count !== "number" ||
+      typeof result.is_new_best !== "boolean"
+    ) {
+      return { ok: false, error: "Không thể lưu kỷ lục lúc này." };
+    }
+
+    return {
+      ok: true,
+      bestMs: result.result_best_ms,
+      questionCount: result.result_question_count,
+      isNewBest: result.is_new_best,
+    };
+  } catch {
+    return { ok: false, error: "Không thể lưu kỷ lục lúc này." };
   }
 }

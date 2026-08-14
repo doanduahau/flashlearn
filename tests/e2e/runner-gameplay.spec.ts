@@ -16,6 +16,11 @@ async function startRunnerSession(page: Page): Promise<void> {
   await expect(page.getByRole("button", { name: "Bắt đầu Runner" })).toBeEnabled();
   await page.getByRole("button", { name: "Bắt đầu Runner" }).click();
   await expect(page).toHaveURL(/\/runner\/session\?sessionId=[0-9a-f-]+/);
+  const params = new URL(page.url()).searchParams;
+  expect(params.get("all")).toBe("1");
+  expect(params.get("count")).toBe("12");
+  expect(params.get("filter")).toBe("unseen");
+  expect(params.get("difficulty")).toBe("medium");
 }
 
 test.describe("Capy Runner gameplay session", () => {

@@ -1,3 +1,5 @@
+import type { LearningFilter } from "@/features/learning-modes/types";
+
 export type RunnerQuestion = {
   flashcardId: string;
   front: string;
@@ -16,6 +18,15 @@ export type RunnerQuestionCount = 12 | 18 | 24;
 export const RUNNER_QUESTION_COUNTS: readonly RunnerQuestionCount[] = [12, 18, 24];
 
 export type RunnerDifficulty = "easy" | "medium" | "hard";
+
+export type RunnerReplaySource = {
+  all: boolean;
+  setIds: string[];
+  collectionIds: string[];
+  questionCount: RunnerQuestionCount;
+  filter: LearningFilter;
+  difficulty: RunnerDifficulty;
+};
 
 export type RunnerDifficultyConfig = {
   lives: number;

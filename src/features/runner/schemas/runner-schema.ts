@@ -28,3 +28,8 @@ export const runnerStartSchema = z
       context.addIssue({ code: "custom", message: "Hãy chọn ít nhất một nguồn." });
     }
   });
+
+export const runnerBestTimeSchema = z.object({
+  runnerSessionId: z.uuid("Mã phiên Runner không hợp lệ."),
+  elapsedMs: z.number().finite().int().positive("Thời gian hoàn thành không hợp lệ."),
+});

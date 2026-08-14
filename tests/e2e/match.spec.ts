@@ -57,8 +57,7 @@ test.describe("Match learning mode", () => {
     const before = await learningState(page, userId);
 
     await page.goto("/match");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Kiểm tra");
-    await expect(page.getByRole("link", { name: "Match" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Match");
 
     // 24 eligible cards -> all three options available.
     await expect(page.getByRole("button", { name: "12 câu" })).toBeVisible();
@@ -139,7 +138,7 @@ test.describe("Match learning mode", () => {
     await importSet(page, "Bộ nhỏ", "tests/fixtures/quiz-cards.csv");
 
     await page.goto("/match");
-    await expect(page.getByText("Không đủ thẻ chưa làm để bắt đầu.")).toBeVisible();
+    await expect(page.getByText("Match yêu cầu ít nhất 12 thẻ có thể ghép rõ ràng.")).toBeVisible();
     await expect(page.getByRole("button", { name: "12 câu" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Bắt đầu Match" })).toBeDisabled();
   });

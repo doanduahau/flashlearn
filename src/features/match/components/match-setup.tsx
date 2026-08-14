@@ -3,13 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { ModeFilter } from "@/features/learning-modes/components/mode-filter";
 import {
   QuestionCountSelector,
   type CountOption,
 } from "@/features/learning-modes/components/question-count-selector";
 import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
-import { insufficientPoolMessage, type LearningFilter } from "@/features/learning-modes/types";
+import { insufficientPoolMessage } from "@/features/learning-modes/types";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { getMatchAvailability } from "@/features/match/server/actions";
@@ -34,7 +33,7 @@ export function MatchSetup({
   const router = useRouter();
   const [all, setAll] = useState(true);
   const [selected, setSelected] = useState<Map<string, SourceOption>>(() => new Map());
-  const [filter, setFilter] = useState<LearningFilter>("unseen");
+
   const [count, setCount] = useState<12 | 18 | 24>(12);
   const [availability, setAvailability] = useState<{
     eligibleCount: number;
@@ -69,7 +68,7 @@ export function MatchSetup({
           setIds: currentSources.setIds,
           collectionIds: currentSources.collectionIds,
           questionCount: 12,
-          filter,
+          filter: "random",
         });
         if (cancelled) return;
         if (result.ok) {
@@ -90,7 +89,7 @@ export function MatchSetup({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [all, currentSources, filter]);
+  }, [all, currentSources]);
 
   const counting =
     availability === null ||
@@ -137,7 +136,7 @@ export function MatchSetup({
         setIds: currentSources.setIds,
         collectionIds: currentSources.collectionIds,
         questionCount: effectiveCount,
-        filter,
+        filter: "random",
       });
       if (!result.ok) {
         setPending(false);
@@ -155,7 +154,7 @@ export function MatchSetup({
       if (currentSources.collectionIds.length)
         query.set("collections", currentSources.collectionIds.join(","));
       query.set("count", String(effectiveCount));
-      query.set("filter", filter);
+      query.set("filter", "random");
       router.push(`/match/session?${query.toString()}`);
     })();
   }
@@ -164,15 +163,11 @@ export function MatchSetup({
 
   const poolMessage =
     countError === null && !counting && availableCounts.length === 0
-      ? filter === "unseen" || filter === "wrong"
-        ? insufficientPoolMessage(filter)
-        : (baseMessage ?? insufficientPoolMessage(filter))
+      ? (baseMessage ?? insufficientPoolMessage("random"))
       : null;
 
   return (
     <div className="mt-2 space-y-3 pb-28 sm:mt-5 sm:space-y-4 md:pb-0">
-      <ModeFilter value={filter} onChange={setFilter} />
-
       <QuestionCountSelector
         options={options}
         value={effectiveCount}

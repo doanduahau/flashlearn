@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 
-import { ModeTabs } from "@/components/shared/mode-tabs";
 import { MatchSetup } from "@/features/match/components/match-setup";
 import { loadSourcePage, sourceType } from "@/features/source-selection/server/load-source-page";
 import { parsePage, type RouteSearchParams } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Kiểm tra" };
+export const metadata: Metadata = { title: "Match" };
 
 export default async function MatchPage({
   searchParams,
@@ -25,14 +24,7 @@ export default async function MatchPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
-      <h1 className="text-2xl font-bold sm:text-3xl">Kiểm tra</h1>
-      <ModeTabs
-        label="Khu vực kiểm tra"
-        items={[
-          { label: "Trắc nghiệm", href: "/quiz", active: false },
-          { label: "Match", href: "/match", active: true },
-        ]}
-      />
+      <h1 className="text-2xl font-bold sm:text-3xl">Match</h1>
       <MatchSetup sourcePage={sourcePage} totalCards={totalResult.count ?? 0} />
     </main>
   );

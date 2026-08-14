@@ -16,6 +16,12 @@ test("correct answers auto-advance while wrong answers wait for the learner", as
   await page.goto("/quiz");
   await expect(page.getByText("10 thẻ hợp lệ").filter({ visible: true })).toBeVisible();
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+  await expect(page).toHaveURL(/\/quiz\/mode/);
+
+  // Pick Trắc nghiệm mode
+  await page.getByLabel("Bắt đầu Trắc nghiệm").click();
+  // Select question count (10)
+  await page.getByRole("button", { name: "Bắt đầu" }).first().click();
   await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
 
   const heading = page.getByRole("heading", { level: 1 });

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function HistoryPage() {
-  redirect("/quiz?tab=history");
+  redirect("/profile?tab=statistics");
 }

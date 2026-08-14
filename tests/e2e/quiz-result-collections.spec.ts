@@ -40,6 +40,9 @@ test.describe("Quiz result collections", () => {
 
     await page.goto("/quiz");
     await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+    await expect(page).toHaveURL(/\/quiz\/mode/);
+    await page.getByLabel("Bắt đầu Trắc nghiệm").click();
+    await page.getByRole("button", { name: "Bắt đầu" }).first().click();
     await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
 
     correctPrompt = await answerQuestion(page, true);
@@ -75,7 +78,18 @@ test.describe("Quiz result collections", () => {
 
     await page.goto("/quiz");
     await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
-    await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
+    await expect(page).toHaveURL(/\/quiz\/mode/);
+    await page.getByLabel("Bắt đầu Trắc nghiệm").click();
+    await page.getByRole("button", { name: "Bắt đầu" }).first().click();
+    try {
+      await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/, { timeout: 3000 });
+    } catch (e) {
+      console.log(
+        "Failed to navigate. Article content:",
+        await page.locator("article").first().innerText(),
+      );
+      throw e;
+    }
 
     for (let index = 0; index < 10; index += 1) {
       await answerQuestion(page, true);

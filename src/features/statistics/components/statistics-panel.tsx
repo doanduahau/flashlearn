@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { levelFromStreak } from "@/features/mascot/utils/mascot-level";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
 import {
   accuracy,
@@ -133,6 +134,59 @@ export async function StatisticsPanel({
           <p className="mt-2 text-text-secondary">Chưa có lịch sử để hiển thị.</p>
         )}
       </section>
+      <QuizHistory supabase={supabase} mascotLevel={mascotLevel} />
+    </section>
+  );
+}
+
+async function QuizHistory({
+  supabase,
+  mascotLevel,
+}: Readonly<{
+  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>;
+  mascotLevel: MascotLevel;
+}>) {
+  const { data: sessions, error } = await supabase
+    .from("quiz_sessions")
+    .select("id, mode, actual_question_count, correct_answer_count, completed_at")
+    .not("completed_at", "is", null)
+    .order("completed_at", { ascending: false })
+    .limit(50);
+
+  return (
+    <section className="mt-8" aria-labelledby="quiz-history-heading">
+      <h3 id="quiz-history-heading" className="text-xl font-bold">
+        Lịch sử bài kiểm tra
+      </h3>
+      {error ? (
+        <p role="alert" className="mt-4 text-danger">
+          Không thể tải lịch sử.
+        </p>
+      ) : sessions?.length ? (
+        <ul className="mt-4 space-y-3">
+          {sessions.map((session) => (
+            <li key={session.id} className="rounded-2xl border border-border-soft bg-surface p-4">
+              <Link className="font-semibold underline" href={`/quiz/${session.id}/result`}>
+                {modeLabel(session.mode)} · {session.correct_answer_count}/
+                {session.actual_question_count} đúng
+              </Link>
+              <p className="text-sm text-text-secondary">
+                {session.completed_at ? new Date(session.completed_at).toLocaleString("vi-VN") : ""}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="mt-4 flex flex-col items-start gap-2 text-text-secondary">
+          <MascotImage
+            level={mascotLevel}
+            state="thinking"
+            size={48}
+            className="size-12 object-contain"
+          />
+          <p>Bạn chưa hoàn thành bài kiểm tra nào.</p>
+        </div>
+      )}
     </section>
   );
 }

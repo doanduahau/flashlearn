@@ -178,9 +178,12 @@ database design, which is deliberately out of scope for Phase 5A.
 
 The current Quiz rule also permits a target with only one unique wrong answer,
 which yields two total choices. Consequently, Runner cannot guarantee its three
-unique candidates for every eligible card today. A later Runner stage must get
-an explicit product decision for the insufficient-two-distractor case before
-shipping; it must not invent placeholder or duplicated answers.
+unique candidates for every eligible card. Runner V1 resolves the insufficient
+case deterministically: `load_runner_candidate_eligibility` rejects cards
+without two distinct canonical wrong answers before session creation, and
+`load_runner_session_questions` fails the whole load (errcode `22023`) when a
+snapshotted card cannot form exactly three distinct choices. It never invents
+placeholder or duplicated answers.
 
 ## Side-effect boundary
 
@@ -416,11 +419,14 @@ where practical.
   interaction.
 - No lives means Game Over. Completing every question correctly while lives
   remain means Congratulations/completed.
-- Difficulty changes only the available reading/reaction time for each food;
-  concrete timing values are intentionally not yet defined.
-- A completion timer is required. A future record, if product-approved, must
-  include question count, difficulty, and completion time; Phase 5A creates no
-  such persistence.
+- Difficulty changes only the available reading/reaction time for each food.
+  Frozen timing values (per food item): Easy 6000 ms, Medium 4200 ms,
+  Hard 3000 ms.
+- A completion timer is required. Runner V1 persists a best-only personal-best
+  record keyed by (user, difficulty, question_count) in `runner_personal_bests`
+  via the `submit_runner_best_time` RPC (see migration
+  `20260813020000_add_runner_database_foundation.sql`); a faster time replaces,
+  an equal or slower time never worsens the record.
 
 ### Session content snapshot
 
@@ -443,13 +449,9 @@ fixed readable session typography with wrapping and moderate vertical scroll.
 
 ## Explicitly unresolved for later stages
 
-- Easy/Medium/Hard timing values.
 - Runner question count and session-selection UX.
-- Insufficient Runner distractor behaviour when fewer than two canonical wrong
-  answers exist.
 - Whether Match, Memory, or Runner affects streaks, daily learning records, or
   general statistics.
-- Final result/record persistence semantics.
 - Memory pair-count breakpoints and final long-text typography algorithm.
 - The additive database/domain design that exposes the canonical Quiz option
   operation as a side-effect-free, configurable read model while preserving

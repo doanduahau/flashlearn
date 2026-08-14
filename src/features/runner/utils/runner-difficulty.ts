@@ -9,6 +9,16 @@ export function getRunnerDifficultyConfig(difficulty: RunnerDifficulty): RunnerD
   return config;
 }
 
+const RUNNER_DIFFICULTY_LABELS: Record<RunnerDifficulty, string> = {
+  easy: "Dễ",
+  medium: "Vừa",
+  hard: "Khó",
+};
+
+export function runnerDifficultyLabel(difficulty: RunnerDifficulty): string {
+  return RUNNER_DIFFICULTY_LABELS[difficulty];
+}
+
 /**
  * Movement speed for the active food item. The Canvas runtime later divides the
  * playable pixel distance by timePerItemMs to derive a constant px/ms speed.

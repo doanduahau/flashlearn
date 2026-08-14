@@ -56,15 +56,15 @@ function PlayModes() {
           lật và ghép cặp mặt trước với mặt sau
         </span>
       </Link>
-      <div
-        aria-disabled="true"
-        className="flex items-center gap-2 rounded-xl border border-dashed border-border-soft bg-surface px-3 py-2 text-sm font-medium text-text-secondary sm:rounded-2xl sm:px-4 sm:py-3"
+      <Link
+        className="flex items-center gap-2 rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm font-medium hover:bg-surface-subtle sm:rounded-2xl sm:px-4 sm:py-3"
+        href="/runner"
       >
         Flashcard Runner
-        <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-xs font-normal text-text-secondary">
-          Sắp ra mắt
+        <span className="text-xs font-normal text-text-secondary">
+          vừa chạy vừa bắt đáp án đúng
         </span>
-      </div>
+      </Link>
     </section>
   );
 }

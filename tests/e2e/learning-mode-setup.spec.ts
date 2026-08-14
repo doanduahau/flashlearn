@@ -25,7 +25,7 @@ async function createCards(page: Page, name: string, count: number): Promise<voi
 }
 
 test.describe("Shared learning-mode setup", () => {
-  test("Học page has two top tabs and the play area has no dead Runner route", async ({ page }) => {
+  test("Học page has two top tabs and the play area links to Runner", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("ia_study"));
     await importSet(page, "Bộ IA");
@@ -47,11 +47,9 @@ test.describe("Shared learning-mode setup", () => {
     const memoryLink = page.getByRole("link", { name: /Memory Matching/ });
     await expect(memoryLink).toHaveAttribute("href", "/memory");
 
-    await expect(page.getByText("Flashcard Runner")).toBeVisible();
-    await expect(page.getByRole("link", { name: /Flashcard Runner/ })).toHaveCount(0);
-
-    const response = await page.goto("/runner");
-    expect(response?.status()).toBe(404);
+    const runnerLink = page.getByRole("link", { name: /Flashcard Runner/ });
+    await expect(runnerLink).toHaveAttribute("href", "/runner");
+    await expect(page.getByText("Sắp ra mắt")).toHaveCount(0);
   });
 
   test("Kiểm tra tabs are shared between Trắc nghiệm and Match", async ({ page }) => {
@@ -80,7 +78,7 @@ test.describe("Shared learning-mode setup", () => {
     await signUpAndConfirm(page, uniqueEmail("ia_filter"));
     await importSet(page, "Bộ IA filter");
 
-    for (const route of ["/quiz", "/match", "/memory"]) {
+    for (const route of ["/quiz", "/match", "/memory", "/runner"]) {
       await page.goto(route);
       await expect(page.getByRole("button", { name: "Chưa làm" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Câu sai" })).toBeVisible();
@@ -211,7 +209,7 @@ test.describe("Shared learning-mode setup", () => {
     await signUpAndConfirm(page, uniqueEmail("ia_all"));
     await importSet(page, "Bộ IA all");
 
-    for (const route of ["/quiz", "/match", "/memory", "/study"]) {
+    for (const route of ["/quiz", "/match", "/memory", "/runner", "/study"]) {
       await page.goto(route);
       const allCard = page.getByRole("radio", { name: /^Tất cả \d+ thẻ$/ });
       await expect(allCard).toBeVisible();
@@ -225,7 +223,7 @@ test.describe("Shared learning-mode setup", () => {
     await signUpAndConfirm(page, uniqueEmail("ia_search"));
     await importSet(page, "Bộ IA search");
 
-    for (const route of ["/quiz", "/match", "/memory"]) {
+    for (const route of ["/quiz", "/match", "/memory", "/runner"]) {
       await page.goto(route);
       await expect(page.getByLabel("Tìm nguồn theo tên")).toBeVisible();
       await expect(page.getByRole("checkbox", { name: /Bộ IA search, Bộ thường/ })).toBeVisible();

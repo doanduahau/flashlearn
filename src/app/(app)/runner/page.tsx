@@ -1,0 +1,40 @@
+import type { Metadata } from "next";
+
+import { ModeTabs } from "@/components/shared/mode-tabs";
+import { RunnerSetup } from "@/features/runner/components/runner-setup";
+import { loadSourcePage, sourceType } from "@/features/source-selection/server/load-source-page";
+import { parsePage, type RouteSearchParams } from "@/lib/pagination";
+import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = { title: "Flashcard Runner" };
+
+export default async function RunnerPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<RouteSearchParams> }>) {
+  const raw = await searchParams;
+  const supabase = await createClient();
+  const query = typeof raw.q === "string" ? raw.q : "";
+  const [sourcePage, totalResult] = await Promise.all([
+    loadSourcePage(supabase, {
+      page: parsePage(raw.page),
+      query,
+      type: sourceType(raw.sourceType),
+    }),
+    supabase.from("flashcards").select("id", { count: "exact", head: true }),
+  ]);
+
+  return (
+    <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
+      <h1 className="text-2xl font-bold sm:text-3xl">Flashcard Runner</h1>
+      <ModeTabs
+        label="Vừa học vừa chơi"
+        items={[
+          { label: "Memory Matching", href: "/memory", active: false },
+          { label: "Match", href: "/match", active: false },
+          { label: "Flashcard Runner", href: "/runner", active: true },
+        ]}
+      />
+      <RunnerSetup sourcePage={sourcePage} totalCards={totalResult.count ?? 0} />
+    </main>
+  );
+}

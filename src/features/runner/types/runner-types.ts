@@ -5,6 +5,16 @@ export type RunnerQuestion = {
   choices: [string, string, string];
 };
 
+export type RunnerCard = {
+  id: string;
+  front: string;
+  back: string;
+};
+
+export type RunnerQuestionCount = 12 | 18 | 24;
+
+export const RUNNER_QUESTION_COUNTS: readonly RunnerQuestionCount[] = [12, 18, 24];
+
 export type RunnerDifficulty = "easy" | "medium" | "hard";
 
 export type RunnerDifficultyConfig = {

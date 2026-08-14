@@ -427,6 +427,7 @@ where practical.
   via the `submit_runner_best_time` RPC (see migration
   `20260813020000_add_runner_database_foundation.sql`); a faster time replaces,
   an equal or slower time never worsens the record.
+- Question counts offered: 12 / 18 / 24 (matching Match and Memory).
 
 ### Session content snapshot
 
@@ -449,7 +450,6 @@ fixed readable session typography with wrapping and moderate vertical scroll.
 
 ## Explicitly unresolved for later stages
 
-- Runner question count and session-selection UX.
 - Whether Match, Memory, or Runner affects streaks, daily learning records, or
   general statistics.
 - Memory pair-count breakpoints and final long-text typography algorithm.

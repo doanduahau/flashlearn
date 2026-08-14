@@ -23,7 +23,7 @@ export function DeleteSetButton({ setId }: Readonly<{ setId: string }>) {
         setIsConfirming(false);
         return;
       }
-      router.replace("/sets");
+      router.replace("/sets/library");
     });
   }
 

@@ -50,7 +50,7 @@ describe("DeleteSetButton", () => {
     await user.click(screen.getByRole("button", { name: /xóa bộ/i }));
     await user.click(screen.getByRole("button", { name: /xóa vĩnh viễn/i }));
     await waitFor(() => expect(mocks.deleteSet).toHaveBeenCalledWith({ setId: SET_ID }));
-    expect(mocks.replace).toHaveBeenCalledWith("/sets");
+    expect(mocks.replace).toHaveBeenCalledWith("/sets/library");
   });
 
   it("shows a recoverable error and resets the confirmation", async () => {

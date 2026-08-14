@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/shared/back-button";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
+import { studyModeHrefFromSession } from "@/features/study/utils/study-mode-href";
 import type { StudyCard, StudyCollectionOption } from "@/features/study/types/study-types";
+import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
 import { STUDY_MAX_CARDS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +45,8 @@ export function StudySession({
   const card = cards[currentIndex] ?? cards[0];
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === total - 1;
+  const exitHref = studyModeHrefFromSession(sessionHref);
+  const goBack = useBackWithFallback(exitHref);
 
   const goPrevious = useCallback(() => {
     setIsFlipped(false);
@@ -144,22 +148,7 @@ export function StudySession({
 
   return (
     <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
-      <div className="flex items-center justify-between">
-        <Link href="/study" className="text-sm text-text-secondary hover:text-text-primary">
-          ← Chọn phạm vi học
-        </Link>
-        <Button
-          type="button"
-          variant="ghost"
-          className="size-11 p-0 sm:h-10 sm:w-auto sm:px-4"
-          onClick={() => router.push("/study")}
-          aria-label="Thoát phiên học"
-          title="Thoát phiên học"
-        >
-          <LogOut aria-hidden="true" />
-          <span className="hidden sm:inline">Thoát</span>
-        </Button>
-      </div>
+      <BackButton fallbackHref={exitHref} label="Quay lại" />
 
       <div
         role="progressbar"
@@ -180,66 +169,80 @@ export function StudySession({
         </span>
       </div>
 
-      <div
-        data-testid="study-card"
-        className="relative mx-auto mt-6 w-full max-w-xl [touch-action:pan-y]"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
-      >
-        <div
-          key={card.id}
-          className="animate-card-in cursor-pointer select-none [perspective:1200px] motion-reduce:animate-none"
-          onClick={handleCardClick}
-        >
-          <div
-            className={cn(
-              "relative transition-transform duration-300 [transform-style:preserve-3d] motion-reduce:transition-none",
-              isFlipped && "[transform:rotateY(180deg)]",
-            )}
-          >
-            <div
-              aria-hidden={isFlipped}
-              className="flex min-h-72 w-full items-center justify-center rounded-3xl border border-border-soft bg-surface px-6 py-6 [backface-visibility:hidden] sm:px-16 sm:py-8"
-            >
-              <p className="max-h-[55vh] overflow-y-auto break-words whitespace-pre-wrap text-center text-lg font-semibold leading-relaxed sm:text-xl">
-                {card.front}
-              </p>
-            </div>
-            <div
-              aria-hidden={!isFlipped}
-              className="absolute inset-0 flex w-full items-center justify-center rounded-3xl border border-border-soft bg-primary-soft px-6 py-6 [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-16 sm:py-8"
-            >
-              <p className="max-h-[55vh] overflow-y-auto break-words whitespace-pre-wrap text-center text-lg font-semibold leading-relaxed sm:text-xl">
-                {card.back}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="absolute right-4 top-4 z-10">
-          <CardCollectionsControl
-            key={card.id}
-            cardId={card.id}
-            setId={card.setId}
-            collections={collections}
-            memberships={membershipsByCard[card.id] ?? []}
-            variant="icon"
-          />
-        </div>
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+      <div className="mt-6 flex items-center justify-center gap-2">
         <Button
           type="button"
           variant="soft"
+          className="size-12 shrink-0 rounded-full p-0"
           onClick={() => goPrevious()}
           disabled={isFirst}
           aria-label="Thẻ trước"
         >
-          <ChevronLeft aria-hidden="true" className="-ml-1 mr-1 size-5" />
-          Thẻ trước
+          <ChevronLeft aria-hidden="true" className="size-6" />
         </Button>
+
+        <div
+          data-testid="study-card"
+          className="relative min-w-0 flex-1 [touch-action:pan-y]"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+        >
+          <div
+            key={card.id}
+            className="animate-card-in cursor-pointer select-none [perspective:1200px] motion-reduce:animate-none"
+            onClick={handleCardClick}
+          >
+            <div
+              className={cn(
+                "relative transition-transform duration-300 [transform-style:preserve-3d] motion-reduce:transition-none",
+                isFlipped && "[transform:rotateY(180deg)]",
+              )}
+            >
+              <div
+                aria-hidden={isFlipped}
+                className="flex min-h-72 w-full items-center justify-center rounded-3xl border border-border-soft bg-surface px-4 py-6 [backface-visibility:hidden] sm:px-8 sm:py-8"
+              >
+                <p className="max-h-[55vh] overflow-y-auto break-words whitespace-pre-wrap text-center text-lg font-semibold leading-relaxed sm:text-xl">
+                  {card.front}
+                </p>
+              </div>
+              <div
+                aria-hidden={!isFlipped}
+                className="absolute inset-0 flex w-full items-center justify-center rounded-3xl border border-border-soft bg-primary-soft px-4 py-6 [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-8"
+              >
+                <p className="max-h-[55vh] overflow-y-auto break-words whitespace-pre-wrap text-center text-lg font-semibold leading-relaxed sm:text-xl">
+                  {card.back}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="absolute right-4 top-4 z-10">
+            <CardCollectionsControl
+              key={card.id}
+              cardId={card.id}
+              setId={card.setId}
+              collections={collections}
+              memberships={membershipsByCard[card.id] ?? []}
+              variant="icon"
+            />
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="soft"
+          className="size-12 shrink-0 rounded-full p-0"
+          onClick={() => goNext()}
+          disabled={isLast}
+          aria-label="Thẻ tiếp theo"
+        >
+          <ChevronRight aria-hidden="true" className="size-6" />
+        </Button>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <Button
           type="button"
           variant="soft"
@@ -248,18 +251,8 @@ export function StudySession({
         >
           {isFlipped ? "Nhấn để xem mặt trước" : "Nhấn để lật"}
         </Button>
-        <Button
-          type="button"
-          variant="soft"
-          onClick={() => goNext()}
-          disabled={isLast}
-          aria-label="Thẻ tiếp theo"
-        >
-          Thẻ tiếp theo
-          <ChevronRight aria-hidden="true" className="-mr-1 ml-1 size-5" />
-        </Button>
         {isLast ? (
-          <Button type="button" onClick={() => router.push("/study")}>
+          <Button type="button" onClick={goBack}>
             Hoàn thành
           </Button>
         ) : null}

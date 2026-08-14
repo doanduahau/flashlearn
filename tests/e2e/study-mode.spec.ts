@@ -133,7 +133,28 @@ test.describe("Study mode", () => {
     await page.getByRole("button", { name: /Thẻ tiếp theo/ }).click();
     await expect(page.getByRole("button", { name: /Hoàn thành/ })).toBeVisible();
     await page.getByRole("button", { name: /Hoàn thành/ }).click();
-    await expect(page).toHaveURL(/\/study$/);
+    await expect(page).toHaveURL(/\/study\/mode\?sets=/);
+
+    await context.close();
+  });
+
+  test("flip session back arrow returns to the mode selection with the same source", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ storageState: AUTH_STATE });
+    const page = await context.newPage();
+
+    await page.goto("/study");
+    await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).check();
+    await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
+    await page.getByRole("button", { name: /Bắt đầu học/ }).click();
+    await expect(page).toHaveURL(/\/study\/mode\?sets=/);
+    await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
+    await expect(page).toHaveURL(/\/study\/session\?sets=/);
+
+    await page.getByRole("button", { name: /Quay lại/ }).click();
+    await expect(page).toHaveURL(/\/study\/mode\?sets=/);
+    await expect(page.getByRole("heading", { name: "Chọn chế độ học" })).toBeVisible();
 
     await context.close();
   });

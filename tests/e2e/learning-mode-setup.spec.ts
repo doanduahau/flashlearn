@@ -49,6 +49,18 @@ test.describe("Shared learning-mode setup", () => {
     await expect(page.getByRole("heading", { name: "Capy runner" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Memory Matching" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /Capy Runner/ })).toHaveCount(0);
+
+    // All three mode cards fit on one mobile screen without scrolling.
+    const runnerHeading = page.getByRole("heading", { name: "Capy runner" });
+    await expect(runnerHeading).toBeInViewport({ ratio: 0.5 });
+    const scroll = await page.evaluate(() => ({
+      scrollHeight: document.documentElement.scrollHeight,
+      clientHeight: document.documentElement.clientHeight,
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(scroll.scrollHeight).toBeLessThanOrEqual(scroll.clientHeight);
+    expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.clientWidth);
   });
 
   test("Memory and Runner mode cards are disabled below 12 cards with a clear notice", async ({

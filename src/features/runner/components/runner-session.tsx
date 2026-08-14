@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
+import { buildStudyModeHref } from "@/features/study/utils/study-mode-href";
+import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
 import { startRunnerSession, submitRunnerBestTime } from "../server/actions";
 import type {
   Feedback,
@@ -197,6 +199,8 @@ export function RunnerSession({
   const wrongCount = getRunnerDifficultyConfig(difficulty).lives - display.lives;
   const endMascotState =
     display.status === "game-over" ? "sad" : wrongCount <= 1 ? "congrats" : "sad";
+  const exitHref = replaySource ? buildStudyModeHref(replaySource) : "/study/mode";
+  const goBack = useBackWithFallback(exitHref);
 
   async function replay(): Promise<void> {
     if (!replaySource || replayPendingRef.current) return;
@@ -233,6 +237,7 @@ export function RunnerSession({
         questionNumber={display.questionIndex + 1}
         totalQuestions={questions.length}
         question={question.front}
+        onBack={goBack}
       />
 
       <div
@@ -277,7 +282,7 @@ export function RunnerSession({
                   void (coverageCompletedRef.current ? saveBest() : completeCoverageAndSaveBest())
               : null
           }
-          onBack={() => router.push("/runner")}
+          onBack={goBack}
         />
       ) : null}
     </div>

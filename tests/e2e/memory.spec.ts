@@ -137,7 +137,7 @@ test.describe("Memory Matching", () => {
     await expect(page.getByRole("heading", { name: "Hoàn thành 12/12" })).toBeVisible();
     await expect(page.getByText(/Thời gian \d{2}:\d{2}/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Chơi lại" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Quay lại" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Quay lại", exact: true })).toBeVisible();
     expect(await memoryCoverageCount(page, userId)).toBe(12);
 
     // No Quiz / FSRS / statistics writes.
@@ -296,6 +296,20 @@ test.describe("Memory Matching", () => {
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );
     expect(overflow).toBe(false);
+  });
+
+  test("back arrow returns to the previous page", async ({ page }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("memory_exit"));
+    await importSet(page, "Bộ memory exit");
+
+    await openMemory(page);
+    await page.getByRole("button", { name: "12 câu" }).click();
+    await page.getByRole("button", { name: "Bắt đầu Memory" }).click();
+    await expect(page).toHaveURL(/\/memory\/session\?all=1/);
+
+    await page.getByRole("button", { name: /Quay lại/ }).click();
+    await expect(page).toHaveURL(/\/memory$/);
   });
 
   test("abandoning a session writes no coverage", async ({ page }) => {

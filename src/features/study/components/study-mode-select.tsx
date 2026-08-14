@@ -119,41 +119,53 @@ export function StudyModeSelect({
         Quay lại chọn nguồn
       </Link>
 
-      <article className="rounded-2xl border border-border-soft bg-surface p-4 shadow-soft">
-        <div className="flex items-start gap-3">
-          <MascotImage level={1} state="normal" size={64} className="size-16 object-contain" />
-          <div>
-            <h2 className="text-lg font-bold">Lật thẻ</h2>
+      <article className="rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">
+        <div className="flex items-center gap-3">
+          <MascotImage
+            level={1}
+            state="normal"
+            size={40}
+            className="size-10 shrink-0 object-contain"
+          />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-bold">Lật thẻ</h2>
             <p className="text-sm text-text-secondary">
               Ôn theo cách truyền thống, tự lật thẻ để xem đáp án.
             </p>
-            <p className="mt-1 text-sm">{totalCards} thẻ hợp lệ</p>
           </div>
+          <p className="shrink-0 text-sm font-medium">{totalCards} thẻ</p>
         </div>
-        <button
-          type="button"
-          className="mt-4 min-h-11 rounded-xl bg-primary px-4 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={totalCards < 1}
-          onClick={() => router.push(sessionHref("/study/session", source))}
-        >
-          Bắt đầu lật thẻ
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="min-h-11 flex-1 rounded-xl bg-primary px-4 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={totalCards < 1}
+            onClick={() => router.push(sessionHref("/study/session", source))}
+          >
+            Bắt đầu lật thẻ
+          </button>
+        </div>
         {totalCards < 1 ? (
           <p className="mt-2 text-sm text-danger">{requirement(1, totalCards)}</p>
         ) : null}
       </article>
 
-      <article className="rounded-2xl border border-border-soft bg-surface p-4 shadow-soft">
-        <div className="flex items-start gap-3">
-          <MascotImage level={1} state="thinking" size={64} className="size-16 object-contain" />
-          <div>
-            <h2 className="text-lg font-bold">Memory matching</h2>
+      <article className="rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">
+        <div className="flex items-center gap-3">
+          <MascotImage
+            level={1}
+            state="thinking"
+            size={40}
+            className="size-10 shrink-0 object-contain"
+          />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-bold">Memory matching</h2>
             <p className="text-sm text-text-secondary">Lật ô và ghép đúng mặt trước với mặt sau.</p>
-            <p className="mt-1 text-sm">{memory?.count ?? 0} thẻ hợp lệ</p>
           </div>
+          <p className="shrink-0 text-sm font-medium">{memory?.count ?? 0} thẻ</p>
         </div>
         {memoryOptions.length && selectedMode === "memory" ? (
-          <div className="mt-4 flex flex-wrap gap-2" aria-label="Số câu Memory">
+          <div className="mt-3 flex flex-wrap gap-2" aria-label="Số câu Memory">
             {memoryOptions.map((value) => (
               <button
                 key={value}
@@ -178,7 +190,7 @@ export function StudyModeSelect({
         ) : memoryOptions.length ? (
           <button
             type="button"
-            className="mt-4 min-h-11 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"
+            className="mt-3 min-h-11 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"
             onClick={() => setSelectedMode("memory")}
           >
             Chọn Memory
@@ -190,17 +202,22 @@ export function StudyModeSelect({
 
       <article
         className={cn(
-          "rounded-2xl border border-border-soft bg-surface p-4 shadow-soft",
+          "rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4",
           runnerOptions.length === 0 && "opacity-60",
         )}
       >
-        <div className="flex items-start gap-3">
-          <MascotImage level={1} state="run" size={64} className="size-16 object-contain" />
-          <div>
-            <h2 className="text-lg font-bold">Capy runner</h2>
+        <div className="flex items-center gap-3">
+          <MascotImage
+            level={1}
+            state="run"
+            size={40}
+            className="size-10 shrink-0 object-contain"
+          />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-bold">Capy runner</h2>
             <p className="text-sm text-text-secondary">Chạy nhanh và chọn đáp án đúng.</p>
-            <p className="mt-1 text-sm">{runner?.count ?? 0} thẻ hợp lệ</p>
           </div>
+          <p className="shrink-0 text-sm font-medium">{runner?.count ?? 0} thẻ</p>
         </div>
         {runnerOptions.length && selectedMode === "runner" ? (
           <>
@@ -230,7 +247,7 @@ export function StudyModeSelect({
         ) : runnerOptions.length ? (
           <button
             type="button"
-            className="mt-4 min-h-11 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"
+            className="mt-3 min-h-11 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"
             onClick={() => setSelectedMode("runner")}
           >
             Chọn Runner

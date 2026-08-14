@@ -7,15 +7,23 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
   refresh: vi.fn(),
+  back: vi.fn(),
   updateCardCollections: vi.fn() as Mock,
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mocks.push, replace: mocks.replace, refresh: mocks.refresh }),
+  useRouter: () => ({
+    push: mocks.push,
+    replace: mocks.replace,
+    refresh: mocks.refresh,
+    back: mocks.back,
+  }),
 }));
 vi.mock("next/link", () => ({
-  default: ({ href, children }: { href: string; children: ReactNode }) => (
-    <a href={href}>{children}</a>
+  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
   ),
 }));
 vi.mock("@/features/special-collections/server/actions", () => ({
@@ -65,6 +73,7 @@ describe("StudySession", () => {
     mocks.push.mockReset();
     mocks.replace.mockReset();
     mocks.refresh.mockReset();
+    mocks.back.mockReset();
     mocks.updateCardCollections.mockReset();
     mocks.updateCardCollections.mockResolvedValue({ ok: true });
   });
@@ -119,14 +128,29 @@ describe("StudySession", () => {
     renderSession();
     await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
     await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
-    expect(mocks.push).toHaveBeenCalledWith("/study");
+    expect(mocks.push).toHaveBeenCalledWith(
+      "/study/mode?sets=22222222-2222-4222-8222-222222222222",
+    );
   });
 
-  it("exits to the study selection", async () => {
+  it("exits back to the previous path when history is available", async () => {
     const user = userEvent.setup();
+    Object.defineProperty(window.history, "length", { configurable: true, value: 3 });
     renderSession();
-    await user.click(screen.getByRole("button", { name: /Thoát/ }));
-    expect(mocks.push).toHaveBeenCalledWith("/study");
+    await user.click(screen.getByRole("button", { name: /Quay lại/ }));
+    expect(mocks.back).toHaveBeenCalledTimes(1);
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it("exits to the study mode selection when no history is available", async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(window.history, "length", { configurable: true, value: 1 });
+    renderSession();
+    await user.click(screen.getByRole("button", { name: /Quay lại/ }));
+    expect(mocks.back).not.toHaveBeenCalled();
+    expect(mocks.push).toHaveBeenCalledWith(
+      "/study/mode?sets=22222222-2222-4222-8222-222222222222",
+    );
   });
 
   it("shows the original set name for the current card", () => {
@@ -176,12 +200,14 @@ describe("StudySession", () => {
     expect(screen.getByRole("button", { name: /Thẻ tiếp theo/ })).toBeInTheDocument();
   });
 
-  it("renders the navigation controls below the card", () => {
+  it("renders the navigation arrows beside the card without overlapping it", () => {
     renderSession();
     const prev = screen.getByRole("button", { name: /Thẻ trước/ });
     const next = screen.getByRole("button", { name: /Thẻ tiếp theo/ });
     expect(prev.className).not.toContain("absolute");
     expect(next.className).not.toContain("absolute");
+    expect(prev).toHaveAccessibleName(/Thẻ trước/);
+    expect(next).toHaveAccessibleName(/Thẻ tiếp theo/);
   });
 
   it("swipes left on the card to advance to the next card", () => {
@@ -273,11 +299,11 @@ describe("StudySession", () => {
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
   });
 
-  it("ignores shortcuts while a link is focused", () => {
+  it("ignores shortcuts while a control is focused", () => {
     renderSession();
-    const link = screen.getByRole("link", { name: /Chọn phạm vi học/ });
-    fireEvent.keyDown(link, { key: " " });
-    fireEvent.keyDown(link, { key: "ArrowRight" });
+    const back = screen.getByRole("button", { name: /Quay lại/ });
+    fireEvent.keyDown(back, { key: " " });
+    fireEvent.keyDown(back, { key: "ArrowRight" });
     expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
       "aria-pressed",
       "false",

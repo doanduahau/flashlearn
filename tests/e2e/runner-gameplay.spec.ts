@@ -66,6 +66,15 @@ test.describe("Capy Runner gameplay session", () => {
     expect(hasOverflow).toBe(false);
   });
 
+  test("back arrow returns to the previous page", async ({ page }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("runner_game_exit"));
+    await startRunnerSession(page);
+
+    await page.getByRole("button", { name: /Quay lại/ }).click();
+    await expect(page).toHaveURL(/\/runner$/);
+  });
+
   test("browser back returns to the setup page", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("runner_game_back"));

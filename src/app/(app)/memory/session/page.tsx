@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { BackButton } from "@/components/shared/back-button";
 import { MemorySession } from "@/features/memory/components/memory-session";
 import { MEMORY_QUESTION_COUNTS } from "@/features/memory/types/memory-types";
+import { studyModeHrefFromSession } from "@/features/study/utils/study-mode-href";
 
 export const metadata: Metadata = { title: "Phiên Memory" };
 
@@ -29,10 +31,12 @@ export default async function MemorySessionPage({
   if (!all && setIds.length === 0 && collectionIds.length === 0) redirect("/memory");
 
   const sessionHref = `/memory/session${buildQuery({ all, setIds, collectionIds, count: questionCount })}`;
+  const exitHref = studyModeHrefFromSession(sessionHref);
 
   return (
     <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
-      <MemorySession sessionHref={sessionHref} questionCount={questionCount} />
+      <BackButton fallbackHref={exitHref} className="mb-3" />
+      <MemorySession sessionHref={sessionHref} questionCount={questionCount} exitHref={exitHref} />
     </main>
   );
 }

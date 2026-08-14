@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
@@ -12,10 +11,12 @@ import type {
   StartedMemorySession,
 } from "@/features/memory/types/memory-types";
 import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
+import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
 
 type MemorySessionProps = {
   sessionHref: string;
   questionCount: MemoryQuestionCount;
+  exitHref: string;
 };
 
 function sourceFromHref(sessionHref: string, questionCount: MemoryQuestionCount) {
@@ -35,12 +36,13 @@ function formatTime(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export function MemorySession({ sessionHref, questionCount }: MemorySessionProps) {
+export function MemorySession({ sessionHref, questionCount, exitHref }: MemorySessionProps) {
   const [session, setSession] = useState<StartedMemorySession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const goBack = useBackWithFallback(exitHref);
 
   const loadSession = useCallback(async () => {
     setSession(null);
@@ -97,8 +99,8 @@ export function MemorySession({ sessionHref, questionCount }: MemorySessionProps
         >
           {error}
         </p>
-        <Button asChild variant="outline">
-          <Link href="/study">Quay lại</Link>
+        <Button type="button" variant="outline" onClick={goBack}>
+          Quay lại
         </Button>
       </div>
     );
@@ -121,8 +123,8 @@ export function MemorySession({ sessionHref, questionCount }: MemorySessionProps
           <Button type="button" onClick={replay}>
             Chơi lại
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/study">Quay lại</Link>
+          <Button type="button" variant="outline" onClick={goBack}>
+            Quay lại
           </Button>
         </div>
       </div>
@@ -141,8 +143,8 @@ export function MemorySession({ sessionHref, questionCount }: MemorySessionProps
           <Button type="button" onClick={() => session && void handleComplete(elapsedMs)}>
             Thử lại
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/study">Quay lại</Link>
+          <Button type="button" variant="outline" onClick={goBack}>
+            Quay lại
           </Button>
         </div>
       </div>

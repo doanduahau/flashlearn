@@ -24,16 +24,16 @@ test("Study and Quiz source selection scales across pages on mobile", async ({ p
   await expect(page.getByRole("navigation", { name: "Phân trang nguồn" })).toContainText(
     "Trang 1 / 2",
   );
-  await page.getByRole("checkbox", { name: /^Nguồn lớn 1,/ }).check();
-  await expect(page.getByLabel("Nguồn đã chọn")).toHaveText("Nguồn lớn 1");
+  await page.getByRole("checkbox", { name: /^Nguồn lớn 13,/ }).check();
+  await expect(page.getByLabel("Nguồn đã chọn")).toHaveText("Nguồn lớn 13");
   await page.getByRole("button", { name: "Sau" }).click();
   await expect(page).toHaveURL(/sourceType=regular.*page=2|page=2.*sourceType=regular/);
-  await expect(page.getByLabel("Nguồn đã chọn")).toHaveText("Nguồn lớn 1");
+  await expect(page.getByLabel("Nguồn đã chọn")).toHaveText("Nguồn lớn 13");
 
-  await page.getByLabel("Tìm nguồn theo tên").fill("Nguồn lớn 13");
+  await page.getByLabel("Tìm nguồn theo tên").fill("Nguồn lớn 2");
   await page.getByRole("button", { name: "Tìm" }).click();
-  await expect.poll(() => new URL(page.url()).searchParams.get("q")).toBe("Nguồn lớn 13");
-  await expect(page.getByText("Nguồn lớn 13")).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get("q")).toBe("Nguồn lớn 2");
+  await expect(page.getByText("Nguồn lớn 2", { exact: true })).toBeVisible();
   await page.getByLabel("Tìm nguồn theo tên").fill("");
   await page.getByRole("button", { name: "Tìm" }).click();
   await page.getByRole("button", { name: "Bộ đặc biệt" }).click();

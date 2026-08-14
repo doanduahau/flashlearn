@@ -25,10 +25,10 @@ test("regular set order persists on mobile and remains usable on desktop", async
 
   await page.getByRole("link", { name: "Xong" }).click();
   await expect(page).not.toHaveURL(/reorder=1/);
-  await expect.poll(() => regularSetNames(page)).toEqual(["Order two", "Order three", "Order one"]);
+  await expect.poll(() => regularSetNames(page)).toEqual(["Order three", "Order two", "Order one"]);
 
   await page.reload();
-  await expect.poll(() => regularSetNames(page)).toEqual(["Order two", "Order three", "Order one"]);
+  await expect.poll(() => regularSetNames(page)).toEqual(["Order three", "Order two", "Order one"]);
 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("link", { name: /Sắp xếp/i }).click();

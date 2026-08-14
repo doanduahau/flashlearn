@@ -263,6 +263,11 @@ export function GoogleSheetsImport() {
     sheetTitleRef.current = sheetTitle;
     const detection = detectColumns(headers);
 
+    const meaningful = headers
+      .map((name, index) => ({ index, name: name.trim() }))
+      .filter((c) => c.name.length > 0);
+    setMeaningfulColumns(meaningful);
+
     if (detection.kind === "mapped") {
       setNeedsMapping(false);
       void loadValues(meta, sheetTitle, [
@@ -279,7 +284,6 @@ export function GoogleSheetsImport() {
     }
 
     // ambiguous
-    setMeaningfulColumns(detection.columns);
     setNeedsMapping(true);
     setSheetInfo({
       spreadsheetTitle: meta.spreadsheetTitle,
@@ -581,7 +585,7 @@ export function GoogleSheetsImport() {
             </div>
           )}
 
-          {needsMapping && meaningfulColumns.length > 0 && (
+          {meaningfulColumns.length > 0 && (
             <div className="flex flex-wrap gap-3">
               <div className="flex flex-1 flex-col gap-1">
                 <Label htmlFor="gs-front-col">Mặt trước</Label>

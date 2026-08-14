@@ -8,9 +8,9 @@ import { calculateRunnerSpeed, getRunnerDifficultyConfig } from "../utils/runner
 import { rectsOverlap } from "../utils/collision";
 import { drawRunnerCharacter } from "../art/runner-character";
 
-const CHARACTER_WIDTH = 48;
-const CHARACTER_HEIGHT = 48;
-const CHARACTER_MARGIN_X = 24;
+const CHARACTER_WIDTH = 100;
+const CHARACTER_HEIGHT = 120;
+const CHARACTER_POSITION_RATIO = 0.3;
 const BOTTOM_MARGIN = 24;
 const FOOD_SIZE = 28;
 const JUMP_VELOCITY = 0.55;
@@ -70,6 +70,10 @@ export function RunnerCanvas({
       return cssHeight - BOTTOM_MARGIN;
     }
 
+    function characterX(): number {
+      return cssWidth * CHARACTER_POSITION_RATIO - CHARACTER_WIDTH / 2;
+    }
+
     function resize(): void {
       const rect = containerEl.getBoundingClientRect();
       cssWidth = rect.width;
@@ -108,7 +112,7 @@ export function RunnerCanvas({
 
       // Character.
       drawRunnerCharacter(context, {
-        x: CHARACTER_MARGIN_X,
+        x: characterX(),
         y: charY,
         width: CHARACTER_WIDTH,
         height: CHARACTER_HEIGHT,
@@ -156,7 +160,7 @@ export function RunnerCanvas({
         foodX -= speed * delta;
         const foodY = gy - FOOD_SIZE;
         const characterHitbox = {
-          x: CHARACTER_MARGIN_X + CHARACTER_WIDTH * 0.2,
+          x: characterX() + CHARACTER_WIDTH * 0.2,
           y: charY + CHARACTER_HEIGHT * 0.2,
           width: CHARACTER_WIDTH * 0.6,
           height: CHARACTER_HEIGHT * 0.6,

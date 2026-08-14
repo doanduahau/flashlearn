@@ -56,7 +56,7 @@ export default async function RunnerSessionPage({
 function SessionError() {
   return (
     <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
-      <h1 className="text-2xl font-bold sm:text-3xl">Flashcard Runner</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">Capy Runner</h1>
       <p
         role="alert"
         className="mt-4 rounded-2xl border border-border-soft bg-surface p-4 text-danger"

@@ -28,18 +28,21 @@ async function createCards(page: Page, name: string, count: number): Promise<voi
   await pasteRows(page, name, rows);
 }
 
-test.describe("Flashcard Runner setup", () => {
+test.describe("Capy Runner setup", () => {
   test("difficulty selector shows Dễ/Vừa/Khó with Vừa selected by default", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("runner_difficulty"));
 
     await page.goto("/runner");
 
+    await expect(page.getByRole("heading", { name: "Capy Runner" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Vừa học vừa chơi" })).toHaveCount(0);
+
     for (const label of ["Dễ", "Vừa", "Khó"]) {
       await expect(page.getByRole("button", { name: label })).toBeVisible();
     }
     await expect(page.getByRole("button", { name: "Vừa" })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByText(/2 mạng · 4 giây\/đáp án/)).toBeVisible();
+    await expect(page.getByText(/2 mạng · 3 giây\/đáp án/)).toBeVisible();
   });
 
   test("offers 12/18/24, starts a session, and shows the first question", async ({ page }) => {

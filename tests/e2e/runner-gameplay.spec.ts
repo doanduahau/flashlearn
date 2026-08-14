@@ -18,7 +18,7 @@ async function startRunnerSession(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/runner\/session\?sessionId=[0-9a-f-]+/);
 }
 
-test.describe("Flashcard Runner gameplay session", () => {
+test.describe("Capy Runner gameplay session", () => {
   test("renders the canvas, HUD and start overlay", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("runner_game_hud"));

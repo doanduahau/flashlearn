@@ -23,7 +23,7 @@ export function RunnerEndOverlay({
       <img
         src={mascotAssetPath(level, mascotState)}
         alt=""
-        className="size-28"
+        className="size-36"
         aria-hidden="true"
       />
       <h2 className="text-xl font-bold sm:text-2xl">{heading}</h2>

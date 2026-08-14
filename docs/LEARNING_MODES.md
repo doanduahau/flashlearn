@@ -12,9 +12,9 @@ database table, migration, or persistence.
 | Learning | Traditional Quiz | Graded recall                 | Existing behavior plus `quiz` coverage.      |
 | Learning | Match            | Fast Front → Back recognition | Practice-only plus `match` coverage only.    |
 | Play     | Memory Matching  | Find Front ↔ Back pairs       | Future practice-only `memory` coverage only. |
-| Play     | Flashcard Runner | Educational runner game       | Future practice-only `runner` coverage only. |
+| Play     | Capy Runner      | Educational runner game       | Future practice-only `runner` coverage only. |
 
-Match, Memory Matching, and Flashcard Runner must not update FSRS schedules,
+Match, Memory Matching, and Capy Runner must not update FSRS schedules,
 Mastery, `card_review_events`, `quiz_sessions`, `daily_learning_records`,
 streaks, or statistics. Their mode-specific coverage write after whole-session
 completion is selection-cycle state only, not graded learning data. Whether
@@ -30,9 +30,8 @@ construction and side-effect boundary.
 ### Information architecture
 
 - **Học** (`/study`): two top tabs — **Học truyền thống** (the existing Study
-  flow) and **Vừa học vừa chơi** (play mode cards). Memory Matching is a
-  functional link; Flashcard Runner is shown only as a clearly non-interactive
-  "Sắp ra mắt" future option, with no clickable `/runner` route.
+  flow) and **Vừa học vừa chơi** (play mode cards). Memory Matching and Capy
+  Runner are functional links to their respective setup routes.
 - **Kiểm tra** (`/quiz` and `/match`): one shared top tab control —
   **Trắc nghiệm** (existing Quiz) and **Match** (existing Match). `/quiz` keeps
   its Tạo bài / Lịch sử sub-tabs; `/match` shows only the Match setup.
@@ -169,7 +168,7 @@ be changed casually.
 
 ### Runner reuse limitation
 
-Flashcard Runner must use this exact canonical operation rather than a second
+Capy Runner must use this exact canonical operation rather than a second
 distractor algorithm. It needs exactly three candidates: one correct and two
 wrong. The current public application/domain layer has no read-only,
 configurable option-builder: option generation is coupled to transactional Quiz
@@ -389,7 +388,7 @@ section (`/memory`). It reuses the shared source-selection browser and the Phase
 - **Practice-only:** No Quiz, FSRS, mastery, review-event, or statistics writes.
   It remains mobile-first (390×844) with no horizontal overflow.
 
-## Flashcard Runner
+## Capy Runner
 
 Runner uses a React shell plus an HTML5 Canvas runtime and
 `requestAnimationFrame`. It must not introduce Phaser, Pixi, Unity, or another
@@ -420,8 +419,8 @@ where practical.
 - No lives means Game Over. Completing every question correctly while lives
   remain means Congratulations/completed.
 - Difficulty changes only the available reading/reaction time for each food.
-  Frozen timing values (per food item): Easy 6000 ms, Medium 4200 ms,
-  Hard 3000 ms.
+  Frozen timing values (per food item): Easy 4500 ms, Medium 3200 ms,
+  Hard 2400 ms.
 - A completion timer is required. Runner V1 persists a best-only personal-best
   record keyed by (user, difficulty, question_count) in `runner_personal_bests`
   via the `submit_runner_best_time` RPC (see migration

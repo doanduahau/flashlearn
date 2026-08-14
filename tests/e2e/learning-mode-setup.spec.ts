@@ -47,7 +47,7 @@ test.describe("Shared learning-mode setup", () => {
     const memoryLink = page.getByRole("link", { name: /Memory Matching/ });
     await expect(memoryLink).toHaveAttribute("href", "/memory");
 
-    const runnerLink = page.getByRole("link", { name: /Flashcard Runner/ });
+    const runnerLink = page.getByRole("link", { name: /Capy Runner/ });
     await expect(runnerLink).toHaveAttribute("href", "/runner");
     await expect(page.getByText("Sắp ra mắt")).toHaveCount(0);
   });

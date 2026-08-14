@@ -14,9 +14,9 @@ describe("runner difficulty configuration", () => {
   });
 
   it("exposes the frozen time-per-item values", () => {
-    expect(getRunnerDifficultyConfig("easy").timePerItemMs).toBe(6000);
-    expect(getRunnerDifficultyConfig("medium").timePerItemMs).toBe(4200);
-    expect(getRunnerDifficultyConfig("hard").timePerItemMs).toBe(3000);
+    expect(getRunnerDifficultyConfig("easy").timePerItemMs).toBe(4500);
+    expect(getRunnerDifficultyConfig("medium").timePerItemMs).toBe(3200);
+    expect(getRunnerDifficultyConfig("hard").timePerItemMs).toBe(2400);
   });
 
   it("rejects an unknown difficulty", () => {

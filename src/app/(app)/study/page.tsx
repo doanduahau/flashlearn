@@ -60,7 +60,7 @@ function PlayModes() {
         className="flex items-center gap-2 rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm font-medium hover:bg-surface-subtle sm:rounded-2xl sm:px-4 sm:py-3"
         href="/runner"
       >
-        Flashcard Runner
+        Capy Runner
         <span className="text-xs font-normal text-text-secondary">
           vừa chạy vừa bắt đáp án đúng
         </span>

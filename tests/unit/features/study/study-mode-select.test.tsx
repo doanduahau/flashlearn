@@ -57,11 +57,13 @@ describe("StudyModeSelect", () => {
   it("reveals Memory counts and Runner count plus difficulty controls only after selecting a mode", async () => {
     const user = userEvent.setup();
     render(<StudyModeSelect source={source} totalCards={24} />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "Chọn Memory" })).toBeVisible());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Bắt đầu Memory" })).toBeVisible(),
+    );
     expect(screen.queryAllByRole("button", { name: "12 câu" })).toHaveLength(0);
-    await user.click(screen.getByRole("button", { name: "Chọn Memory" }));
+    await user.click(screen.getByRole("button", { name: "Bắt đầu Memory" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "12 câu" })).toBeVisible());
-    await user.click(screen.getByRole("button", { name: "Chọn Runner" }));
+    await user.click(screen.getByRole("button", { name: "Bắt đầu Runner" }));
     expect(screen.getByRole("button", { name: "Dễ" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Vừa" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Khó" })).toBeVisible();

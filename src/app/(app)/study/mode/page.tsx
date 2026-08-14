@@ -13,8 +13,7 @@ export default async function StudyModePage({
   const supabase = await createClient();
   const cardIds = await collectStudyCardIds(supabase, source);
   return (
-    <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
-      <h1 className="text-2xl font-bold sm:text-3xl">Chọn chế độ học</h1>
+    <main className="mx-auto flex h-full w-full max-w-4xl flex-col p-3 sm:p-8">
       <StudyModeSelect source={source} totalCards={cardIds.length} />
     </main>
   );

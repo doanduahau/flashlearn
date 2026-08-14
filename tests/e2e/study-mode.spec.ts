@@ -154,7 +154,7 @@ test.describe("Study mode", () => {
 
     await page.getByRole("button", { name: /Quay lại/ }).click();
     await expect(page).toHaveURL(/\/study\/mode\?sets=/);
-    await expect(page.getByRole("heading", { name: "Chọn chế độ học" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Lật thẻ" })).toBeVisible();
 
     await context.close();
   });

@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { BackButton } from "@/components/shared/back-button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { getMemoryAvailability } from "@/features/memory/server/actions";
 import { startRunnerSession, getRunnerAvailability } from "@/features/runner/server/actions";
@@ -23,6 +23,9 @@ export type StudyModeSource = {
 };
 
 type Availability = { count: number; options: number[] };
+
+const PRIMARY_ACTION =
+  "min-h-11 rounded-xl bg-primary px-6 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50";
 
 function sourceQuery(source: StudyModeSource): string {
   const params = new URLSearchParams();
@@ -111,15 +114,12 @@ export function StudyModeSelect({
   }
 
   return (
-    <section aria-label="Chọn chế độ học" className="mt-4 space-y-3 pb-8 sm:mt-6">
-      <Link
-        className="inline-flex min-h-11 items-center text-sm font-medium text-text-secondary underline"
-        href={`/study?${query}`}
-      >
-        Quay lại chọn nguồn
-      </Link>
+    <section aria-label="Chọn chế độ học" className="flex flex-1 flex-col gap-3">
+      <div className="flex justify-end">
+        <BackButton fallbackHref={`/study?${query}`} label="Quay lại chọn nguồn" />
+      </div>
 
-      <article className="rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">
+      <article className="flex flex-1 flex-col rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">
         <div className="flex items-center gap-3">
           <MascotImage
             level={1}
@@ -135,22 +135,23 @@ export function StudyModeSelect({
           </div>
           <p className="shrink-0 text-sm font-medium">{totalCards} thẻ</p>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-auto flex justify-center pt-3">
           <button
             type="button"
-            className="min-h-11 flex-1 rounded-xl bg-primary px-4 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Bắt đầu lật thẻ"
+            className={PRIMARY_ACTION}
             disabled={totalCards < 1}
             onClick={() => router.push(sessionHref("/study/session", source))}
           >
-            Bắt đầu lật thẻ
+            Bắt đầu
           </button>
         </div>
         {totalCards < 1 ? (
-          <p className="mt-2 text-sm text-danger">{requirement(1, totalCards)}</p>
+          <p className="mt-2 text-center text-sm text-danger">{requirement(1, totalCards)}</p>
         ) : null}
       </article>
 
-      <article className="rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">
+      <article className="flex flex-1 flex-col rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">
         <div className="flex items-center gap-3">
           <MascotImage
             level={1}
@@ -164,8 +165,13 @@ export function StudyModeSelect({
           </div>
           <p className="shrink-0 text-sm font-medium">{memory?.count ?? 0} thẻ</p>
         </div>
-        {memoryOptions.length && selectedMode === "memory" ? (
-          <div className="mt-3 flex flex-wrap gap-2" aria-label="Số câu Memory">
+        {memory === null ? (
+          <p className="mt-auto pt-3 text-center text-sm text-text-secondary">Đang tính số thẻ…</p>
+        ) : memoryOptions.length && selectedMode === "memory" ? (
+          <div
+            className="mt-auto flex flex-wrap justify-center gap-2 pt-3"
+            aria-label="Số câu Memory"
+          >
             {memoryOptions.map((value) => (
               <button
                 key={value}
@@ -179,31 +185,37 @@ export function StudyModeSelect({
             ))}
             <button
               type="button"
-              className="min-h-11 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"
+              aria-label="Bắt đầu Memory"
+              className={PRIMARY_ACTION}
               onClick={() =>
                 router.push(sessionHref("/memory/session", source, selectedMemoryCount))
               }
             >
-              Bắt đầu Memory
+              Bắt đầu
             </button>
           </div>
         ) : memoryOptions.length ? (
-          <button
-            type="button"
-            className="mt-3 min-h-11 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"
-            onClick={() => setSelectedMode("memory")}
-          >
-            Chọn Memory
-          </button>
+          <div className="mt-auto flex justify-center pt-3">
+            <button
+              type="button"
+              aria-label="Bắt đầu Memory"
+              className={PRIMARY_ACTION}
+              onClick={() => setSelectedMode("memory")}
+            >
+              Bắt đầu
+            </button>
+          </div>
         ) : (
-          <p className="mt-3 text-sm text-danger">{requirement(12, memory?.count ?? 0)}</p>
+          <p className="mt-auto pt-3 text-center text-sm text-danger">
+            {requirement(12, memory?.count ?? 0)}
+          </p>
         )}
       </article>
 
       <article
         className={cn(
-          "rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4",
-          runnerOptions.length === 0 && "opacity-60",
+          "flex flex-1 flex-col rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4",
+          runner !== null && runnerOptions.length === 0 && "opacity-60",
         )}
       >
         <div className="flex items-center gap-3">
@@ -219,10 +231,12 @@ export function StudyModeSelect({
           </div>
           <p className="shrink-0 text-sm font-medium">{runner?.count ?? 0} thẻ</p>
         </div>
-        {runnerOptions.length && selectedMode === "runner" ? (
-          <>
+        {runner === null ? (
+          <p className="mt-auto pt-3 text-center text-sm text-text-secondary">Đang tính số thẻ…</p>
+        ) : runnerOptions.length && selectedMode === "runner" ? (
+          <div className="mt-auto pt-3">
             <DifficultySelector value={difficulty} onChange={setDifficulty} />
-            <div className="mt-3 flex flex-wrap gap-2" aria-label="Số câu Runner">
+            <div className="mt-3 flex flex-wrap justify-center gap-2" aria-label="Số câu Runner">
               {runnerOptions.map((value) => (
                 <button
                   key={value}
@@ -236,27 +250,33 @@ export function StudyModeSelect({
               ))}
               <button
                 type="button"
+                aria-label="Bắt đầu Runner"
                 disabled={runnerPending}
-                className="min-h-11 rounded-xl bg-primary px-4 font-semibold text-primary-foreground disabled:opacity-50"
+                className={cn(PRIMARY_ACTION, "disabled:opacity-50")}
                 onClick={() => void startRunner()}
               >
-                {runnerPending ? "Đang mở…" : "Bắt đầu Runner"}
+                {runnerPending ? "Đang mở…" : "Bắt đầu"}
               </button>
             </div>
-          </>
+          </div>
         ) : runnerOptions.length ? (
-          <button
-            type="button"
-            className="mt-3 min-h-11 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"
-            onClick={() => setSelectedMode("runner")}
-          >
-            Chọn Runner
-          </button>
+          <div className="mt-auto flex justify-center pt-3">
+            <button
+              type="button"
+              aria-label="Bắt đầu Runner"
+              className={PRIMARY_ACTION}
+              onClick={() => setSelectedMode("runner")}
+            >
+              Bắt đầu
+            </button>
+          </div>
         ) : (
-          <p className="mt-3 text-sm text-danger">{requirement(12, runner?.count ?? 0)}</p>
+          <p className="mt-auto pt-3 text-center text-sm text-danger">
+            {requirement(12, runner?.count ?? 0)}
+          </p>
         )}
         {runnerError ? (
-          <p role="alert" className="mt-2 text-sm text-danger">
+          <p role="alert" className="mt-2 text-center text-sm text-danger">
             {runnerError}
           </p>
         ) : null}

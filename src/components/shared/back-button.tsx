@@ -20,11 +20,12 @@ export function BackButton({
     <Button
       type="button"
       variant="ghost"
-      className={cn("size-11 shrink-0 p-0", className)}
+      className={cn("size-11 shrink-0 gap-1 p-0", className)}
       aria-label={label}
       onClick={goBack}
     >
       <ChevronLeft className="size-6" aria-hidden="true" />
+      <span aria-hidden="true" className="h-0.5 w-4 rounded-full bg-current" />
     </Button>
   );
 }

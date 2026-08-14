@@ -5,13 +5,17 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AppNavigation } from "@/components/layout/app-navigation";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 
 export function AppChrome({
   children,
+  mascotLevel,
   sidebarFooter,
   mobileHeaderRight,
 }: Readonly<{
   children: ReactNode;
+  mascotLevel: MascotLevel;
   sidebarFooter: ReactNode;
   mobileHeaderRight: ReactNode;
 }>) {
@@ -33,6 +37,13 @@ export function AppChrome({
               className="size-5 object-contain"
             />
           </span>
+          <MascotImage
+            level={mascotLevel}
+            state="normal"
+            size={28}
+            loading="eager"
+            className="size-7 shrink-0 object-contain"
+          />
           <span>CapyStudy</span>
         </Link>
         <AppNavigation variant="sidebar" />
@@ -52,6 +63,13 @@ export function AppChrome({
               alt=""
               aria-hidden="true"
               className="size-5 object-contain"
+            />
+            <MascotImage
+              level={mascotLevel}
+              state="normal"
+              size={28}
+              loading="eager"
+              className="size-7 shrink-0 object-contain"
             />
             CapyStudy
           </Link>

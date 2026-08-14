@@ -11,6 +11,8 @@ import { loadStreakSummary } from "@/features/statistics/server/load-statistics"
 import { streakLabel } from "@/features/statistics/utils/streak-label";
 import { buildQuizResultCollectionTargets } from "@/features/quiz/utils/result-collection-targets";
 import { quizSessionOrigin } from "@/features/quiz/utils/quiz-session-origin";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
+import { levelFromStreak } from "@/features/mascot/utils/mascot-level";
 import { createClient } from "@/lib/supabase/server";
 export default async function QuizResultPage({
   params,
@@ -106,10 +108,20 @@ export default async function QuizResultPage({
   );
   return (
     <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
-      <h1 className="text-3xl font-bold">Kết quả kiểm tra</h1>
-      <p className="mt-3 text-xl">
-        {session.correct_answer_count}/{session.actual_question_count} đúng ({percentage}%)
-      </p>
+      <div className="flex items-center gap-4">
+        <MascotImage
+          level={levelFromStreak(streakSummary?.currentStreak ?? 0)}
+          state={percentage >= 60 ? "happy" : "sad"}
+          size={80}
+          className="size-16 shrink-0 object-contain sm:size-20"
+        />
+        <div>
+          <h1 className="text-3xl font-bold">Kết quả kiểm tra</h1>
+          <p className="mt-3 text-xl">
+            {session.correct_answer_count}/{session.actual_question_count} đúng ({percentage}%)
+          </p>
+        </div>
+      </div>
       {streakSummary ? (
         <section
           aria-label="Chuỗi học tập"

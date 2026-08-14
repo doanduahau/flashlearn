@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { moveSet } from "@/features/flashcard-sets/server/actions";
 
 export type ReorderableSet = {
@@ -80,6 +81,12 @@ export function SetReorderList({
       <ol aria-label="Thứ tự bộ flashcard" className="mt-4 grid gap-3">
         {sets.length === 0 ? (
           <li className="rounded-2xl border border-dashed border-border-soft bg-surface p-4 text-text-secondary">
+            <MascotImage
+              level={1}
+              state="thinking"
+              size={48}
+              className="mb-2 size-12 object-contain"
+            />
             Chưa có bộ flashcard để sắp xếp.
           </li>
         ) : null}

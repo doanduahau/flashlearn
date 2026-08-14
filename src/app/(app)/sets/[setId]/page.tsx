@@ -18,6 +18,7 @@ import { EditCardForm } from "@/features/flashcard-sets/components/edit-card-for
 import { RenameSetForm } from "@/features/flashcard-sets/components/rename-set-form";
 import { sanitizeSearchQuery } from "@/features/flashcard-sets/utils/search";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { PaginationControls } from "@/components/shared/pagination-controls";
 import { SET_CARDS_PAGE_SIZE } from "@/lib/constants";
 import { pageHref, parsePage, type RouteSearchParams } from "@/lib/pagination";
@@ -143,6 +144,12 @@ export default async function SetDetailPage({
         ) : null}
         {total === 0 ? (
           <div className="mt-4 rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-8 text-center">
+            <MascotImage
+              level={1}
+              state="thinking"
+              size={48}
+              className="mx-auto mb-2 size-12 object-contain"
+            />
             <p className="font-medium">Bộ này chưa có thẻ nào.</p>
             <p className="mt-1 text-sm text-text-secondary">Thêm thẻ đầu tiên ở phần trên.</p>
           </div>

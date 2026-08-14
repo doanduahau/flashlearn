@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { MatchBoard } from "@/features/match/components/match-board";
 import { startMatchCoverageSession } from "@/features/match/server/actions";
 import type { MatchQuestionCount, StartedMatchSession } from "@/features/match/types/match-types";
@@ -97,6 +98,7 @@ export function MatchSession({ sessionHref, questionCount }: MatchSessionProps) 
   if (done) {
     return (
       <div className="space-y-4">
+        <MascotImage level={1} state="congrats" size={80} className="size-16 object-contain" />
         <h2 className="text-xl font-bold sm:text-2xl">
           Hoàn thành {questionCount}/{questionCount}
         </h2>

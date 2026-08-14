@@ -12,6 +12,7 @@ import type {
 } from "@/features/imports/types/document-types";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { DOCUMENT_MAX_BYTES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 
@@ -151,7 +152,12 @@ export function DocumentImport() {
         />
       </div>
 
-      {isPending && <p className="text-sm text-text-secondary">Đang đọc tài liệu...</p>}
+      {isPending ? (
+        <div role="status" className="flex items-center gap-2 text-sm text-text-secondary">
+          <MascotImage level={1} state="thinking" size={32} className="size-8 object-contain" />
+          <p>Đang đọc tài liệu...</p>
+        </div>
+      ) : null}
 
       {extraction && (
         <div className="flex flex-col gap-3 rounded-xl border border-border-soft bg-surface-subtle p-3 sm:rounded-2xl sm:p-5">

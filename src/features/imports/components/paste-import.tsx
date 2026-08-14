@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { analyzePasteContent } from "@/features/imports/server/analyze-paste";
 import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
@@ -55,7 +56,14 @@ export function PasteImport() {
       </div>
 
       <Button onClick={handleAnalyze} disabled={analyzing}>
-        {analyzing ? "Đang phân tích..." : "Phân tích"}
+        {analyzing ? (
+          <>
+            <MascotImage level={1} state="thinking" size={24} className="size-6 object-contain" />
+            Đang phân tích...
+          </>
+        ) : (
+          "Phân tích"
+        )}
       </Button>
 
       {previewCards && (

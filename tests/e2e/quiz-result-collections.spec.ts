@@ -49,6 +49,7 @@ test.describe("Quiz result collections", () => {
     }
     await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+\/result$/);
     resultUrl = page.url();
+    await expect(page.locator('img[src="/mascot/level-1/sad.png"]')).toBeVisible();
 
     await expect(page.getByText("1/10 đúng")).toBeVisible();
     await expect(page.getByText(/Chuỗi 1 ngày, hôm nay đã hoàn thành/)).toBeVisible();
@@ -66,6 +67,25 @@ test.describe("Quiz result collections", () => {
 
     mkdirSync(dirname(AUTH_STATE), { recursive: true });
     await page.context().storageState({ path: AUTH_STATE });
+  });
+
+  test("shows the happy mascot for a passing quiz result", async ({ browser }) => {
+    const context = await browser.newContext({ storageState: AUTH_STATE });
+    const page = await context.newPage();
+
+    await page.goto("/quiz");
+    await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+    await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
+
+    for (let index = 0; index < 10; index += 1) {
+      await answerQuestion(page, true);
+    }
+
+    await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+\/result$/);
+    await expect(page.getByText("10/10 đúng")).toBeVisible();
+    await expect(page.locator('img[src="/mascot/level-1/happy.png"]')).toBeVisible();
+
+    await context.close();
   });
 
   test("membership appears in the collection and the source card stays in its set", async ({

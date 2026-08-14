@@ -58,6 +58,14 @@ test.describe("Study mode", () => {
     const page = await context.newPage();
 
     await page.goto("/quiz");
+    const header = page.locator("header");
+    await expect(header.locator('img[src="/mascot/logo.png"]')).toBeVisible();
+    await expect(header.locator('img[src="/mascot/level-1/normal.png"]')).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
     const allCards = page.locator('input[type="radio"]').first();
     await expect(allCards).toBeChecked();
 

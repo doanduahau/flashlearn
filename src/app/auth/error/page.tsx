@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 
 export const metadata: Metadata = {
   title: "Lỗi xác thực",
@@ -16,6 +17,7 @@ export default function AuthErrorPage() {
       </div>
 
       <div className="w-full max-w-sm rounded-3xl border border-border-soft bg-surface p-8 text-center shadow-soft-card">
+        <MascotImage level={1} state="sad" size={96} className="mx-auto size-24 object-contain" />
         <h1 className="font-heading text-xl font-bold">Xác thực không thành công</h1>
         <p className="mt-2 text-sm text-text-secondary">
           Có vấn đề xảy ra trong quá trình xác thực. Vui lòng thử lại.

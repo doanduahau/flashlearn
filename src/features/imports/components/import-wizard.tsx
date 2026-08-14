@@ -6,6 +6,7 @@ import { sheetToDraftCards } from "@/features/imports/adapters/excel-adapter";
 import { parseWorkbook, validateImportFile } from "@/features/imports/utils/parse-workbook";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
 import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,6 +81,12 @@ export function ImportWizard() {
     <div className="space-y-6">
       {!sheet ? (
         <section className="rounded-3xl border border-dashed border-border-soft bg-surface-subtle p-6 text-center">
+          <MascotImage
+            level={1}
+            state="thinking"
+            size={48}
+            className="mx-auto size-12 object-contain"
+          />
           <Label htmlFor="import-file" className="block cursor-pointer text-lg font-semibold">
             Chọn hoặc kéo tệp CSV/XLSX vào đây
           </Label>
@@ -101,9 +108,13 @@ export function ImportWizard() {
             }}
           />
           {isParsing ? (
-            <p role="status" className="mt-3 text-sm text-text-secondary">
-              {"\u0110ang \u0111\u1ecdc t\u1ec7p..."}
-            </p>
+            <div
+              role="status"
+              className="mt-3 flex items-center justify-center gap-2 text-sm text-text-secondary"
+            >
+              <MascotImage level={1} state="thinking" size={32} className="size-8 object-contain" />
+              <p>{"\u0110ang \u0111\u1ecdc t\u1ec7p..."}</p>
+            </div>
           ) : null}
         </section>
       ) : (

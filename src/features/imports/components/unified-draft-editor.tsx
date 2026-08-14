@@ -22,6 +22,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { importFlashcards } from "@/features/imports/server/actions";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { CARD_TEXT_MAX_LENGTH, IMPORT_MAX_ROWS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -330,6 +331,12 @@ export function UnifiedDraftEditor({
       {/* Card list */}
       {cards.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border-soft p-8 text-center text-sm text-text-secondary">
+          <MascotImage
+            level={1}
+            state="thinking"
+            size={48}
+            className="mx-auto mb-2 size-12 object-contain"
+          />
           Chưa có thẻ nào. Nhấn &quot;+ Thêm thẻ&quot; để bắt đầu.
         </div>
       ) : (
@@ -366,7 +373,14 @@ export function UnifiedDraftEditor({
 
       {/* Import */}
       <Button onClick={() => void handleImport()} disabled={!canImport}>
-        {importing ? "Đang import..." : "Tạo bộ flashcard"}
+        {importing ? (
+          <>
+            <MascotImage level={1} state="thinking" size={24} className="size-6 object-contain" />
+            Đang import...
+          </>
+        ) : (
+          "Tạo bộ flashcard"
+        )}
       </Button>
 
       {error && (

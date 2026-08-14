@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type {
   SourceOption,
   SourcePage,
@@ -172,6 +173,12 @@ export function SourceBrowser({
       </ul>
       {!isNavigating && sourcePage.sources.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-5 text-center text-text-secondary">
+          <MascotImage
+            level={1}
+            state="thinking"
+            size={48}
+            className="mx-auto mb-2 size-12 object-contain"
+          />
           Không tìm thấy nguồn phù hợp.
         </p>
       ) : null}

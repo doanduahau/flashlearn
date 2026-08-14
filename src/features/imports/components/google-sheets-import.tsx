@@ -20,6 +20,7 @@ import { validateDraftCards } from "@/features/imports/utils/validate-draft-card
 import { columnIndexToLetters } from "@/features/imports/utils/sheets-a1";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { IMPORT_PREVIEW_ROWS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -544,9 +545,12 @@ export function GoogleSheetsImport() {
       )}
 
       {(mode === "picker_loading" || mode === "opening") && (
-        <p className="text-sm text-text-secondary">
-          {mode === "picker_loading" ? "Đang kết nối Google Drive..." : "Đang đọc bảng tính..."}
-        </p>
+        <div role="status" className="flex items-center gap-2 text-sm text-text-secondary">
+          <MascotImage level={1} state="thinking" size={32} className="size-8 object-contain" />
+          <p>
+            {mode === "picker_loading" ? "Đang kết nối Google Drive..." : "Đang đọc bảng tính..."}
+          </p>
+        </div>
       )}
 
       {mode === "loaded" && sheetInfo && (

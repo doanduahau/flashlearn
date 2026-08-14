@@ -38,7 +38,7 @@ export function RunnerHud({
           Câu {questionNumber} / {totalQuestions}
         </span>
       </div>
-      <p className="text-base font-semibold leading-snug text-text-primary sm:text-lg">
+      <p className="text-center text-lg font-semibold leading-snug text-text-primary sm:text-xl">
         {question}
       </p>
     </div>

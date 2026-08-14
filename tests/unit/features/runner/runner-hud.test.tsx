@@ -53,6 +53,6 @@ describe("RunnerHud", () => {
         question="Front text"
       />,
     );
-    expect(screen.getByText("Front text")).toBeInTheDocument();
+    expect(screen.getByText("Front text")).toHaveClass("text-center", "text-lg", "sm:text-xl");
   });
 });

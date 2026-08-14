@@ -32,11 +32,11 @@ export function StartSmartReviewButton({ label = "Ôn ngay" }: { label?: string 
   }
 
   return (
-    <div className="shrink-0">
+    <div className="w-full shrink-0">
       <Button
         type="button"
         size="sm"
-        className="min-h-10"
+        className="min-h-10 w-full"
         onClick={start}
         disabled={pending}
         aria-describedby={error ? "smart-review-start-error" : undefined}

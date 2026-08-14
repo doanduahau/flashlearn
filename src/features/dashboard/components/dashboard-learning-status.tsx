@@ -28,14 +28,17 @@ export function DashboardLearningStatus({
   if (items.length === 0) return null;
 
   return (
-    <p className={cn("flex flex-wrap items-center gap-x-4 gap-y-1 text-sm", className)}>
+    <div className={cn("flex flex-col justify-center gap-1.5 text-sm sm:text-base", className)}>
       {items.map((item) => (
-        <span key={item.label} className="inline-flex items-center gap-1.5">
-          <span aria-hidden="true" className={cn("size-2 rounded-full", item.dotClassName)} />
-          <span className={item.labelClassName}>{item.label}</span>
-          <span className="font-semibold text-text-primary">{item.count}</span>
+        <span key={item.label} className="inline-flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className={cn("size-2 shrink-0 rounded-full", item.dotClassName)}
+          />
+          <span className={cn(item.labelClassName, "whitespace-nowrap")}>{item.label}</span>
+          <span className="font-bold text-text-primary ml-1">{item.count}</span>
         </span>
       ))}
-    </p>
+    </div>
   );
 }

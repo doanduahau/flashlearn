@@ -30,13 +30,13 @@ export function StartNewCardsButton({ label = "Học thẻ mới" }: Readonly<{ 
   }
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-1">
+    <div className="flex w-full shrink-0 flex-col gap-1">
       {error ? (
-        <p role="alert" className="text-xs text-danger">
+        <p role="alert" className="text-xs text-danger text-right">
           {error}
         </p>
       ) : null}
-      <Button size="sm" onClick={handleClick} disabled={pending}>
+      <Button size="sm" className="w-full" onClick={handleClick} disabled={pending}>
         {pending ? "Đang tải..." : label}
       </Button>
     </div>

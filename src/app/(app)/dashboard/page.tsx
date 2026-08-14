@@ -125,7 +125,7 @@ export default async function DashboardPage({
               newCardsCount={newCardsCount}
               className="min-w-0"
             />
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-col justify-center gap-2">
               {dueCount > 0 ? <StartSmartReviewButton /> : null}
               {newCardsCount > 0 ? <StartNewCardsButton /> : null}
             </div>

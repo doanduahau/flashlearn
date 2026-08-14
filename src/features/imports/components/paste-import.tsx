@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { analyzePasteContent } from "@/features/imports/server/analyze-paste";
-import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
+import { CreateSummary } from "@/features/imports/components/create-summary";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -67,10 +67,9 @@ export function PasteImport() {
       </Button>
 
       {previewCards && (
-        <UnifiedDraftEditor
+        <CreateSummary
           key={`paste-${previewCards.length}`}
           sourceCards={previewCards}
-          setCardCount={previewCards.length}
           sourceMetadata={[{ label: "Nguồn", value: "Dán nội dung" }]}
         />
       )}

@@ -17,7 +17,7 @@ test("production /sets keeps non-PDF import paths free of the PDF runtime", asyn
   await expect(page.getByRole("heading", { name: /tạo bộ thủ công/i })).toBeVisible();
 
   await page.goto("/sets?create=import");
-  await expect(page.locator('input[type="file"][accept=".xlsx,.csv"]')).toBeVisible();
+  await expect(page.locator('input[type="file"][accept=".xlsx,.csv,.docx,.pdf"]')).toBeVisible();
 
   await page.goto("/sets?create=paste");
   await page.getByRole("textbox", { name: "Dán nội dung" }).fill("front\tback");

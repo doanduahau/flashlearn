@@ -10,8 +10,8 @@ test.describe("Primary application navigation", () => {
     await page.goto("/dashboard");
     await expect(page.getByLabel(/CSV\/XLSX/i)).toHaveCount(0);
     await page.goto("/sets");
-    await page.getByRole("link", { name: "Nhập Excel" }).click();
-    await expect(page).toHaveURL(/\/sets\?create=import$/);
+    await page.getByRole("link", { name: "Tài liệu" }).click();
+    await expect(page).toHaveURL(/\/sets\?create=document$/);
     await expect(page.getByLabel(/CSV\/XLSX/i)).toBeVisible();
     await page.getByRole("link", { name: "Đóng" }).click();
     await expect(page).toHaveURL(/\/sets$/);

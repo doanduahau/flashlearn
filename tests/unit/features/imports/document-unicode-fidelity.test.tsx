@@ -1,4 +1,3 @@
-import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockClassify, mockGenerateCards, mockGetClaims } = vi.hoisted(() => ({
@@ -8,7 +7,6 @@ const { mockClassify, mockGenerateCards, mockGetClaims } = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn().mockResolvedValue({
@@ -35,7 +33,6 @@ vi.mock("@/features/imports/adapters/gemini-provider", () => ({
   },
 }));
 
-import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
 import { analyzeDocument } from "@/features/imports/server/analyze-document";
 import { generateDocumentCards } from "@/features/imports/server/generate-document-cards";
 import type { ExtractedDocument } from "@/features/imports/types/document-types";
@@ -85,7 +82,7 @@ afterEach(() => {
 });
 
 describe("document card Unicode fidelity", () => {
-  it("preserves exact PDF extraction text through analysis, generation, and UnifiedDraftEditor", async () => {
+  it("preserves exact PDF extraction text through analysis and generation", async () => {
     mockGenerateCards.mockResolvedValue([PROVIDER_CARD]);
 
     // A: extracted PDF text is the exact production regression fixture.
@@ -115,13 +112,6 @@ describe("document card Unicode fidelity", () => {
     expect(generated.metrics.aiRequests).toBe(1);
     // D/E: parsed provider result and DraftFlashcard values are exact.
     expect(generated.cards).toEqual([PROVIDER_CARD]);
-
-    render(<UnifiedDraftEditor sourceCards={generated.cards} />);
-    // F: the editor receives the exact DraftFlashcard strings without a secondary sanitizer.
-    expect(screen.getByLabelText("Mặt trước")).toHaveValue("RAM là gì?");
-    expect(screen.getByLabelText("Mặt sau")).toHaveValue(
-      "Tiến trình là gì? Người sử dụng dữ liệu trong hệ thống.",
-    );
   });
 
   it("does not strip Vietnamese combining characters in deterministic document cards", async () => {

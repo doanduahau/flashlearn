@@ -147,7 +147,7 @@ test.describe("Document generation (3F)", () => {
     await page.getByRole("button", { name: "Tạo thẻ" }).click();
 
     // Generation result visible — unified editor appears
-    await expect(page.getByRole("button", { name: /thêm thẻ/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
 
     // Zero generation AI calls (structured = deterministic)
     const genAfter = await generationCalls(page);
@@ -169,7 +169,7 @@ test.describe("Document generation (3F)", () => {
 
     await page.getByRole("button", { name: "Tạo thẻ" }).click();
 
-    await expect(page.getByRole("button", { name: /thêm thẻ/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
 
     // Prose = mocked AI generation = exactly 1 call
     const genAfter = await generationCalls(page);
@@ -191,7 +191,7 @@ test.describe("Document generation (3F)", () => {
 
     await page.getByRole("button", { name: "Tạo thẻ" }).click();
 
-    await expect(page.getByRole("button", { name: /thêm thẻ/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
 
     // Mixed = deterministic table + AI for prose = 1 gen call
     const genAfter = await generationCalls(page);
@@ -216,7 +216,7 @@ test.describe("Document generation (3F)", () => {
       await page.getByRole("button", { name: "Tạo thẻ" }).click();
 
       // Deterministic cards are still shown (table cards survive).
-      await expect(page.getByRole("button", { name: /thêm thẻ/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
       // A clear warning is visible.
       await expect(page.getByText(/AI không khả dụng|Không thể tạo thẻ/)).toBeVisible();
 

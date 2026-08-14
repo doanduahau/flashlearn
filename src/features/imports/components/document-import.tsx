@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { extractDocument } from "@/features/imports/server/extract-document";
 import { analyzeDocument } from "@/features/imports/server/analyze-document";
@@ -11,7 +11,7 @@ import type {
   ExtractedDocumentBlock,
 } from "@/features/imports/types/document-types";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
-import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
+import { CreateSummary } from "@/features/imports/components/create-summary";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { DOCUMENT_MAX_BYTES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ function renderBlock(block: ExtractedDocumentBlock) {
   return <p className="text-sm whitespace-pre-wrap">{block.text}</p>;
 }
 
-export function DocumentImport() {
+export function DocumentImport({ initialFile }: Readonly<{ initialFile?: File }>) {
   const [extraction, setExtraction] = useState<ExtractedDocument | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzedDocument | null>(null);
   const [generatedCards, setGeneratedCards] = useState<DraftFlashcard[] | null>(null);
@@ -63,6 +63,14 @@ export function DocumentImport() {
   const [fileName, setFileName] = useState("");
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  const initialFileRef = useRef(initialFile);
+
+  useEffect(() => {
+    if (initialFileRef.current) {
+      void handleFile(initialFileRef.current);
+      initialFileRef.current = undefined;
+    }
+  }, []);
 
   function reset() {
     setExtraction(null);
@@ -226,10 +234,9 @@ export function DocumentImport() {
           )}
 
           {generatedCards && generatedCards.length > 0 && (
-            <UnifiedDraftEditor
+            <CreateSummary
               key={`doc-${genKey}`}
               sourceCards={generatedCards}
-              setCardCount={generatedCards.length}
               sourceMetadata={[
                 { label: "Tệp", value: fileName },
                 { label: "Nguồn", value: extraction.sourceType === "docx" ? "Word" : "PDF" },
@@ -240,7 +247,7 @@ export function DocumentImport() {
               <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
                 Chọn tệp khác
               </Button>
-            </UnifiedDraftEditor>
+            </CreateSummary>
           )}
 
           {!generatedCards && (

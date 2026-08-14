@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClipboardPaste, FileText, FileUp, ListOrdered, Sheet, SquarePen } from "lucide-react";
+import { ListOrdered } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -11,10 +11,14 @@ import { SetReorderList } from "@/features/flashcard-sets/components/set-reorder
 import { SetsList, type SetSummary } from "@/features/flashcard-sets/components/sets-list";
 import { sanitizeSearchQuery } from "@/features/flashcard-sets/utils/search";
 import { ManualSetForm } from "@/features/flashcard-sets/components/manual-set-form";
-import { ImportWizard } from "@/features/imports/components/import-wizard";
+import {
+  CreateSetCard,
+  type CreateMode,
+} from "@/features/flashcard-sets/components/create-set-card";
+import { LibraryCard } from "@/features/flashcard-sets/components/library-card";
+import { FileImport } from "@/features/imports/components/file-import";
 import { PasteImport } from "@/features/imports/components/paste-import";
 import { GoogleSheetsImport } from "@/features/imports/components/google-sheets-import";
-import { DocumentImport } from "@/features/imports/components/document-import";
 import {
   CollectionsList,
   type CollectionSummary,
@@ -24,7 +28,6 @@ import { LIBRARY_PAGE_SIZE } from "@/lib/constants";
 import {
   pageHref,
   parsePage,
-  removeSearchParamHref,
   type RouteSearchParams,
   updateSearchParamHref,
 } from "@/lib/pagination";
@@ -33,21 +36,16 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Bộ flashcard" };
 
 type LibraryTab = "regular" | "special";
-type CreateMode = "import" | "manual" | "paste" | "google_sheets" | "document" | null;
 
 function tabOf(value: string | string[] | undefined): LibraryTab {
   return value === "special" ? "special" : "regular";
 }
 
 function createModeOf(value: string | string[] | undefined): CreateMode {
-  if (
-    value === "import" ||
-    value === "manual" ||
-    value === "paste" ||
-    value === "google_sheets" ||
-    value === "document"
-  )
-    return value;
+  if (value === "import" || value === "document") return "file";
+  if (value === "manual") return "manual";
+  if (value === "paste") return "paste";
+  if (value === "google_sheets") return "google_sheets";
   return null;
 }
 
@@ -56,6 +54,7 @@ export default async function SetsPage({
 }: Readonly<{ searchParams: Promise<RouteSearchParams> }>) {
   const raw = await searchParams;
   const tab = tabOf(raw.tab);
+  const createMode = createModeOf(raw.create);
   const tabs = [
     {
       value: "regular",
@@ -72,137 +71,29 @@ export default async function SetsPage({
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
       <h1 className="text-2xl font-bold sm:text-3xl">Bộ flashcard</h1>
-      <CreateSetBlock mode={createModeOf(raw.create)} searchParams={raw} />
-      <SectionTabs
-        label="Loại bộ flashcard"
-        current={tab}
-        items={tabs}
-        pendingContent={<SetsTabLoading />}
-      >
-        <Suspense fallback={<SetsTabLoading />}>
-          <SetsTabContent tab={tab} searchParams={raw} />
-        </Suspense>
-      </SectionTabs>
+      <div className="mt-2 grid gap-4 sm:mt-5 sm:grid-cols-2 sm:items-start">
+        <CreateSetCard mode={createMode} searchParams={raw}>
+          {createMode === "paste" ? <PasteImport /> : null}
+          {createMode === "file" ? <FileImport /> : null}
+          {createMode === "google_sheets" ? <GoogleSheetsImport /> : null}
+          {createMode === "manual" ? <ManualSetForm /> : null}
+        </CreateSetCard>
+        <LibraryCard open={createMode === null}>
+          {createMode === null ? (
+            <SectionTabs
+              label="Loại bộ flashcard"
+              current={tab}
+              items={tabs}
+              pendingContent={<SetsTabLoading />}
+            >
+              <Suspense fallback={<SetsTabLoading />}>
+                <SetsTabContent tab={tab} searchParams={raw} />
+              </Suspense>
+            </SectionTabs>
+          ) : null}
+        </LibraryCard>
+      </div>
     </main>
-  );
-}
-
-function CreateSetBlock({
-  mode,
-  searchParams,
-}: Readonly<{ mode: CreateMode; searchParams: RouteSearchParams }>) {
-  const importHref = updateSearchParamHref("/sets", searchParams, "create", "import");
-  const manualHref = updateSearchParamHref("/sets", searchParams, "create", "manual");
-  const pasteHref = updateSearchParamHref("/sets", searchParams, "create", "paste");
-  const sheetsHref = updateSearchParamHref("/sets", searchParams, "create", "google_sheets");
-  const documentHref = updateSearchParamHref("/sets", searchParams, "create", "document");
-  const closeHref = removeSearchParamHref("/sets", searchParams, "create");
-
-  return (
-    <section
-      aria-label="Tạo bộ flashcard"
-      className="mt-2 rounded-xl border border-border-soft bg-surface-subtle p-2 sm:mt-5 sm:rounded-2xl sm:p-4"
-    >
-      {mode === null ? (
-        <div className="flex flex-col items-center gap-1 sm:gap-2">
-          <span className="text-sm font-semibold text-text-secondary sm:text-base">Tạo bộ</span>
-          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-            <Button asChild size="sm" className="min-h-9 flex-1 sm:min-h-10 sm:flex-none">
-              <Link href={importHref} scroll={false}>
-                <FileUp aria-hidden="true" />
-                Nhập Excel
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="min-h-9 flex-1 sm:min-h-10 sm:flex-none"
-            >
-              <Link href={pasteHref} scroll={false}>
-                <ClipboardPaste aria-hidden="true" />
-                Dán nội dung
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="min-h-9 flex-1 sm:min-h-10 sm:flex-none"
-            >
-              <Link href={sheetsHref} scroll={false}>
-                <Sheet aria-hidden="true" />
-                Google Sheets
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="min-h-9 flex-1 sm:min-h-10 sm:flex-none"
-            >
-              <Link href={documentHref} scroll={false}>
-                <FileText aria-hidden="true" />
-                Tài liệu
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="min-h-9 flex-1 sm:min-h-10 sm:flex-none"
-            >
-              <Link href={manualHref} scroll={false}>
-                <SquarePen aria-hidden="true" />
-                Thủ công
-              </Link>
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-text-secondary sm:text-base">Tạo bộ</span>
-            <Link className="text-sm underline" href={closeHref} scroll={false}>
-              Đóng
-            </Link>
-          </div>
-          {mode === "import" ? (
-            <section
-              aria-label="Nhập từ tệp"
-              className="mt-3 rounded-xl border border-border-soft bg-surface p-3 sm:rounded-2xl sm:p-5"
-            >
-              <ImportWizard />
-            </section>
-          ) : null}
-          {mode === "manual" ? <ManualSetForm /> : null}
-          {mode === "paste" ? (
-            <section
-              aria-label="Dán nội dung"
-              className="mt-3 rounded-xl border border-border-soft bg-surface p-3 sm:rounded-2xl sm:p-5"
-            >
-              <PasteImport />
-            </section>
-          ) : null}
-          {mode === "google_sheets" ? (
-            <section
-              aria-label="Google Sheets"
-              className="mt-3 rounded-xl border border-border-soft bg-surface p-3 sm:rounded-2xl sm:p-5"
-            >
-              <GoogleSheetsImport />
-            </section>
-          ) : null}
-          {mode === "document" ? (
-            <section
-              aria-label="Tài liệu"
-              className="mt-3 rounded-xl border border-border-soft bg-surface p-3 sm:rounded-2xl sm:p-5"
-            >
-              <DocumentImport />
-            </section>
-          ) : null}
-        </>
-      )}
-    </section>
   );
 }
 
@@ -270,7 +161,7 @@ async function SetsTabContent({
     return (
       <section className="mt-3 sm:mt-5" aria-label="Danh sách bộ thường">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-semibold sm:text-lg">Bộ thường</h2>
+          <h3 className="text-base font-semibold sm:text-lg">Bộ thường</h3>
           <Button asChild variant="outline" size="sm" className="min-h-9 sm:min-h-10">
             <Link
               href={updateSearchParamHref("/sets", searchParams, "reorder", "1")}
@@ -320,7 +211,7 @@ async function SetsTabContent({
   return (
     <section className="mt-3 sm:mt-5" aria-label="Danh sách bộ đặc biệt">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold sm:text-lg">Bộ đặc biệt</h2>
+        <h3 className="text-base font-semibold sm:text-lg">Bộ đặc biệt</h3>
         <CreateCollectionToggle />
       </div>
       <LibrarySearchForm defaultValue={query} label={searchLabel} placeholder={placeholder} />

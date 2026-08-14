@@ -67,7 +67,7 @@ test.describe("Mobile-first UI — Dashboard", () => {
 });
 
 test.describe("Mobile-first UI — Sets page", () => {
-  test("set list begins high on screen with compact create area on mobile", async ({ page }) => {
+  test("create card with source chips sits above the library list on mobile", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("sets_mob"));
 
@@ -81,20 +81,18 @@ test.describe("Mobile-first UI — Sets page", () => {
 
     await page.goto("/sets");
 
-    // Create buttons visible
-    const importLink = page.getByRole("link", { name: /Nh\u1eadp Excel/ });
-    const pasteLink = page.getByRole("link", { name: /D\u00e1n n\u1ed9i dung/ });
-    const manualLink = page.getByRole("link", { name: /Th\u1ee7 c\u00f4ng/ });
-    await expect(importLink).toBeVisible();
-    await expect(pasteLink).toBeVisible();
-    await expect(manualLink).toBeVisible();
+    // Create source chips visible
+    const pasteChip = page.getByRole("link", { name: /Dán nội dung/ });
+    const sheetsChip = page.getByRole("link", { name: /Google Sheets/ });
+    const documentChip = page.getByRole("link", { name: /Tài liệu/ });
+    const manualChip = page.getByRole("link", { name: /Thủ công/ });
+    await expect(pasteChip).toBeVisible();
+    await expect(sheetsChip).toBeVisible();
+    await expect(documentChip).toBeVisible();
+    await expect(manualChip).toBeVisible();
 
-    // Create buttons share consistent height
-    const importBox = await importLink.boundingBox();
-    const manualBox = await manualLink.boundingBox();
-    expect(importBox).not.toBeNull();
-    expect(manualBox).not.toBeNull();
-    expect(Math.abs((importBox?.height ?? 0) - (manualBox?.height ?? 0))).toBeLessThan(2);
+    // Create card heading is visible
+    await expect(page.getByRole("heading", { name: /Tạo Flash card/ })).toBeVisible();
 
     // No horizontal overflow at mobile width
     expect(
@@ -103,28 +101,9 @@ test.describe("Mobile-first UI — Sets page", () => {
       ),
     ).toBe(true);
 
-    // "Tạo bộ" label is centered above the button group
-    const createLabel = page.getByText("T\u1ea1o b\u1ed9", { exact: true }).first();
-    await expect(createLabel).toBeVisible();
-    const labelBox = await createLabel.boundingBox();
-    expect(labelBox).not.toBeNull();
-    const groupCenter =
-      (Math.min(importBox?.x ?? 0, manualBox?.x ?? 0) +
-        Math.max(
-          (importBox?.x ?? 0) + (importBox?.width ?? 0),
-          (manualBox?.x ?? 0) + (manualBox?.width ?? 0),
-        )) /
-      2;
-    const labelCenter = (labelBox?.x ?? 0) + (labelBox?.width ?? 0) / 2;
-    expect(Math.abs(labelCenter - groupCenter)).toBeLessThan(50);
-
-    // Sets list (tab content) should appear — first set card within reasonable screen area
+    // Sets list (tab content) should appear — first set card reachable
     const firstCard = page.getByRole("link", { name: /Test Set/ }).first();
     await expect(firstCard).toBeVisible();
-    const box = await firstCard.boundingBox();
-    expect(box).not.toBeNull();
-    // First set card should be in the first 2/3 of the 844px viewport without scrolling
-    expect(box?.y ?? 0).toBeLessThan(580);
 
     // No horizontal scroll
     expect(

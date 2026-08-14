@@ -19,7 +19,7 @@ import type { MeaningfulColumn } from "@/features/imports/utils/detect-columns";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
 import { columnIndexToLetters } from "@/features/imports/utils/sheets-a1";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
-import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
+import { CreateSummary } from "@/features/imports/components/create-summary";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { IMPORT_PREVIEW_ROWS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -626,10 +626,9 @@ export function GoogleSheetsImport() {
           </Button>
 
           {fullCards && fullCards.length > 0 ? (
-            <UnifiedDraftEditor
+            <CreateSummary
               key={`sheets-${selectedSheetIndex}-${frontColumn}-${backColumn}`}
               sourceCards={fullCards}
-              setCardCount={fullCards.length}
               sourceMetadata={[
                 { label: "Bảng tính", value: sheetInfo.spreadsheetTitle },
                 ...(sheetInfo.sheets.length > 1

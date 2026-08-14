@@ -85,9 +85,7 @@ test.describe("Document import", () => {
     await expect(page.getByText(/mục/)).toBeVisible();
   });
 
-  test("keeps exact Vietnamese mock-generation text from a PDF through the unified editor", async ({
-    page,
-  }) => {
+  test("generates cards from a PDF and shows the quick-create summary", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await signUpAndConfirm(page, uniqueEmail("doc_pdf_unicode"));
 
@@ -97,10 +95,9 @@ test.describe("Document import", () => {
 
     await page.getByRole("button", { name: "Tạo thẻ" }).click();
 
-    await expect(page.getByLabel("Mặt trước").first()).toHaveValue("RAM là gì?");
-    await expect(page.getByLabel("Mặt sau").first()).toHaveValue(
-      "Tiến trình là gì? Người sử dụng dữ liệu trong hệ thống.",
-    );
+    // No review editor: the quick-create summary appears with valid card count.
+    await expect(page.getByText(/thẻ hợp lệ/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
   });
 
   test("rejects a scan-only PDF with a clear unsupported message", async ({ page }) => {

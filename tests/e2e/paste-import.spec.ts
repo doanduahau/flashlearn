@@ -16,7 +16,7 @@ test.describe("Paste import", () => {
     await page.getByRole("button", { name: "Phân tích" }).click();
 
     // Editor appears after analysis
-    await expect(page.getByRole("button", { name: /thêm thẻ/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
 
     await page.getByLabel("Tên bộ").fill("Bộ từ paste TSV");
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
@@ -55,7 +55,7 @@ test.describe("Paste import", () => {
     await page.getByRole("button", { name: "Phân tích" }).click();
 
     // Editor appears after analysis
-    await expect(page.getByRole("button", { name: /thêm thẻ/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
 
     await page.getByLabel("Tên bộ").fill("Bộ từ paste Q/A");
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
@@ -85,21 +85,21 @@ test.describe("Paste import", () => {
       "Q: Một câu hỏi dài để kiểm tra tràn màn hình?\nA: Một câu trả lời cũng khá dài để đảm bảo không bị tràn.",
     );
     await page.getByRole("button", { name: "Phân tích" }).click();
-    await expect(page.getByRole("button", { name: /thêm thẻ/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible();
 
-    const editorBox = await page.getByRole("button", { name: /thêm thẻ/i }).boundingBox();
+    const editorBox = await page.getByRole("button", { name: /Tạo bộ flashcard/i }).boundingBox();
     if (editorBox) {
       expect(editorBox.x + editorBox.width).toBeLessThanOrEqual(390);
     }
   });
 
-  test("excel import still works alongside paste", async ({ page }) => {
+  test("tài liệu import still works alongside paste", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signUpAndConfirm(page, uniqueEmail("paste_excel"));
 
     await page.goto("/sets");
 
-    await expect(page.getByRole("link", { name: /nhập excel/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /tài liệu/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /dán nội dung/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /thủ công/i })).toBeVisible();
 
@@ -110,7 +110,7 @@ test.describe("Paste import", () => {
     await page.getByRole("link", { name: /đóng/i }).click();
     await expect(pasteTextarea).not.toBeVisible();
 
-    await page.getByRole("link", { name: /nhập excel/i }).click();
+    await page.getByRole("link", { name: /tài liệu/i }).click();
     await expect(page.locator("input[type=file]")).toBeVisible();
   });
 });

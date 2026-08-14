@@ -1,20 +1,21 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { sheetToDraftCards } from "@/features/imports/adapters/excel-adapter";
 import { parseWorkbook, validateImportFile } from "@/features/imports/utils/parse-workbook";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
-import { UnifiedDraftEditor } from "@/features/imports/components/unified-draft-editor";
+import { CreateSummary } from "@/features/imports/components/create-summary";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ParsedSheet } from "@/features/imports/types/import-types";
 
-export function ImportWizard() {
+export function ImportWizard({ initialFile }: Readonly<{ initialFile?: File }>) {
   const inputRef = useRef<HTMLInputElement>(null);
   const parsingRef = useRef(false);
+  const initialFileRef = useRef(initialFile);
   const [sheets, setSheets] = useState<ParsedSheet[]>([]);
   const [sheetIndex, setSheetIndex] = useState(0);
   const [frontColumn, setFrontColumn] = useState(0);
@@ -40,6 +41,13 @@ export function ImportWizard() {
       return reason instanceof Error ? reason.message : "Dữ liệu không hợp lệ.";
     }
   }, [sheet, frontColumn, backColumn]);
+
+  useEffect(() => {
+    if (initialFileRef.current) {
+      void selectFile(initialFileRef.current);
+      initialFileRef.current = undefined;
+    }
+  }, []);
   function reset(): void {
     setSheets([]);
     setSheetIndex(0);
@@ -173,16 +181,15 @@ export function ImportWizard() {
             </p>
           ) : null}
           {summary && typeof summary !== "string" ? (
-            <UnifiedDraftEditor
+            <CreateSummary
               key={`excel-${sheetIndex}-${frontColumn}-${backColumn}`}
               sourceCards={summary.rows}
-              setCardCount={summary.rows.length}
               sourceMetadata={[{ label: "Nguồn", value: "Excel" }]}
             >
               <Button type="button" variant="outline" onClick={reset}>
                 Thay tệp
               </Button>
-            </UnifiedDraftEditor>
+            </CreateSummary>
           ) : null}
         </>
       )}

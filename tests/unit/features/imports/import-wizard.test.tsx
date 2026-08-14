@@ -58,7 +58,7 @@ describe("ImportWizard", () => {
     },
   );
 
-  it("selects worksheets and opens the unified editor with cards", async () => {
+  it("selects worksheets and shows the quick-create summary", async () => {
     mocks.parseWorkbook.mockResolvedValue([
       {
         name: "First",
@@ -74,9 +74,11 @@ describe("ImportWizard", () => {
     await user.selectOptions(screen.getByLabelText(/^1\./), "1");
     await user.selectOptions(screen.getByLabelText(/^2\./), "1");
     await user.selectOptions(screen.getByLabelText(/^3\./), "2");
-    // Unified editor renders global actions when cards are present
-    expect(await screen.findByRole("button", { name: /thêm thẻ/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /đảo tất cả/i })).toBeInTheDocument();
+    // Quick-create summary appears with valid cards (no per-card editor)
+    expect(await screen.findByText(/2 thẻ hợp lệ/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Tên bộ")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /thêm thẻ/i })).not.toBeInTheDocument();
   });
 
   it("announces same-column mapping", async () => {

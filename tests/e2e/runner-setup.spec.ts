@@ -56,7 +56,8 @@ test.describe("Flashcard Runner setup", () => {
     await expect(page).toHaveURL(/\/runner\/session\?sessionId=[0-9a-f-]+/);
 
     await expect(page.getByText("Câu 1 / 12")).toBeVisible();
-    await expect(page.getByText("Vừa")).toBeVisible();
+    await expect(page.getByText(/Vừa · 2 mạng/)).toBeVisible();
+    await expect(page.getByText("Chạm để bắt đầu")).toBeVisible();
     await expect(page.getByText(/Smart prompt \d+/)).toBeVisible();
   });
 

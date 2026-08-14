@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { RunnerSessionPlaceholder } from "@/features/runner/components/runner-session-placeholder";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
+import { RunnerSession } from "@/features/runner/components/runner-session";
 import type { RunnerDifficulty } from "@/features/runner/types/runner-types";
 import { mapRunnerSessionRows } from "@/features/runner/utils/map-runner-session-payload";
 import { createClient } from "@/lib/supabase/server";
@@ -37,37 +38,24 @@ export default async function RunnerSessionPage({
     p_runner_session_id: sessionId,
   });
   if (error) {
-    return (
-      <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
-        <SessionError />
-      </main>
-    );
+    return <SessionError />;
   }
 
   let questions;
   try {
     questions = mapRunnerSessionRows(data);
   } catch {
-    return (
-      <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
-        <SessionError />
-      </main>
-    );
+    return <SessionError />;
   }
 
-  return (
-    <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
-      <h1 className="text-2xl font-bold sm:text-3xl">Flashcard Runner</h1>
-      <div className="mt-3 sm:mt-5">
-        <RunnerSessionPlaceholder questions={questions} difficulty={difficulty} />
-      </div>
-    </main>
-  );
+  const mascotLevel = await loadMascotLevel(supabase);
+
+  return <RunnerSession questions={questions} difficulty={difficulty} mascotLevel={mascotLevel} />;
 }
 
 function SessionError() {
   return (
-    <div>
+    <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
       <h1 className="text-2xl font-bold sm:text-3xl">Flashcard Runner</h1>
       <p
         role="alert"
@@ -75,6 +63,6 @@ function SessionError() {
       >
         Không thể tải câu hỏi của phiên Runner lúc này. Vui lòng thử lại.
       </p>
-    </div>
+    </main>
   );
 }

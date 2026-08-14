@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { MascotImage } from "@/features/mascot/components/mascot-image";
+import { levelFromStreak } from "@/features/mascot/utils/mascot-level";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
 import {
   accuracy,
@@ -35,6 +37,7 @@ export async function StatisticsPanel({
   }
 
   const currentMonth = monthInTimezone(new Date(), stats.timezone);
+  const mascotLevel = levelFromStreak(stats.current_streak);
   const requestedMonth = typeof requestedMonthValue === "string" ? requestedMonthValue : "";
   const month =
     isValidMonth(requestedMonth) && requestedMonth <= currentMonth ? requestedMonth : currentMonth;
@@ -54,9 +57,17 @@ export async function StatisticsPanel({
 
   return (
     <section className="mt-6" aria-labelledby="statistics-heading">
-      <h2 id="statistics-heading" className="text-2xl font-bold">
-        Thống kê học tập
-      </h2>
+      <div className="flex items-center gap-3">
+        <MascotImage
+          level={mascotLevel}
+          state="normal"
+          size={64}
+          className="size-12 object-contain sm:size-16"
+        />
+        <h2 id="statistics-heading" className="text-2xl font-bold">
+          Thống kê học tập
+        </h2>
+      </div>
       <p className="mt-2 text-text-secondary">
         Theo múi giờ {stats.timezone}. Chỉ bài kiểm tra đã hoàn thành được tính.
       </p>
@@ -95,7 +106,15 @@ export async function StatisticsPanel({
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-text-secondary">Chưa có bài hoàn thành.</p>
+          <div className="mt-2 flex flex-col items-start gap-2 text-text-secondary">
+            <MascotImage
+              level={mascotLevel}
+              state="thinking"
+              size={48}
+              className="size-12 object-contain"
+            />
+            <p>Chưa có bài hoàn thành.</p>
+          </div>
         )}
       </section>
       <section className="mt-8">

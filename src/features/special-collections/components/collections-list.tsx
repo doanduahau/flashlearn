@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { MascotImage } from "@/features/mascot/components/mascot-image";
+
 export interface CollectionSummary {
   id: string;
   name: string;
@@ -12,11 +14,14 @@ export function CollectionsList({
 }: Readonly<{ collections: CollectionSummary[]; hasSearch: boolean }>) {
   if (!collections.length) {
     return (
-      <p className="mt-5 text-text-secondary">
-        {hasSearch
-          ? "Không tìm thấy bộ đặc biệt phù hợp."
-          : "Chưa có bộ đặc biệt nào. Tạo bộ đầu tiên để gom thẻ từ nhiều bộ flashcard."}
-      </p>
+      <div className="mt-5 flex flex-col items-start gap-2 text-text-secondary">
+        <MascotImage level={1} state="thinking" size={48} className="size-12 object-contain" />
+        <p>
+          {hasSearch
+            ? "Không tìm thấy bộ đặc biệt phù hợp."
+            : "Chưa có bộ đặc biệt nào. Tạo bộ đầu tiên để gom thẻ từ nhiều bộ flashcard."}
+        </p>
+      </div>
     );
   }
 

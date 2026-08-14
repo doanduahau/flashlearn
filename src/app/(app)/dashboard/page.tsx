@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Play } from "lucide-react";
 import { redirect } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { DashboardMotivationBar } from "@/features/dashboard/components/dashboard-motivation-bar";
 import { DashboardLearningStatus } from "@/features/dashboard/components/dashboard-learning-status";
+import { StreakMilestoneBanner } from "@/features/dashboard/components/streak-milestone-banner";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { countDueCards } from "@/features/spaced-repetition/server/due-repository";
 import { countNewCards } from "@/features/spaced-repetition/server/new-cards-repository";
 import { StartSmartReviewButton } from "@/features/smart-review/components/start-smart-review-button";
@@ -14,6 +15,7 @@ import {
   loadActivityDetail,
   loadMonthlyActivity,
   loadMonthlyStreakDates,
+  loadStreakSummary,
 } from "@/features/statistics/server/load-statistics";
 import {
   dateInTimezone,
@@ -36,12 +38,15 @@ export default async function DashboardPage({
   const currentMonth = monthInTimezone(new Date(), timezone);
 
   const evaluationTime = new Date().toISOString();
-  const [todayDetail, monthActivity, streakDates, claimsResult] = await Promise.all([
-    loadActivityDetail(supabase, today),
-    loadMonthlyActivity(supabase, currentMonth),
-    loadMonthlyStreakDates(supabase, timezone, currentMonth),
-    supabase.auth.getClaims(),
-  ]);
+  const [todayDetail, monthActivity, streakDates, claimsResult, mascotLevel, streakSummary] =
+    await Promise.all([
+      loadActivityDetail(supabase, today),
+      loadMonthlyActivity(supabase, currentMonth),
+      loadMonthlyStreakDates(supabase, timezone, currentMonth),
+      supabase.auth.getClaims(),
+      loadMascotLevel(supabase),
+      loadStreakSummary(supabase),
+    ]);
 
   const userId =
     typeof claimsResult.data?.claims?.sub === "string" ? claimsResult.data.claims.sub : null;
@@ -77,21 +82,8 @@ export default async function DashboardPage({
     <main className="mx-auto w-full max-w-5xl p-3 sm:p-8">
       <h1 className="text-2xl font-bold sm:text-3xl">Tổng quan</h1>
 
-      <section
-        aria-labelledby="daily-motivation-heading"
-        className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface-subtle px-3 py-2.5 sm:mt-5 sm:rounded-3xl sm:px-5 sm:py-4"
-      >
-        <h2 id="daily-motivation-heading" className="text-sm font-semibold sm:text-base">
-          {completedToday ? "Đã nối chuỗi hôm nay! 🎉" : "Chưa làm bài hôm nay"}
-        </h2>
-        <Button asChild size="sm" className="shrink-0">
-          <Link href="/quiz?tab=create">
-            <Play aria-hidden="true" />
-            <span className="hidden sm:inline">{completedToday ? "Tiếp tục" : "Bắt đầu"}</span>
-            <span className="sm:hidden">{completedToday ? "Luyện tập" : "Kiểm tra"}</span>
-          </Link>
-        </Button>
-      </section>
+      <DashboardMotivationBar completedToday={completedToday} mascotLevel={mascotLevel} />
+      <StreakMilestoneBanner streak={streakSummary?.currentStreak ?? 0} />
 
       <section
         className="mt-2 grid grid-cols-2 gap-2 sm:mt-3 sm:gap-3"

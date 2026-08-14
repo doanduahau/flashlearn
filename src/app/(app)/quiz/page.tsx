@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { ModeTabs } from "@/components/shared/mode-tabs";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { SectionTabs } from "@/components/shared/section-tabs";
 import { QuizSetup } from "@/features/quiz/components/quiz-setup";
 import { loadSourcePage, sourceType } from "@/features/source-selection/server/load-source-page";
@@ -109,7 +110,10 @@ async function QuizHistory() {
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-text-secondary">Bạn chưa hoàn thành bài kiểm tra nào.</p>
+        <div className="mt-4 flex flex-col items-start gap-2 text-text-secondary">
+          <MascotImage level={1} state="thinking" size={48} className="size-12 object-contain" />
+          <p>Bạn chưa hoàn thành bài kiểm tra nào.</p>
+        </div>
       )}
     </section>
   );

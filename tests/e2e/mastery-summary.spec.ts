@@ -32,6 +32,12 @@ test.describe("Mastery summary", () => {
 
     await page.goto("/dashboard");
 
+    const motivation = page.getByRole("region", { name: "Động lực hằng ngày" });
+    await expect(motivation.locator("img")).toHaveAttribute(
+      "src",
+      "/mascot/level-1/point-right.png",
+    );
+
     const summary = page.getByRole("region", { name: "Tóm tắt trạng thái học" });
     await expect(summary).toBeVisible();
     await expect(summary.getByText("Chưa học", { exact: true })).toBeVisible();

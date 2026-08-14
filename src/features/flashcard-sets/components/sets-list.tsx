@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { MascotImage } from "@/features/mascot/components/mascot-image";
+
 export interface SetSummary {
   id: string;
   name: string;
@@ -12,9 +14,10 @@ export function SetsList({
 }: Readonly<{ sets: SetSummary[]; hasSearch: boolean }>) {
   if (!sets.length) {
     return (
-      <p className="mt-5 text-text-secondary">
-        {hasSearch ? "Không tìm thấy bộ phù hợp." : "Chưa có bộ flashcard nào."}
-      </p>
+      <div className="mt-5 flex flex-col items-start gap-2 text-text-secondary">
+        <MascotImage level={1} state="thinking" size={48} className="size-12 object-contain" />
+        <p>{hasSearch ? "Không tìm thấy bộ phù hợp." : "Chưa có bộ flashcard nào."}</p>
+      </div>
     );
   }
 

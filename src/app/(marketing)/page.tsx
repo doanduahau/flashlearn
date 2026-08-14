@@ -1,4 +1,3 @@
-import { Leaf } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ export default function MarketingPage() {
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
       <div className="flex items-center gap-2 font-heading text-lg font-bold">
         <span className="flex size-10 items-center justify-center rounded-2xl bg-primary-soft">
-          <Leaf className="size-6 text-primary" aria-hidden="true" />
+          <img src="/mascot/logo.png" alt="" aria-hidden="true" className="size-6 object-contain" />
         </span>
         CapyStudy
       </div>

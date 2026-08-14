@@ -28,11 +28,11 @@ function drawFallback(ctx: CanvasRenderingContext2D, opts: RunnerCharacterDrawOp
   const centerY = opts.y + opts.height / 2;
 
   ctx.save();
-  ctx.fillStyle = "#7bcfa6";
+  ctx.fillStyle = "#fdc07f";
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#20352c";
+  ctx.fillStyle = "#2e2719";
   const eyeOffset = radius * 0.3;
   ctx.beginPath();
   ctx.arc(centerX - eyeOffset, centerY - radius * 0.1, radius * 0.1, 0, Math.PI * 2);

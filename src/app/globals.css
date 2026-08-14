@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  /* Soft Green Learning Garden palette */
-  --background: #f8fbf7;
+  /* Warm apricot CapyStudy palette */
+  --background: #fbf7f0;
   --surface: #ffffff;
-  --surface-subtle: #f1f7f3;
+  --surface-subtle: #f7f0e6;
 
-  --primary: #7bcfa6;
-  --primary-hover: #65be91;
-  --primary-soft: #eaf8f0;
-  --primary-foreground: #245c46;
+  --primary: #fdc07f;
+  --primary-hover: #ebae63;
+  --primary-soft: #fdf1de;
+  --primary-foreground: #4a320e;
 
-  --text-primary: #20352c;
+  --text-primary: #2e2719;
   --text-secondary: #64756d;
-  --border-soft: #ddebe3;
+  --border-soft: #eaddcb;
 
   --success: #65be91;
   --warning: #f3a66a;
@@ -112,7 +112,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  --shadow-soft-card: 0 8px 24px rgba(39, 93, 70, 0.08);
+  --shadow-soft-card: 0 8px 24px rgba(74, 50, 14, 0.08);
 
   --animate-card-in: card-in 0.18s ease-out;
   --animate-fade-in: fadeIn 0.12s ease-out;

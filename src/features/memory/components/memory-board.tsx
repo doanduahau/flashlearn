@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp } from "lucide-react";
 
 import type { MemoryBatch, MemoryTile } from "@/features/memory/types/memory-types";
 import {
@@ -253,7 +252,14 @@ function MemoryTileButton({
               : "border-border-soft bg-info/20 hover:bg-info/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
         )}
       >
-        {revealed ? <ArrowUp aria-hidden="true" className="size-5 sm:size-6" /> : null}
+        {revealed ? (
+          <img
+            src="/mascot/logo.png"
+            alt=""
+            aria-hidden="true"
+            className="h-4/5 w-4/5 object-contain"
+          />
+        ) : null}
       </button>
     </li>
   );
@@ -269,7 +275,7 @@ function Confetti() {
           className="confetti-piece absolute top-1/2 h-1.5 w-1.5 rounded-full motion-safe:animate-confetti"
           style={{
             left: `${(piece * 10 + 5) % 100}%`,
-            backgroundColor: ["#7bcfa6", "#f6c85f", "#7ab8e8", "#ef8585"][piece % 4],
+            backgroundColor: ["#fdc07f", "#f6c85f", "#7ab8e8", "#ef8585"][piece % 4],
           }}
         />
       ))}

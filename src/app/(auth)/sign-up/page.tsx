@@ -1,4 +1,3 @@
-import { Leaf } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -86,7 +85,7 @@ export default function SignUpPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6">
       <div className="flex items-center gap-2 font-heading text-lg font-bold">
-        <Leaf className="size-6 text-primary" aria-hidden={true} />
+        <img src="/mascot/logo.png" alt="" aria-hidden="true" className="size-6 object-contain" />
         CapyStudy
       </div>
 

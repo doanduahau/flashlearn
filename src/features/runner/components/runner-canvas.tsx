@@ -95,7 +95,7 @@ export function RunnerCanvas({
       context.clearRect(0, 0, cssWidth, cssHeight);
 
       const gy = groundY();
-      context.strokeStyle = "#ddebe3";
+      context.strokeStyle = "#eaddcb";
       context.lineWidth = 2;
       context.beginPath();
       context.moveTo(0, gy);

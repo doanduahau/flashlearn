@@ -13,7 +13,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createEmptyCard, Rating, type Card, type Grade } from "ts-fsrs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createFlashlearnScheduler } from "@/features/spaced-repetition/config";
+import { createCapyStudyScheduler } from "@/features/spaced-repetition/config";
 import {
   reconcileCardScheduleWithRepo,
   type ScheduleReconcileRepository,
@@ -167,7 +167,7 @@ function buildWriter(client: Supabase): ScheduleReconcileWriter {
         p_last_processed_review_event_id: lastProcessedReviewEventId,
         p_algorithm: "fsrs-6",
         p_implementation: "ts-fsrs@5.4.1",
-        p_parameter_set: "flashlearn-v1",
+        p_parameter_set: "capystudy-v1",
       });
       if (error) throw error;
       return revision as number;
@@ -190,7 +190,7 @@ if (!supabaseUrl || !serviceKey) {
   const T0_PLUS_1D = "2026-08-10T12:00:00.000Z";
 
   async function createUser(tag: string): Promise<string> {
-    const email = `fsrs-it-${tag}-${Date.now()}@test.flashlearn.dev`;
+    const email = `fsrs-it-${tag}-${Date.now()}@test.capystudy.dev`;
     const { data, error } = await client.auth.admin.createUser({
       email,
       password: "IntegrationTest1!",
@@ -252,7 +252,7 @@ if (!supabaseUrl || !serviceKey) {
   }
 
   async function fullReplay(events: SchedulableEventRow[]): Promise<Card> {
-    const scheduler = createFlashlearnScheduler();
+    const scheduler = createCapyStudyScheduler();
     let card = createEmptyCard(new Date(events[0]?.reviewedAt ?? T0));
     for (const row of events) {
       const rating: Grade | null =
@@ -332,7 +332,7 @@ if (!supabaseUrl || !serviceKey) {
       expect(Date.parse(row.lastProcessedReviewedAt)).toBe(Date.parse(T0));
       expect(row.algorithm).toBe("fsrs-6");
       expect(row.implementation).toBe("ts-fsrs@5.4.1");
-      expect(row.parameterSet).toBe("flashlearn-v1");
+      expect(row.parameterSet).toBe("capystudy-v1");
     });
 
     it("second reconciliation is a true no-op (revision + updated_at unchanged)", async () => {

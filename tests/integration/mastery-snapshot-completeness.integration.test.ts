@@ -40,7 +40,7 @@ if (!supabaseUrl || !serviceKey) {
 
   beforeAll(async () => {
     const prefix = `mastery-completeness-${Date.now()}`;
-    const email = `${prefix}@test.flashlearn.dev`;
+    const email = `${prefix}@test.capystudy.dev`;
     const { data: userData, error: userError } = await client.auth.admin.createUser({
       email,
       password: "IntegrationTest1!",

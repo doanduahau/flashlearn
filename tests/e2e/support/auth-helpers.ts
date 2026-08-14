@@ -3,7 +3,7 @@ import { expect, type Page } from "@playwright/test";
 import { mailpitUrl } from "./local-endpoints";
 
 export const TEST_PASSWORD = "TestPassword123!";
-const EMAIL_DOMAIN = "test.flashlearn.dev";
+const EMAIL_DOMAIN = "test.capystudy.dev";
 const APP_ORIGIN = "http://127.0.0.1:3000";
 
 export function uniqueEmail(prefix: string): string {

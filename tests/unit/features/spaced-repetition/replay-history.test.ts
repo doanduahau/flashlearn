@@ -1,7 +1,7 @@
 import { Rating } from "ts-fsrs";
 import { describe, expect, it } from "vitest";
 
-import { createFlashlearnScheduler } from "@/features/spaced-repetition/config";
+import { createCapyStudyScheduler } from "@/features/spaced-repetition/config";
 import type { ReviewReplayFact } from "@/features/spaced-repetition/types/spaced-repetition-types";
 import { replayReviewHistory } from "@/features/spaced-repetition/utils/replay-history";
 import { computeRetrievability } from "@/features/spaced-repetition/utils/retrievability";
@@ -10,7 +10,7 @@ const T0 = "2026-08-09T12:00:00.000Z";
 const T0_PLUS_5M = "2026-08-09T12:05:00.000Z";
 const T0_PLUS_1D = "2026-08-10T12:00:00.000Z";
 
-const scheduler = createFlashlearnScheduler();
+const scheduler = createCapyStudyScheduler();
 
 function fact(
   eventId: string,

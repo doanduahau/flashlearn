@@ -51,7 +51,7 @@ function fsrsDetail(flashcardId: string): FsrsOnlyCardDetail {
     learningSteps: 0,
     algorithm: "fsrs-6",
     implementation: "ts-fsrs@5.4.1",
-    parameterSet: "flashlearn-v1",
+    parameterSet: "capystudy-v1",
     lastEventFsrsRating: 3,
     lastEventIsCorrect: true,
   };

@@ -10,11 +10,11 @@ export default function MarketingPage() {
         <span className="flex size-10 items-center justify-center rounded-2xl bg-primary-soft">
           <Leaf className="size-6 text-primary" aria-hidden="true" />
         </span>
-        FlashLearn
+        CapyStudy
       </div>
 
       <h1 className="max-w-3xl font-heading text-4xl font-extrabold leading-tight sm:text-5xl">
-        FlashLearn
+        CapyStudy
       </h1>
 
       <p className="max-w-xl text-text-secondary">

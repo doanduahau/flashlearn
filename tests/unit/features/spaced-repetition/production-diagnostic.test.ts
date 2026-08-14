@@ -48,7 +48,7 @@ function card(
     learningSteps: overrides.learningSteps ?? 0,
     algorithm: overrides.algorithm ?? "fsrs-6",
     implementation: overrides.implementation ?? "ts-fsrs@5.4.1",
-    parameterSet: overrides.parameterSet ?? "flashlearn-v1",
+    parameterSet: overrides.parameterSet ?? "capystudy-v1",
     lastEventFsrsRating:
       overrides.lastEventFsrsRating !== undefined ? overrides.lastEventFsrsRating : 3,
     lastEventIsCorrect:
@@ -90,13 +90,13 @@ describe("production identity guard is reused", () => {
 
   it("resolveProductionIdentity fails closed when credentials are missing", () => {
     expect(() => diagnosticResolve({}, diagnosticAllowlist)).toThrow(
-      /FLASHLEARN_PRODUCTION_SUPABASE_URL/,
+      /CAPYSTUDY_PRODUCTION_SUPABASE_URL/,
     );
     expect(() =>
       diagnosticResolve(
         {
-          FLASHLEARN_PRODUCTION_SUPABASE_URL: "https://rtrllrlilupoesikeypt.supabase.co",
-          FLASHLEARN_PRODUCTION_PROJECT_REF: "rtrllrlilupoesikeypt",
+          CAPYSTUDY_PRODUCTION_SUPABASE_URL: "https://rtrllrlilupoesikeypt.supabase.co",
+          CAPYSTUDY_PRODUCTION_PROJECT_REF: "rtrllrlilupoesikeypt",
         },
         diagnosticAllowlist,
       ),

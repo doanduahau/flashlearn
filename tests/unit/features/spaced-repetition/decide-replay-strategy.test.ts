@@ -20,7 +20,7 @@ function schedule(overrides: Partial<ScheduleRow> = {}): ScheduleRow {
     lastProcessedReviewEventId: "e0000000-0000-4000-8000-000000000002",
     algorithm: "fsrs-6",
     implementation: "ts-fsrs@5.4.1",
-    parameterSet: "flashlearn-v1",
+    parameterSet: "capystudy-v1",
     updatedAt: "2026-08-09T12:10:00.000Z",
     ...overrides,
   };
@@ -33,7 +33,7 @@ describe("decideReplayStrategy", () => {
   });
 
   it("full replay on config mismatch", () => {
-    const s = schedule({ algorithm: "fsrs-5", parameterSet: "flashlearn-v0" });
+    const s = schedule({ algorithm: "fsrs-5", parameterSet: "capystudy-v0" });
     const result = decideReplayStrategy(s, 3, false, 0);
     expect(result.replayMode).toBe("full");
     expect(result.reason).toBe("config_mismatch");

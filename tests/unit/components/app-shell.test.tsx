@@ -30,7 +30,7 @@ describe("AppShell", () => {
       </AppShell>,
     );
 
-    const logoLinks = screen.getAllByRole("link", { name: "FlashLearn" });
+    const logoLinks = screen.getAllByRole("link", { name: "CapyStudy" });
     expect(logoLinks).toHaveLength(2);
     logoLinks.forEach((link) => {
       expect(link).toHaveAttribute("href", "/dashboard");

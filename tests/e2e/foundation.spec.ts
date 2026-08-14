@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const PUBLIC_ROUTES = [
-  { path: "/", heading: "FlashLearn" },
+  { path: "/", heading: "CapyStudy" },
   { path: "/sign-in", heading: "Đăng nhập" },
   { path: "/sign-up", heading: "Tạo tài khoản" },
   { path: "/check-email", heading: "Kiểm tra email" },

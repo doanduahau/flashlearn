@@ -1,7 +1,7 @@
 export const logger = {
   info: (...args: unknown[]) => {
-    if (process.env.NODE_ENV !== "production") console.info("[flashlearn:info]", ...args);
+    if (process.env.NODE_ENV !== "production") console.info("[capystudy:info]", ...args);
   },
-  warn: (...args: unknown[]) => console.warn("[flashlearn:warn]", ...args),
-  error: (...args: unknown[]) => console.error("[flashlearn:error]", ...args),
+  warn: (...args: unknown[]) => console.warn("[capystudy:warn]", ...args),
+  error: (...args: unknown[]) => console.error("[capystudy:error]", ...args),
 };

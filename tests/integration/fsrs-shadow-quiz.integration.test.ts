@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { createFlashlearnScheduler } from "@/features/spaced-repetition/config";
+import { createCapyStudyScheduler } from "@/features/spaced-repetition/config";
 import { reconcileCardSchedule } from "@/features/spaced-repetition/server/reconcile-card-schedule";
 import { replayReviewHistory } from "@/features/spaced-repetition/utils/replay-history";
 import type { Database } from "@/lib/supabase/types";
@@ -30,7 +30,7 @@ if (!url || !serviceRoleKey || !publishableKey) {
   const createdUsers: string[] = [];
 
   async function createUserClient(tag: string): Promise<{ userId: string; client: Supabase }> {
-    const email = `fsrs-shadow-${tag}-${randomUUID()}@test.flashlearn.dev`;
+    const email = `fsrs-shadow-${tag}-${randomUUID()}@test.capystudy.dev`;
     const password = "IntegrationTest1!";
     const { data, error } = await admin.auth.admin.createUser({
       email,
@@ -123,7 +123,7 @@ if (!url || !serviceRoleKey || !publishableKey) {
         isCorrect: event.is_correct,
         fsrsRating: event.fsrs_rating,
       })),
-      createFlashlearnScheduler(),
+      createCapyStudyScheduler(),
     );
     if (!replay) throw new Error("Expected a schedulable replay state");
     const schedule = await admin

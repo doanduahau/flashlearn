@@ -120,7 +120,7 @@ export async function extractDocument(formData: FormData): Promise<ExtractResult
   } catch (err) {
     if (err instanceof PDFEncryptedError) {
       return {
-        error: "PDF này được bảo vệ bằng mật khẩu. FlashLearn chưa hỗ trợ mở PDF có mật khẩu.",
+        error: "PDF này được bảo vệ bằng mật khẩu. CapyStudy chưa hỗ trợ mở PDF có mật khẩu.",
       };
     }
     if (validation.sourceType === "pdf") {
@@ -139,7 +139,7 @@ export async function extractDocument(formData: FormData): Promise<ExtractResult
     (document.pageCount ?? 0) > 0
   ) {
     return {
-      error: "PDF này không có văn bản có thể đọc. FlashLearn hiện chưa hỗ trợ PDF scan/ảnh.",
+      error: "PDF này không có văn bản có thể đọc. CapyStudy hiện chưa hỗ trợ PDF scan/ảnh.",
     };
   }
 

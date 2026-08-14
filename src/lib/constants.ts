@@ -1,4 +1,4 @@
-export const APP_NAME = "FlashLearn";
+export const APP_NAME = "CapyStudy";
 export const APP_DESCRIPTION =
   "Biến bất kỳ file Excel hai cột nào thành bộ flashcard và bài kiểm tra thông minh.";
 

@@ -17,8 +17,8 @@ const fontHeading = Nunito({
 
 export const metadata: Metadata = {
   title: {
-    default: "FlashLearn",
-    template: "%s | FlashLearn",
+    default: "CapyStudy",
+    template: "%s | CapyStudy",
   },
   description: "Biến bất kỳ file Excel hai cột nào thành bộ flashcard và bài kiểm tra thông minh.",
 };

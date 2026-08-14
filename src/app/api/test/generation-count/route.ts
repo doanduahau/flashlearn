@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
-const MOCK_ENABLED = (process.env.FLASHLEARN_GENERATION_MOCK ?? "").trim() === "1";
+const MOCK_ENABLED = (process.env.CAPYSTUDY_GENERATION_MOCK ?? "").trim() === "1";
 
 function readCount(): number {
-  const path = process.env.FLASHLEARN_GENERATION_COUNT_FILE;
+  const path = process.env.CAPYSTUDY_GENERATION_COUNT_FILE;
   if (!path) return 0;
   try {
     const raw = existsSync(path) ? readFileSync(path, "utf8") : "";
@@ -15,7 +15,7 @@ function readCount(): number {
 }
 
 function resetCount(): void {
-  const path = process.env.FLASHLEARN_GENERATION_COUNT_FILE;
+  const path = process.env.CAPYSTUDY_GENERATION_COUNT_FILE;
   if (!path) return;
   try {
     writeFileSync(path, "", "utf8");
@@ -25,7 +25,7 @@ function resetCount(): void {
 }
 
 function setFailFlag(enable: boolean): void {
-  const path = process.env.FLASHLEARN_GENERATION_MOCK_FAIL_FILE;
+  const path = process.env.CAPYSTUDY_GENERATION_MOCK_FAIL_FILE;
   if (!path) return;
   try {
     writeFileSync(path, enable ? "1" : "", "utf8");

@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { pathToFileURL } from "node:url";
 import { createEmptyCard, type Card } from "ts-fsrs";
 
-import { createFlashlearnScheduler } from "../src/features/spaced-repetition/config";
+import { createCapyStudyScheduler } from "../src/features/spaced-repetition/config";
 import { reconcileCardScheduleWithRepo } from "../src/features/spaced-repetition/server/reconcile-orchestrator";
 import {
   buildServiceRoleRepository,
@@ -32,7 +32,7 @@ type Supabase = SupabaseClient<Database>;
 const SCHEDULABLE_OR = SCHEDULABLE_EVENT_OR_PREDICATE;
 
 // Non-secret product identifier required for production mutation.
-export const PRODUCTION_CONFIRMATION_TOKEN = "flashlearn-production";
+export const PRODUCTION_CONFIRMATION_TOKEN = "capystudy-production";
 
 export const DEFAULT_BATCH_SIZE = 50;
 export const MIN_BATCH_SIZE = 1;
@@ -263,7 +263,7 @@ export async function verifyProductionSchema(client: Supabase): Promise<void> {
     p_last_processed_review_event_id: "00000000-0000-0000-0000-000000000000",
     p_algorithm: "fsrs-6",
     p_implementation: "ts-fsrs@5.4.1",
-    p_parameter_set: "flashlearn-v1",
+    p_parameter_set: "capystudy-v1",
   });
   if (probe.error) {
     const msg = probe.error.message ?? "";
@@ -534,7 +534,7 @@ export async function verifyReplayConsistency(
     .limit(sampleSize);
 
   const sample = rows ?? [];
-  const scheduler = createFlashlearnScheduler();
+  const scheduler = createCapyStudyScheduler();
   const repo = buildServiceRoleRepository(client);
   let mismatches = 0;
 
@@ -572,7 +572,7 @@ export async function verifyReplayConsistency(
       row.last_processed_review_event_id === events[events.length - 1].id &&
       row.algorithm === "fsrs-6" &&
       row.implementation === "ts-fsrs@5.4.1" &&
-      row.parameter_set === "flashlearn-v1";
+      row.parameter_set === "capystudy-v1";
 
     if (!match) mismatches += 1;
   }

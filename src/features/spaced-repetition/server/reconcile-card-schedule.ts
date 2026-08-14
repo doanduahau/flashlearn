@@ -62,7 +62,7 @@ function buildWriter(): ScheduleReconcileWriter {
         p_last_processed_review_event_id: lastProcessedReviewEventId,
         p_algorithm: "fsrs-6",
         p_implementation: "ts-fsrs@5.4.1",
-        p_parameter_set: "flashlearn-v1",
+        p_parameter_set: "capystudy-v1",
       });
 
       if (error) throw error;

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isFlashLearnProductionSupabaseUrl } from "@/lib/supabase/production-project";
+import { isCapyStudyProductionSupabaseUrl } from "@/lib/supabase/production-project";
 
 const emptyToUndefined = (value: unknown) =>
   typeof value === "string" && value.trim() === "" ? undefined : value;
@@ -53,7 +53,7 @@ export function getGeminiApiKey(): string | undefined {
 function assertLocalSupabaseSafety(url: string): void {
   if (
     process.env.NODE_ENV === "development" &&
-    isFlashLearnProductionSupabaseUrl(url) &&
+    isCapyStudyProductionSupabaseUrl(url) &&
     env.NEXT_PUBLIC_ALLOW_PRODUCTION_SUPABASE_FROM_LOCAL !== "1"
   ) {
     throw new Error(

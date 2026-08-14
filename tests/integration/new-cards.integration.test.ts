@@ -37,7 +37,7 @@ if (!supabaseUrl || !serviceKey || !publishableKey) {
   const nullOnly: string[] = [];
 
   beforeAll(async () => {
-    const email = `d1-${randomUUID()}@test.flashlearn.dev`;
+    const email = `d1-${randomUUID()}@test.capystudy.dev`;
     const password = "IntegrationTest1!";
     const { data: userData, error: userError } = await admin.auth.admin.createUser({
       email,
@@ -107,7 +107,7 @@ if (!supabaseUrl || !serviceKey || !publishableKey) {
         last_processed_review_event_id: randomUUID(),
         algorithm: "fsrs-6",
         implementation: "ts-fsrs@5.4.1",
-        parameter_set: "flashlearn-v1",
+        parameter_set: "capystudy-v1",
       })),
     );
     if (scheduleInsert.error) throw scheduleInsert.error;

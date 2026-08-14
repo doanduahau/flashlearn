@@ -36,7 +36,7 @@ if (!supabaseUrl || !serviceKey) {
   beforeAll(async () => {
     const prefix = `c2c-${Date.now()}`;
     const { data: u } = await client.auth.admin.createUser({
-      email: `${prefix}@test.flashlearn.dev`,
+      email: `${prefix}@test.capystudy.dev`,
       password: "IntegrationTest1!",
       email_confirm: true,
     });
@@ -81,7 +81,7 @@ if (!supabaseUrl || !serviceKey) {
         last_processed_review_event_id: "00000000-0000-0000-0000-ffffffffffff",
         algorithm: "fsrs-6",
         implementation: "ts-fsrs@5.4.1",
-        parameter_set: "flashlearn-v1",
+        parameter_set: "capystudy-v1",
       })),
       ...futureCardIds.map((cardId) => ({
         user_id: userId,
@@ -99,7 +99,7 @@ if (!supabaseUrl || !serviceKey) {
         last_processed_review_event_id: "00000000-0000-0000-0000-ffffffffffff",
         algorithm: "fsrs-6",
         implementation: "ts-fsrs@5.4.1",
-        parameter_set: "flashlearn-v1",
+        parameter_set: "capystudy-v1",
       })),
     ]);
 

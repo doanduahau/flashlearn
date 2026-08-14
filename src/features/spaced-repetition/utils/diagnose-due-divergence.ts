@@ -424,7 +424,7 @@ export function checkSchedulerMismatches(details: readonly FsrsOnlyCardDetail[])
     if (
       d.algorithm !== "fsrs-6" ||
       d.implementation !== "ts-fsrs@5.4.1" ||
-      d.parameterSet !== "flashlearn-v1"
+      d.parameterSet !== "capystudy-v1"
     ) {
       mismatches += 1;
     }

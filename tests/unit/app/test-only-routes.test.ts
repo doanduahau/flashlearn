@@ -37,7 +37,7 @@ afterEach(() => {
 
 describe("test-only import instrumentation routes", () => {
   it("returns 404 for classifier instrumentation unless its trusted E2E env is enabled", async () => {
-    vi.stubEnv("FLASHLEARN_CLASSIFIER_MOCK", "");
+    vi.stubEnv("CAPYSTUDY_CLASSIFIER_MOCK", "");
     const { GET } = await import("@/app/api/test/classifier-count/route");
 
     const response = await GET(new Request("http://localhost/api/test/classifier-count?reset=1"));
@@ -47,7 +47,7 @@ describe("test-only import instrumentation routes", () => {
   });
 
   it("allows classifier reset only after the server environment enables the mock", async () => {
-    vi.stubEnv("FLASHLEARN_CLASSIFIER_MOCK", "1");
+    vi.stubEnv("CAPYSTUDY_CLASSIFIER_MOCK", "1");
     const { GET } = await import("@/app/api/test/classifier-count/route");
 
     const response = await GET(new Request("http://localhost/api/test/classifier-count?reset=1"));
@@ -57,7 +57,7 @@ describe("test-only import instrumentation routes", () => {
   });
 
   it("returns 404 for generation instrumentation unless its trusted E2E env is enabled", async () => {
-    vi.stubEnv("FLASHLEARN_GENERATION_MOCK", "");
+    vi.stubEnv("CAPYSTUDY_GENERATION_MOCK", "");
     const { GET } = await import("@/app/api/test/generation-count/route");
 
     const response = await GET(
@@ -70,9 +70,9 @@ describe("test-only import instrumentation routes", () => {
   });
 
   it("uses only configured server paths and ignores request path parameters", async () => {
-    vi.stubEnv("FLASHLEARN_GENERATION_MOCK", "1");
-    vi.stubEnv("FLASHLEARN_GENERATION_COUNT_FILE", "test-results/generation-count.txt");
-    vi.stubEnv("FLASHLEARN_GENERATION_MOCK_FAIL_FILE", "test-results/generation-fail.txt");
+    vi.stubEnv("CAPYSTUDY_GENERATION_MOCK", "1");
+    vi.stubEnv("CAPYSTUDY_GENERATION_COUNT_FILE", "test-results/generation-count.txt");
+    vi.stubEnv("CAPYSTUDY_GENERATION_MOCK_FAIL_FILE", "test-results/generation-fail.txt");
     const { GET } = await import("@/app/api/test/generation-count/route");
 
     const response = await GET(

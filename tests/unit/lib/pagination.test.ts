@@ -20,14 +20,14 @@ describe("pagination helpers", () => {
   it("keeps search, sort, filter and tab parameters when navigating both directions", () => {
     const params = { q: "thẻ", sort: "position", filter: "active", tab: "regular", page: "2" };
 
-    const previous = new URL(pageHref(params, 1), "http://flashlearn.test");
+    const previous = new URL(pageHref(params, 1), "http://capystudy.test");
     expect(previous.searchParams.get("page")).toBe("1");
     expect(previous.searchParams.get("q")).toBe("thẻ");
     expect(previous.searchParams.get("sort")).toBe("position");
     expect(previous.searchParams.get("filter")).toBe("active");
     expect(previous.searchParams.get("tab")).toBe("regular");
 
-    const next = new URL(pageHref({ ...params, page: "1" }, 2), "http://flashlearn.test");
+    const next = new URL(pageHref({ ...params, page: "1" }, 2), "http://capystudy.test");
     expect(next.searchParams.get("page")).toBe("2");
     expect(next.searchParams.get("q")).toBe("thẻ");
   });
@@ -39,7 +39,7 @@ describe("pagination helpers", () => {
       "tab",
       "special",
     );
-    const url = new URL(href, "http://flashlearn.test");
+    const url = new URL(href, "http://capystudy.test");
 
     expect(url.pathname).toBe("/sets");
     expect(url.searchParams.get("tab")).toBe("special");
@@ -54,7 +54,7 @@ describe("pagination helpers", () => {
       { create: "import", q: "thẻ", tab: "special", page: "2" },
       "create",
     );
-    const url = new URL(href, "http://flashlearn.test");
+    const url = new URL(href, "http://capystudy.test");
 
     expect(url.pathname).toBe("/sets");
     expect(url.searchParams.get("create")).toBeNull();

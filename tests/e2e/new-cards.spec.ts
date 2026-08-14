@@ -85,7 +85,7 @@ async function seedDueCards(page: Page, cardIds: string[]): Promise<void> {
         last_processed_review_event_id: eventByCard.get(flashcard_id),
         algorithm: "fsrs-6",
         implementation: "ts-fsrs@5.4.1",
-        parameter_set: "flashlearn-v1",
+        parameter_set: "capystudy-v1",
       })),
     ),
   });

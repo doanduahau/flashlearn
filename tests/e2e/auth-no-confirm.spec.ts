@@ -5,7 +5,7 @@ const APP_ORIGIN = "http://127.0.0.1:3000";
 const TEST_PASSWORD = "TestPassword123!";
 
 function uniqueEmail(prefix: string): string {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}@test.flashlearn.dev`;
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}@test.capystudy.dev`;
 }
 
 async function signUp(page: Page, email: string, displayName: string): Promise<void> {

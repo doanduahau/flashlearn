@@ -23,11 +23,11 @@ import { createClient } from "@/lib/supabase/server";
 
 // ─── Test-only generation mock (env-gated) ─────────────────────────────────
 
-const GEN_MOCK_ENABLED = (process.env.FLASHLEARN_GENERATION_MOCK ?? "").trim() === "1";
+const GEN_MOCK_ENABLED = (process.env.CAPYSTUDY_GENERATION_MOCK ?? "").trim() === "1";
 
 const genCounter = {
   get calls(): number {
-    const path = process.env.FLASHLEARN_GENERATION_COUNT_FILE;
+    const path = process.env.CAPYSTUDY_GENERATION_COUNT_FILE;
     if (!path) return 0;
     try {
       const raw = existsSync(path) ? readFileSync(path, "utf8") : "";
@@ -37,7 +37,7 @@ const genCounter = {
     }
   },
   increment(): void {
-    const path = process.env.FLASHLEARN_GENERATION_COUNT_FILE;
+    const path = process.env.CAPYSTUDY_GENERATION_COUNT_FILE;
     if (!path) return;
     try {
       appendFileSync(path, "1\n", "utf8");
@@ -49,7 +49,7 @@ const genCounter = {
 
 async function mockGenerateCards(_input: { text: string }): Promise<DraftFlashcard[]> {
   genCounter.increment();
-  const failPath = process.env.FLASHLEARN_GENERATION_MOCK_FAIL_FILE;
+  const failPath = process.env.CAPYSTUDY_GENERATION_MOCK_FAIL_FILE;
   const shouldFail =
     failPath && existsSync(failPath) && readFileSync(failPath, "utf8").trim() === "1";
   if (shouldFail) {

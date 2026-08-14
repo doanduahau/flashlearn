@@ -4,7 +4,7 @@ export type FsrsDueScope =
   | { type: "collection"; collectionId: string };
 
 /**
- * A FlashLearn-owned FSRS due candidate. Only the fields a future Smart Review
+ * A CapyStudy-owned FSRS due candidate. Only the fields a future Smart Review
  * cutover actually needs are exposed — no raw schedule rows, no stability or
  * difficulty, and no retrievability.
  */

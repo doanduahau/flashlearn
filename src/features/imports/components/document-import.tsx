@@ -209,7 +209,7 @@ export function DocumentImport() {
 
           {extraction.sourceType === "pdf" && extraction.blocks.length === 0 && (
             <p className="text-sm text-text-secondary">
-              PDF này không có văn bản có thể đọc. FlashLearn hiện chưa hỗ trợ PDF scan/ảnh.
+              PDF này không có văn bản có thể đọc. CapyStudy hiện chưa hỗ trợ PDF scan/ảnh.
             </p>
           )}
 

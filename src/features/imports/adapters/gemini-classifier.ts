@@ -54,17 +54,17 @@ export interface DocumentClassifier {
   ): Promise<{ kind: SectionKind; confidence: number; deterministic: false; reason?: string }>;
 }
 
-// Test-only mock boundary. When FLASHLEARN_CLASSIFIER_MOCK=1 the classifier
+// Test-only mock boundary. When CAPYSTUDY_CLASSIFIER_MOCK=1 the classifier
 // returns a fixed result instead of calling Gemini, and increments a file-backed
 // counter so E2E tests can assert exact AI-call counts without hitting the real
 // API. A file is used (rather than module state) because Next.js bundles server
 // actions and route handlers into separate chunks that do not share module
 // instances.
-const MOCK_ENABLED = (process.env.FLASHLEARN_CLASSIFIER_MOCK ?? "").trim() === "1";
+const MOCK_ENABLED = (process.env.CAPYSTUDY_CLASSIFIER_MOCK ?? "").trim() === "1";
 
 export const mockClassifierCount = {
   get calls(): number {
-    const path = process.env.FLASHLEARN_CLASSIFIER_COUNT_FILE;
+    const path = process.env.CAPYSTUDY_CLASSIFIER_COUNT_FILE;
     if (!path) return 0;
     try {
       const raw = existsSync(path) ? readFileSync(path, "utf8") : "";
@@ -74,7 +74,7 @@ export const mockClassifierCount = {
     }
   },
   increment(): void {
-    const path = process.env.FLASHLEARN_CLASSIFIER_COUNT_FILE;
+    const path = process.env.CAPYSTUDY_CLASSIFIER_COUNT_FILE;
     if (!path) return;
     try {
       appendFileSync(path, "1\n", "utf8");
@@ -83,7 +83,7 @@ export const mockClassifierCount = {
     }
   },
   reset(): void {
-    const path = process.env.FLASHLEARN_CLASSIFIER_COUNT_FILE;
+    const path = process.env.CAPYSTUDY_CLASSIFIER_COUNT_FILE;
     if (!path) return;
     try {
       writeFileSync(path, "", "utf8");

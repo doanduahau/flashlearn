@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { mockClassifierCount } from "@/features/imports/adapters/gemini-classifier";
 
-const MOCK_ENABLED = (process.env.FLASHLEARN_CLASSIFIER_MOCK ?? "").trim() === "1";
+const MOCK_ENABLED = (process.env.CAPYSTUDY_CLASSIFIER_MOCK ?? "").trim() === "1";
 
 export async function GET(req: Request) {
   if (!MOCK_ENABLED) {

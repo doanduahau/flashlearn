@@ -48,7 +48,7 @@ if (!supabaseUrl || !serviceKey) {
   const userBCard = "da000000-0000-4000-8000-000000000005";
 
   async function createUser(tag: string): Promise<string> {
-    const email = `fsrs-due-${tag}-${Date.now()}@test.flashlearn.dev`;
+    const email = `fsrs-due-${tag}-${Date.now()}@test.capystudy.dev`;
     const { data, error } = await client.auth.admin.createUser({
       email,
       password: "IntegrationTest1!",
@@ -109,7 +109,7 @@ if (!supabaseUrl || !serviceKey) {
       last_processed_review_event_id: "da000000-0000-4000-8000-0000000000ff",
       algorithm: "fsrs-6",
       implementation: "ts-fsrs@5.4.1",
-      parameter_set: "flashlearn-v1",
+      parameter_set: "capystudy-v1",
     });
     if (error) throw error;
   }

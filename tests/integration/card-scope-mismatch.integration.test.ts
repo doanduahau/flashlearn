@@ -38,7 +38,7 @@ if (!supabaseUrl || !serviceKey) {
   beforeAll(async () => {
     const prefix = `card-scope-${Date.now()}`;
     const { data: dataA, error: errA } = await client.auth.admin.createUser({
-      email: `${prefix}-a@test.flashlearn.dev`,
+      email: `${prefix}-a@test.capystudy.dev`,
       password: "IntegrationTest1!",
       email_confirm: true,
     });
@@ -46,7 +46,7 @@ if (!supabaseUrl || !serviceKey) {
     userA = dataA.user.id;
 
     const { data: dataB, error: errB } = await client.auth.admin.createUser({
-      email: `${prefix}-b@test.flashlearn.dev`,
+      email: `${prefix}-b@test.capystudy.dev`,
       password: "IntegrationTest1!",
       email_confirm: true,
     });
@@ -97,7 +97,7 @@ if (!supabaseUrl || !serviceKey) {
       last_processed_review_event_id: "00000000-0000-0000-0000-000000000000",
       algorithm: "fsrs-6",
       implementation: "ts-fsrs@5.4.1",
-      parameter_set: "flashlearn-v1",
+      parameter_set: "capystudy-v1",
     });
 
     await client.from("profiles").upsert({ id: userA });

@@ -56,14 +56,12 @@ describe("production identity guard is reused", () => {
   });
 
   it("resolveProductionIdentity fails closed when credentials are missing", () => {
-    expect(() => compareResolve({}, compareAllowlist)).toThrow(
-      /FLASHLEARN_PRODUCTION_SUPABASE_URL/,
-    );
+    expect(() => compareResolve({}, compareAllowlist)).toThrow(/CAPYSTUDY_PRODUCTION_SUPABASE_URL/);
     expect(() =>
       compareResolve(
         {
-          FLASHLEARN_PRODUCTION_SUPABASE_URL: "https://rtrllrlilupoesikeypt.supabase.co",
-          FLASHLEARN_PRODUCTION_PROJECT_REF: "rtrllrlilupoesikeypt",
+          CAPYSTUDY_PRODUCTION_SUPABASE_URL: "https://rtrllrlilupoesikeypt.supabase.co",
+          CAPYSTUDY_PRODUCTION_PROJECT_REF: "rtrllrlilupoesikeypt",
         },
         compareAllowlist,
       ),

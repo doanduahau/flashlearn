@@ -296,7 +296,7 @@ export function UnifiedDraftEditor({
       {/* Partial success / limit exceeded warnings */}
       {limitExceeded && (
         <div className="rounded-xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
-          Tài liệu tạo ra {cards.length} thẻ. FlashLearn hỗ trợ tối đa{" "}
+          Tài liệu tạo ra {cards.length} thẻ. CapyStudy hỗ trợ tối đa{" "}
           {IMPORT_MAX_ROWS.toLocaleString("vi-VN")} thẻ mỗi lần import. Hãy chia tài liệu thành phần
           nhỏ hơn.
         </div>

@@ -1,4 +1,4 @@
-import { createFlashlearnScheduler } from "../config";
+import { createCapyStudyScheduler } from "../config";
 import { replayReviewHistory } from "./replay-history";
 import {
   createMasteryPipelineTrace,
@@ -253,7 +253,7 @@ function runReplayCheck(
 ): ReplaySampleResult {
   if (samples.length === 0) return { total: 0, mismatches: 0 };
 
-  const scheduler = createFlashlearnScheduler();
+  const scheduler = createCapyStudyScheduler();
   let mismatches = 0;
 
   for (const sample of samples) {

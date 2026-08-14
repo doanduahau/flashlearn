@@ -1,6 +1,6 @@
 import { createEmptyCard, State, type Card, type FSRS } from "ts-fsrs";
 
-import { createFlashlearnScheduler, FLASHLEARN_SCHEDULER_IDENTITY } from "../config";
+import { createCapyStudyScheduler, CAPYSTUDY_SCHEDULER_IDENTITY } from "../config";
 import type {
   FsrsReconciliationResult,
   FsrsReconciliationStatus,
@@ -16,9 +16,9 @@ import { ratingForReviewFact } from "../utils/rating-map";
 const MAX_RETRIES = 3;
 
 const CURRENT_CONFIG = {
-  algorithm: FLASHLEARN_SCHEDULER_IDENTITY.algorithm as string,
-  implementation: FLASHLEARN_SCHEDULER_IDENTITY.implementation as string,
-  parameterSet: FLASHLEARN_SCHEDULER_IDENTITY.parameterSet as string,
+  algorithm: CAPYSTUDY_SCHEDULER_IDENTITY.algorithm as string,
+  implementation: CAPYSTUDY_SCHEDULER_IDENTITY.implementation as string,
+  parameterSet: CAPYSTUDY_SCHEDULER_IDENTITY.parameterSet as string,
 };
 
 export type ScheduleReconcileRepository = {
@@ -119,7 +119,7 @@ export async function reconcileCardScheduleWithRepo(
   cardId: string,
 ): Promise<FsrsReconciliationResult> {
   const { repository, writer } = context;
-  const scheduler = createFlashlearnScheduler();
+  const scheduler = createCapyStudyScheduler();
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const active = await repository.checkCardActive(userId, cardId);

@@ -17,7 +17,7 @@ const child = spawn(
     stdio: "inherit",
     env: {
       ...process.env,
-      FLASHLEARN_E2E_BLOCK_PDF_RUNTIME: "1",
+      CAPYSTUDY_E2E_BLOCK_PDF_RUNTIME: "1",
       NODE_OPTIONS: nodeOptions,
     },
   },

@@ -112,7 +112,7 @@ test.describe("Document import", () => {
 
     const alert = page.getByRole("alert").filter({ hasText: "chưa hỗ trợ PDF scan/ảnh" });
     await expect(alert).toContainText(
-      "PDF này không có văn bản có thể đọc. FlashLearn hiện chưa hỗ trợ PDF scan/ảnh.",
+      "PDF này không có văn bản có thể đọc. CapyStudy hiện chưa hỗ trợ PDF scan/ảnh.",
     );
 
     // No flashcard set is created: still on the sets page with the document section open

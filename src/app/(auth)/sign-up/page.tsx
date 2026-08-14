@@ -87,7 +87,7 @@ export default function SignUpPage() {
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6">
       <div className="flex items-center gap-2 font-heading text-lg font-bold">
         <Leaf className="size-6 text-primary" aria-hidden={true} />
-        FlashLearn
+        CapyStudy
       </div>
 
       <div className="w-full max-w-sm rounded-3xl border border-border-soft bg-surface p-8 text-center shadow-soft-card">

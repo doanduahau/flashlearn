@@ -122,13 +122,13 @@ describe("validateProductionIdentity", () => {
 describe("resolveProductionIdentity", () => {
   it("fails when required env vars are missing", () => {
     expect(() => resolveProductionIdentity(envWith({}), TEST_ALLOWLIST)).toThrow(
-      /FLASHLEARN_PRODUCTION_SUPABASE_URL/,
+      /CAPYSTUDY_PRODUCTION_SUPABASE_URL/,
     );
     expect(() =>
       resolveProductionIdentity(
         envWith({
-          FLASHLEARN_PRODUCTION_SUPABASE_URL: HTTPS_PROD_URL,
-          FLASHLEARN_PRODUCTION_PROJECT_REF: "abcd1234",
+          CAPYSTUDY_PRODUCTION_SUPABASE_URL: HTTPS_PROD_URL,
+          CAPYSTUDY_PRODUCTION_PROJECT_REF: "abcd1234",
         }),
         TEST_ALLOWLIST,
       ),
@@ -138,8 +138,8 @@ describe("resolveProductionIdentity", () => {
   it("resolves a valid identity", () => {
     const resolved = resolveProductionIdentity(
       envWith({
-        FLASHLEARN_PRODUCTION_SUPABASE_URL: HTTPS_PROD_URL,
-        FLASHLEARN_PRODUCTION_PROJECT_REF: "abcd1234",
+        CAPYSTUDY_PRODUCTION_SUPABASE_URL: HTTPS_PROD_URL,
+        CAPYSTUDY_PRODUCTION_PROJECT_REF: "abcd1234",
         SUPABASE_SERVICE_ROLE_KEY: "svc",
       }),
       TEST_ALLOWLIST,
@@ -156,7 +156,7 @@ describe("assertConfirmation", () => {
   it("rejects execute without the token", () => {
     expect(() => assertConfirmation("execute", undefined)).toThrow(/--confirm/);
     expect(() => assertConfirmation("execute", "wrong")).toThrow(/--confirm/);
-    expect(() => assertConfirmation("execute", "flashlearn-prod")).toThrow(/--confirm/);
+    expect(() => assertConfirmation("execute", "capystudy-prod")).toThrow(/--confirm/);
   });
 
   it("accepts execute with the exact token", () => {

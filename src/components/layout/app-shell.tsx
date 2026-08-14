@@ -22,7 +22,7 @@ export function AppShell({
           <span className="flex size-9 items-center justify-center rounded-xl bg-primary-soft">
             <Leaf className="size-5 text-primary" aria-hidden="true" />
           </span>
-          <span>FlashLearn</span>
+          <span>CapyStudy</span>
         </Link>
         <AppNavigation variant="sidebar" />
         <div className="mt-auto flex flex-col gap-3 border-t border-border-soft pt-4">
@@ -52,7 +52,7 @@ export function AppShell({
             className="flex items-center gap-2 font-heading text-base font-bold"
           >
             <Leaf className="size-5 text-primary" aria-hidden="true" />
-            FlashLearn
+            CapyStudy
           </Link>
           <div className="flex min-w-0 items-center gap-2">
             <Link

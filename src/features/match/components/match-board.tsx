@@ -11,6 +11,7 @@ import {
   selectCard,
   type MatchState,
 } from "@/features/match/utils/match-state";
+import { getMatchLabelTextSize } from "@/features/match/utils/match-label-size";
 import { cn } from "@/lib/utils";
 
 type MatchBoardProps = {
@@ -46,8 +47,8 @@ export function MatchBoard({ batches, questionCount, onComplete }: MatchBoardPro
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex h-[calc(100dvh-140px)] flex-col gap-4 sm:h-[calc(100dvh-160px)]">
+      <div className="flex shrink-0 items-center justify-between gap-2">
         <p className="text-sm text-text-secondary">
           Bộ {state.currentBatchIndex + 1} / {batches.length}
         </p>
@@ -56,11 +57,11 @@ export function MatchBoard({ batches, questionCount, onComplete }: MatchBoardPro
         </p>
       </div>
       {state.lastResult === "incorrect" ? (
-        <p role="alert" aria-live="polite" className="text-sm text-danger">
+        <p role="alert" aria-live="polite" className="shrink-0 text-sm text-danger">
           Chưa đúng, thử cặp khác.
         </p>
       ) : null}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-2 gap-2 sm:gap-3">
         <MatchColumn
           side="front"
           cards={batch.fronts}
@@ -94,12 +95,18 @@ function MatchColumn({
   onSelect: (side: "front" | "back", card: MatchCard) => void;
 }>) {
   return (
-    <ul className="flex flex-col gap-2" aria-label={side === "front" ? "Mặt trước" : "Mặt sau"}>
+    <ul
+      className="grid h-full min-h-0 min-w-0 grid-rows-6 gap-2 sm:gap-3"
+      aria-label={side === "front" ? "Mặt trước" : "Mặt sau"}
+    >
       {cards.map((card) => {
         const matched = matchedIds.has(card.id);
         const selected = selectedId === card.id;
+        const text = side === "front" ? card.front : card.back;
+        const textClass = getMatchLabelTextSize(text);
+
         return (
-          <li key={card.id}>
+          <li key={card.id} className="min-h-0 min-w-0">
             <button
               type="button"
               disabled={matched}
@@ -108,7 +115,8 @@ function MatchColumn({
               data-match-side={side}
               onClick={() => onSelect(side, card)}
               className={cn(
-                "w-full break-words whitespace-pre-wrap rounded-xl border px-3 py-2 text-left text-sm leading-snug transition-colors sm:rounded-2xl sm:px-4 sm:py-3 sm:text-base",
+                "flex h-full w-full items-center justify-center overflow-hidden break-words whitespace-pre-wrap rounded-xl border p-2 text-center transition-colors sm:rounded-2xl sm:p-3",
+                textClass,
                 matched
                   ? "cursor-default border-border-soft bg-surface-subtle opacity-50"
                   : selected
@@ -116,7 +124,7 @@ function MatchColumn({
                     : "border-border-soft bg-surface hover:bg-surface-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
               )}
             >
-              {side === "front" ? card.front : card.back}
+              <span className="line-clamp-6">{text}</span>
             </button>
           </li>
         );

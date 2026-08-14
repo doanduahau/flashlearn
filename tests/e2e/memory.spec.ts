@@ -9,7 +9,7 @@ const MIN_TILE_HEIGHT_PX = 56;
 const MEMORY_CSV = "tests/fixtures/smart-review-24-cards.csv";
 
 async function importSet(page: Page, name: string, csv = MEMORY_CSV): Promise<string> {
-  await page.goto("/import");
+  await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(csv);
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
@@ -251,7 +251,7 @@ test.describe("Memory Matching", () => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("memory_longtext"));
 
-    await page.goto("/sets?create=paste");
+    await page.goto("/sets/create");
     const longFront =
       "Hệ điều hành là phần mềm quản lý tài nguyên phần cứng máy tính và cung cấp các dịch vụ chung cho các chương trình phần mềm khác";
     const longBack =

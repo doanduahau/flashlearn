@@ -11,7 +11,7 @@ const DAY_DETAIL_PORTAL = "[data-calendar-day-detail]";
 const DAY_DETAIL_INLINE = 'span[role="dialog"][aria-label="Chi tiết hoạt động"]';
 
 async function completeTenQuestionQuiz(page: Page): Promise<void> {
-  await page.goto("/import");
+  await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(QUIZ_CSV);
   await page.getByLabel("Tên bộ").fill("Bộ lịch hoạt động");
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();

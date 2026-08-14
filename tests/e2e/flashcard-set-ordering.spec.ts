@@ -12,7 +12,7 @@ test("regular set order persists on mobile and remains usable on desktop", async
     await createManualSet(page, name);
   }
 
-  await page.goto("/sets?tab=regular");
+  await page.goto("/sets/library?tab=regular");
   await page.getByRole("link", { name: /Sắp xếp/i }).click();
   await expect(page).toHaveURL(/reorder=1/);
 
@@ -37,7 +37,7 @@ test("regular set order persists on mobile and remains usable on desktop", async
 });
 
 async function createManualSet(page: Page, name: string): Promise<void> {
-  await page.goto("/sets?create=manual");
+  await page.goto("/sets/create?source=manual");
   const dialog = page.getByRole("dialog", { name: "Tạo bộ thủ công" });
   await dialog.getByLabel("Tên bộ flashcard").fill(name);
   await dialog.getByLabel("Mặt trước").fill(`${name} front`);

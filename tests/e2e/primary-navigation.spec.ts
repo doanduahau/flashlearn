@@ -10,13 +10,13 @@ test.describe("Primary application navigation", () => {
     await page.goto("/dashboard");
     await expect(page.getByLabel(/CSV\/XLSX/i)).toHaveCount(0);
     await page.goto("/sets");
+    await page.getByRole("link", { name: /Tạo Flash card/i }).click();
+    await expect(page).toHaveURL(/\/sets\/create$/);
     await page.getByRole("link", { name: "Tài liệu" }).click();
-    await expect(page).toHaveURL(/\/sets\?create=document$/);
+    await expect(page).toHaveURL(/\/sets\/create\?source=file$/);
     await expect(page.getByLabel(/CSV\/XLSX/i)).toBeVisible();
-    await page.getByRole("link", { name: "Đóng" }).click();
-    await expect(page).toHaveURL(/\/sets$/);
     await page.getByRole("link", { name: "Thủ công" }).click();
-    await expect(page).toHaveURL(/\/sets\?create=manual$/);
+    await expect(page).toHaveURL(/\/sets\/create\?source=manual$/);
     await expect(page.getByLabel("Tên bộ flashcard")).toBeVisible();
     await page.getByRole("dialog").getByRole("button", { name: "Đóng" }).click();
     await expect(page).toHaveURL(/\/sets$/);
@@ -32,8 +32,10 @@ test.describe("Primary application navigation", () => {
 
     await navigation.getByRole("link", { name: "Bộ flashcard" }).click();
     await expect(page).toHaveURL(/\/sets$/);
+    await page.getByRole("link", { name: /Flash card của bạn/i }).click();
+    await expect(page).toHaveURL(/\/sets\/library$/);
     await page.getByRole("link", { name: "Bộ đặc biệt" }).click();
-    await expect(page).toHaveURL(/\/sets\?tab=special$/);
+    await expect(page).toHaveURL(/\/sets\/library\?tab=special$/);
 
     await navigation.getByRole("link", { name: "Kiểm tra" }).click();
     await page.getByRole("link", { name: "Lịch sử" }).click();
@@ -49,9 +51,9 @@ test.describe("Primary application navigation", () => {
     await signUpAndConfirm(page, uniqueEmail("primary_legacy"));
 
     await page.goto("/import");
-    await expect(page).toHaveURL(/\/sets\?create=import$/);
+    await expect(page).toHaveURL(/\/sets\/create$/);
     await page.goto("/collections");
-    await expect(page).toHaveURL(/\/sets\?tab=special$/);
+    await expect(page).toHaveURL(/\/sets\/library\?tab=special$/);
     await page.goto("/history");
     await expect(page).toHaveURL(/\/quiz\?tab=history$/);
     await page.goto("/statistics");

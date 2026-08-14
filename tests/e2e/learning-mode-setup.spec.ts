@@ -6,7 +6,7 @@ const MOBILE = { width: 390, height: 844 };
 const CSV = "tests/fixtures/smart-review-24-cards.csv";
 
 async function importSet(page: Page, name: string): Promise<void> {
-  await page.goto("/import");
+  await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(CSV);
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
@@ -14,7 +14,7 @@ async function importSet(page: Page, name: string): Promise<void> {
 }
 
 async function createCards(page: Page, name: string, count: number): Promise<void> {
-  await page.goto("/sets?create=paste");
+  await page.goto("/sets/create");
   const rows = Array.from({ length: count }, (_, i) => `Front ${i}\tBack ${i}`).join("\n");
   await page.locator("#paste-textarea").fill(rows);
   await page.getByRole("button", { name: "Phân tích" }).click();

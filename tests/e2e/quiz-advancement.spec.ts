@@ -7,7 +7,7 @@ const QUIZ_CSV = "tests/fixtures/quiz-cards.csv";
 test("correct answers auto-advance while wrong answers wait for the learner", async ({ page }) => {
   await signUpAndConfirm(page, uniqueEmail("quiz_advance"));
 
-  await page.goto("/import");
+  await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(QUIZ_CSV);
   await page.getByLabel("Tên bộ").fill("Bộ kiểm tra điều hướng");
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();

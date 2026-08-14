@@ -23,7 +23,7 @@ test.describe("Quiz result collections", () => {
   }) => {
     await signUpAndConfirm(page, uniqueEmail("quizresult_a"));
 
-    await page.goto("/import");
+    await page.goto("/sets/create?source=file");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(QUIZ_CSV);
     await page.getByLabel("Tên bộ").fill(SET_NAME);
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();

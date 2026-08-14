@@ -77,7 +77,7 @@ test("confirmation-disabled auth supports isolated CSV and XLSX imports", async 
   await page.reload();
   await expect(page).toHaveURL(/\/dashboard$/);
 
-  await page.goto("/import");
+  await page.goto("/sets/create?source=file");
   await page.locator("#import-file").setInputFiles({
     name: "cards.csv",
     mimeType: "text/csv",
@@ -105,7 +105,7 @@ test("confirmation-disabled auth supports isolated CSV and XLSX imports", async 
   await expect(csvCards.nth(1)).toContainText("Three");
   await expect(csvCards.nth(2)).toContainText("Two");
 
-  await page.goto("/sets");
+  await page.goto("/sets/library");
   await expect(page.getByRole("link", { name: "CSV Import" })).toHaveCount(1);
 
   const xlsxPage = await context.newPage();

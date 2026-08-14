@@ -7,7 +7,7 @@ test("Study and Quiz source selection scales across pages on mobile", async ({ p
   await signUpAndConfirm(page, uniqueEmail("source_scale"));
 
   for (let index = 1; index <= 13; index += 1) {
-    await page.goto("/sets?create=manual");
+    await page.goto("/sets/create?source=manual");
     await page.getByLabel("Tên bộ").fill(`Nguồn lớn ${index}`);
     await page.getByLabel("Mặt trước").fill(`Mặt trước ${index}`);
     await page.getByLabel("Mặt sau").fill(`Mặt sau ${index}`);
@@ -15,7 +15,7 @@ test("Study and Quiz source selection scales across pages on mobile", async ({ p
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
   }
 
-  await page.goto("/sets?tab=special");
+  await page.goto("/sets/library?tab=special");
   await page.getByRole("button", { name: /Tạo bộ đặc biệt/ }).click();
   await page.getByLabel("Tên bộ").fill("Nguồn đặc biệt");
   await page.getByRole("button", { name: /^Tạo bộ$/ }).click();

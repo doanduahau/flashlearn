@@ -30,6 +30,7 @@ export async function importFlashcards(
     if (error || !data?.[0]?.set_id)
       return { error: "Không thể import bộ flashcard. Không có dữ liệu nào được lưu." };
     revalidatePath("/sets");
+    revalidatePath("/sets/library");
     return { setId: data[0].set_id };
   } catch {
     return { error: "Không thể tạo bộ flashcard. Vui lòng thử lại." };

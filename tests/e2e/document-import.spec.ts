@@ -22,8 +22,7 @@ const PDF_FIXTURE = fixture("minimal.pdf", "application/pdf");
 const SCAN_ONLY_PDF = fixture("scan-only.pdf", "application/pdf");
 
 async function openDocumentImport(page: import("@playwright/test").Page) {
-  await page.goto("/sets");
-  await page.getByRole("link", { name: /tài liệu/i }).click();
+  await page.goto("/sets/create?source=file");
   const fileInput = page.locator('input[type="file"]');
   await expect(fileInput).toBeVisible();
   return fileInput;
@@ -112,8 +111,8 @@ test.describe("Document import", () => {
       "PDF này không có văn bản có thể đọc. CapyStudy hiện chưa hỗ trợ PDF scan/ảnh.",
     );
 
-    // No flashcard set is created: still on the sets page with the document section open
-    await expect(page).toHaveURL(/\/sets\?create=document$/);
+    // No flashcard set is created: still on the create page with the document source open
+    await expect(page).toHaveURL(/\/sets\/create\?source=file$/);
   });
 
   test("rejects unsupported legacy .doc format", async ({ page }) => {

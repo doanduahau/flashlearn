@@ -25,8 +25,8 @@ describe("SectionTabs", () => {
         label="Loại bộ flashcard"
         current="special"
         items={[
-          { value: "regular", label: "Bộ thường", href: "/sets?tab=regular" },
-          { value: "special", label: "Bộ đặc biệt", href: "/sets?tab=special" },
+          { value: "regular", label: "Bộ thường", href: "/sets/library?tab=regular" },
+          { value: "special", label: "Bộ đặc biệt", href: "/sets/library?tab=special" },
         ]}
         pendingContent={<p>Đang tải nội dung bộ flashcard</p>}
       >
@@ -37,7 +37,7 @@ describe("SectionTabs", () => {
     expect(screen.getByRole("navigation", { name: "Loại bộ flashcard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Bộ thường" })).toHaveAttribute(
       "href",
-      "/sets?tab=regular",
+      "/sets/library?tab=regular",
     );
     expect(screen.getByRole("link", { name: "Bộ thường" })).toHaveAttribute("data-scroll", "false");
     expect(screen.getByRole("link", { name: "Bộ đặc biệt" })).toHaveAttribute(

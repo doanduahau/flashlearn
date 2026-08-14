@@ -151,7 +151,7 @@ export function StudySourceSelect({
             className="mx-auto size-12 object-contain"
           />
           <p className="font-medium">Chưa có thẻ flashcard để học.</p>
-          <Link className="mt-2 inline-block underline" href="/sets?create=import">
+          <Link className="mt-2 inline-block underline" href="/sets/create?source=file">
             Nhập tệp đầu tiên
           </Link>
         </div>

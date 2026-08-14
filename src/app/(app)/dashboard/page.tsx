@@ -75,8 +75,8 @@ export default async function DashboardPage({
       : null;
 
   const raw = await searchParams;
-  if (raw.create === "import") redirect("/sets?create=import");
-  if (raw.create === "manual") redirect("/sets?create=manual");
+  if (raw.create === "import") redirect("/sets/create?source=file");
+  if (raw.create === "manual") redirect("/sets/create?source=manual");
 
   return (
     <main className="mx-auto w-full max-w-5xl p-3 sm:p-8">

@@ -20,8 +20,7 @@ const AMBIGUOUS_DOCX = fixture("ambiguous.docx");
 const MIXED_DOCX = fixture("mixed.docx");
 
 async function openDocumentImport(page: import("@playwright/test").Page) {
-  await page.goto("/sets");
-  await page.getByRole("link", { name: /tài liệu/i }).click();
+  await page.goto("/sets/create?source=file");
   const fileInput = page.locator('input[type="file"]');
   await expect(fileInput).toBeVisible();
   return fileInput;
@@ -94,7 +93,7 @@ test.describe("Document auto-detection (3E)", () => {
     expect(after - before).toBe(1);
 
     // No flashcards generated: no set creation UI/redirect occurs.
-    await expect(page).toHaveURL(/\/sets\?create=document$/);
+    await expect(page).toHaveURL(/\/sets\/create\?source=file$/);
   });
 
   test("classifies a mixed document at section level, not a single global type", async ({
@@ -221,7 +220,7 @@ test.describe("Document generation (3F)", () => {
       await expect(page.getByText(/AI không khả dụng|Không thể tạo thẻ/)).toBeVisible();
 
       // No flashcard set is created (no navigation to /sets/[id]).
-      await expect(page).toHaveURL(/\/sets\?create=document$/);
+      await expect(page).toHaveURL(/\/sets\/create\?source=file$/);
     } finally {
       await page.request.get("/api/test/generation-count?fail=0");
     }

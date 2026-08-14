@@ -18,7 +18,7 @@ test.describe("Set and card management", () => {
   test("User A imports a set and manages its cards", async ({ page }) => {
     await signUpAndConfirm(page, uniqueEmail("setmgr_a"));
 
-    await page.goto("/import");
+    await page.goto("/sets/create?source=file");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(IMPORT_CSV);
     await page.getByLabel("Tên bộ").fill(SET_NAME);
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
@@ -52,7 +52,7 @@ test.describe("Set and card management", () => {
   test("User B cannot view or manage User A's data", async ({ page }) => {
     await signUpAndConfirm(page, uniqueEmail("setmgr_b"));
 
-    await page.goto("/sets");
+    await page.goto("/sets/library");
     await expect(page.getByText(renamedSetName)).toHaveCount(0);
 
     const response = await page.goto(`/sets/${setId}`);

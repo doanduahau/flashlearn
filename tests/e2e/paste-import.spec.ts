@@ -7,8 +7,7 @@ test.describe("Paste import", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signUpAndConfirm(page, uniqueEmail("paste_tsv"));
 
-    await page.goto("/sets");
-    await page.getByRole("link", { name: /dán nội dung/i }).click();
+    await page.goto("/sets/create");
 
     const textarea = page.locator("#paste-textarea");
     await textarea.fill("apple\tquả táo\nbanana\tquả chuối\norange\tquả cam");
@@ -30,8 +29,7 @@ test.describe("Paste import", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signUpAndConfirm(page, uniqueEmail("paste_empty"));
 
-    await page.goto("/sets");
-    await page.getByRole("link", { name: /dán nội dung/i }).click();
+    await page.goto("/sets/create");
 
     await page.getByRole("button", { name: "Phân tích" }).click();
 
@@ -44,8 +42,7 @@ test.describe("Paste import", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signUpAndConfirm(page, uniqueEmail("paste_qa"));
 
-    await page.goto("/sets");
-    await page.getByRole("link", { name: /dán nội dung/i }).click();
+    await page.goto("/sets/create");
 
     const textarea = page.locator("#paste-textarea");
     await textarea.fill(
@@ -69,8 +66,7 @@ test.describe("Paste import", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signUpAndConfirm(page, uniqueEmail("paste_mobile"));
 
-    await page.goto("/sets");
-    await page.getByRole("link", { name: /dán nội dung/i }).click();
+    await page.goto("/sets/create");
 
     const textarea = page.locator("#paste-textarea");
     await expect(textarea).toBeVisible();
@@ -97,18 +93,14 @@ test.describe("Paste import", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signUpAndConfirm(page, uniqueEmail("paste_excel"));
 
-    await page.goto("/sets");
+    await page.goto("/sets/create");
 
     await expect(page.getByRole("link", { name: /tài liệu/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /dán nội dung/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /thủ công/i })).toBeVisible();
 
-    await page.getByRole("link", { name: /dán nội dung/i }).click();
     const pasteTextarea = page.locator("#paste-textarea");
     await expect(pasteTextarea).toBeVisible();
-
-    await page.getByRole("link", { name: /đóng/i }).click();
-    await expect(pasteTextarea).not.toBeVisible();
 
     await page.getByRole("link", { name: /tài liệu/i }).click();
     await expect(page.locator("input[type=file]")).toBeVisible();

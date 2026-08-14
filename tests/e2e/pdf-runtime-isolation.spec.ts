@@ -13,21 +13,21 @@ const DOCX_FIXTURE = {
 test("production /sets keeps non-PDF import paths free of the PDF runtime", async ({ page }) => {
   await signUpAndConfirm(page, uniqueEmail("pdf_isolation"));
 
-  await page.goto("/sets?create=manual");
+  await page.goto("/sets/create?source=manual");
   await expect(page.getByRole("heading", { name: /tạo bộ thủ công/i })).toBeVisible();
 
-  await page.goto("/sets?create=import");
+  await page.goto("/sets/create?source=file");
   await expect(page.locator('input[type="file"][accept=".xlsx,.csv,.docx,.pdf"]')).toBeVisible();
 
-  await page.goto("/sets?create=paste");
+  await page.goto("/sets/create");
   await page.getByRole("textbox", { name: "Dán nội dung" }).fill("front\tback");
   await page.getByRole("button", { name: /phân tích/i }).click();
   await expect(page.getByText(/nguồn/i)).toBeVisible();
 
-  await page.goto("/sets?create=google_sheets");
+  await page.goto("/sets/create?source=google_sheets");
   await expect(page.getByText(/google sheets/i).first()).toBeVisible();
 
-  await page.goto("/sets?create=document");
+  await page.goto("/sets/create?source=file");
   const fileInput = page.locator('input[type="file"]');
   await fileInput.setInputFiles(DOCX_FIXTURE);
   await expect(page.getByText("khối nội dung")).toBeVisible();

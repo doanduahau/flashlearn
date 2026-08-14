@@ -5,7 +5,7 @@ import { signUpAndConfirm, uniqueEmail } from "./support/auth-helpers";
 const MOBILE = { width: 390, height: 844 };
 
 async function createSetWithCard(page: Page, name: string, front: string, back: string) {
-  await page.goto("/sets?create=manual");
+  await page.goto("/sets/create?source=manual");
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByLabel("Mặt trước").fill(front);
   await page.getByLabel("Mặt sau").fill(back);

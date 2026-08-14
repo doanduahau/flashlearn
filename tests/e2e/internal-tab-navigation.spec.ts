@@ -50,7 +50,7 @@ async function switchTab(page: Page, navigationLabel: string, target: TabTarget)
 }
 
 async function verifyTabNavigation(page: Page): Promise<void> {
-  await prepareScrollablePage(page, "/sets?tab=regular&q=React&page=2");
+  await prepareScrollablePage(page, "/sets/library?tab=regular&q=React&page=2");
   await switchTab(page, "Loại bộ flashcard", { label: "Bộ đặc biệt", value: "special" });
   const specialSetsUrl = new URL(page.url());
   expect(specialSetsUrl.searchParams.get("q")).toBe("React");

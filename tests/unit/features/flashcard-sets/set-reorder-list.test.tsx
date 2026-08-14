@@ -27,17 +27,20 @@ describe("SetReorderList", () => {
   });
 
   it("uses touch-friendly move controls instead of a draggable card", () => {
-    render(<SetReorderList initialSets={sets} doneHref="/sets?tab=regular" />);
+    render(<SetReorderList initialSets={sets} doneHref="/sets/library?tab=regular" />);
 
     expect(screen.getByRole("button", { name: "Đưa Bộ một lên" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Đưa Bộ ba xuống" })).toBeDisabled();
-    expect(screen.getByRole("link", { name: "Xong" })).toHaveAttribute("href", "/sets?tab=regular");
+    expect(screen.getByRole("link", { name: "Xong" })).toHaveAttribute(
+      "href",
+      "/sets/library?tab=regular",
+    );
     expect(screen.queryByText(/kéo thả/i)).not.toBeInTheDocument();
   });
 
   it("updates the visible order immediately and persists the selected move", async () => {
     const user = userEvent.setup();
-    render(<SetReorderList initialSets={sets} doneHref="/sets?tab=regular" />);
+    render(<SetReorderList initialSets={sets} doneHref="/sets/library?tab=regular" />);
 
     await user.click(screen.getByRole("button", { name: "Đưa Bộ hai lên" }));
 
@@ -53,7 +56,7 @@ describe("SetReorderList", () => {
   it("restores the previous order and explains a recoverable save failure", async () => {
     mocks.moveSet.mockResolvedValue({ ok: false, error: "Không thể lưu thứ tự." });
     const user = userEvent.setup();
-    render(<SetReorderList initialSets={sets} doneHref="/sets?tab=regular" />);
+    render(<SetReorderList initialSets={sets} doneHref="/sets/library?tab=regular" />);
 
     await user.click(screen.getByRole("button", { name: "Đưa Bộ hai lên" }));
 

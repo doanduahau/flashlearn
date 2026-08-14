@@ -47,6 +47,7 @@ export async function renameSet(input: unknown): Promise<MutationResult> {
 
   revalidatePath(`/sets/${parsed.data.setId}`);
   revalidatePath("/sets");
+  revalidatePath("/sets/library");
   return { ok: true };
 }
 
@@ -68,6 +69,7 @@ export async function deleteSet(input: unknown): Promise<MutationResult> {
   if (!data?.length) return { ok: false, error: "Không tìm thấy bộ flashcard." };
 
   revalidatePath("/sets");
+  revalidatePath("/sets/library");
   return { ok: true };
 }
 
@@ -87,6 +89,7 @@ export async function moveSet(input: unknown): Promise<MutationResult> {
   if (error) return { ok: false, error: mapMutationError(error) };
 
   revalidatePath("/sets");
+  revalidatePath("/sets/library");
   revalidatePath("/study");
   revalidatePath("/quiz");
   return { ok: true };
@@ -111,6 +114,7 @@ export async function addCard(input: unknown): Promise<MutationResult> {
 
   revalidatePath(`/sets/${parsed.data.setId}`);
   revalidatePath("/sets");
+  revalidatePath("/sets/library");
   return { ok: true };
 }
 

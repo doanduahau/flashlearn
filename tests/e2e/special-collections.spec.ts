@@ -19,7 +19,7 @@ test.describe("Special collections", () => {
   test("User A imports a set, creates collections, and adds a card to both", async ({ page }) => {
     await signUpAndConfirm(page, uniqueEmail("coll_a"));
 
-    await page.goto("/import");
+    await page.goto("/sets/create?source=file");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(IMPORT_CSV);
     await page.getByLabel("Tên bộ").fill(SET_NAME);
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
@@ -89,7 +89,7 @@ test.describe("Special collections", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Khó nhớ");
     await page.getByRole("button", { name: /Xóa bộ/ }).click();
     await page.getByRole("button", { name: /Xóa vĩnh viễn/ }).click();
-    await expect(page).toHaveURL(/\/sets\?tab=special$/);
+    await expect(page).toHaveURL(/\/sets\/library\?tab=special$/);
     await expect(page.getByRole("link", { name: /Khó nhớ/ })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /Quan trọng/ })).toBeVisible();
 

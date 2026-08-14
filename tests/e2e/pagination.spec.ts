@@ -9,7 +9,7 @@ test("flashcard pagination keeps list parameters while navigating in both direct
 }) => {
   await signUpAndConfirm(page, uniqueEmail("pagination"));
 
-  await page.goto("/import");
+  await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(PAGINATION_CSV);
   await page.getByLabel("Tên bộ").fill("Bộ phân trang");
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();

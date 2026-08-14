@@ -7,7 +7,7 @@ const MOBILE = { width: 390, height: 844 };
 const NEW_CARDS_CSV = "tests/fixtures/smart-review-24-cards.csv";
 
 async function importSet(page: Page, name: string): Promise<void> {
-  await page.goto("/import");
+  await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(NEW_CARDS_CSV);
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();

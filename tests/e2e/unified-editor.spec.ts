@@ -13,8 +13,7 @@ test.describe("Quick-create import (3G)", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await signUpAndConfirm(page, uniqueEmail("editor_excel_persist"));
 
-    await page.goto("/sets");
-    await page.getByRole("link", { name: /tài liệu/i }).click();
+    await page.goto("/sets/create?source=file");
 
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles(IMPORT_CSV);
@@ -37,8 +36,7 @@ test.describe("Quick-create import (3G)", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await signUpAndConfirm(page, uniqueEmail("editor_paste"));
 
-    await page.goto("/sets");
-    await page.getByRole("link", { name: /dán nội dung/i }).click();
+    await page.goto("/sets/create");
 
     const textarea = page.locator("#paste-textarea");
     await textarea.fill("apple\tquả táo\nbanana\tquả chuối");
@@ -61,8 +59,7 @@ test.describe("Quick-create import (3G)", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signUpAndConfirm(page, uniqueEmail("editor_mobile"));
 
-    await page.goto("/sets");
-    await page.getByRole("link", { name: /dán nội dung/i }).click();
+    await page.goto("/sets/create");
 
     const textarea = page.locator("#paste-textarea");
     await textarea.fill("a\tb\nc\td");
@@ -91,8 +88,7 @@ test.describe("Quick-create import (3G)", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await signUpAndConfirm(page, uniqueEmail("editor_limit"));
 
-    await page.goto("/sets");
-    await page.getByRole("link", { name: /dán nội dung/i }).click();
+    await page.goto("/sets/create");
 
     const textarea = page.locator("#paste-textarea");
     await textarea.fill("x\ty");
@@ -108,8 +104,7 @@ test.describe("Quick-create import (3G)", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await signUpAndConfirm(page, uniqueEmail("editor_persist"));
 
-    await page.goto("/sets");
-    await page.getByRole("link", { name: /dán nội dung/i }).click();
+    await page.goto("/sets/create");
 
     // Source: A → 1, B → 2
     const textarea = page.locator("#paste-textarea");

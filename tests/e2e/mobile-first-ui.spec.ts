@@ -11,7 +11,7 @@ const DESKTOP = { width: 1280, height: 800 };
  */
 async function seedSetsForQuiz(page: import("@playwright/test").Page, count = 13): Promise<void> {
   for (let i = 1; i <= count; i++) {
-    await page.goto("/sets?create=manual");
+    await page.goto("/sets/create?source=manual");
     await page.getByLabel("Tên bộ").fill(`Bộ quiz ${i}`);
     await page.getByLabel("Mặt trước").fill(`Trước ${i}`);
     await page.getByLabel("Mặt sau").fill(`Sau ${i}`);
@@ -66,33 +66,24 @@ test.describe("Mobile-first UI — Dashboard", () => {
   });
 });
 
-test.describe("Mobile-first UI — Sets page", () => {
-  test("create card with source chips sits above the library list on mobile", async ({ page }) => {
+test.describe("Mobile-first UI — Sets launcher", () => {
+  test("launcher shows two navigation cards and no chips or lists on mobile", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("sets_mob"));
 
-    // Create one set so list is non-empty
-    await page.goto("/sets?create=manual");
-    await page.getByLabel("Tên bộ").fill("Test Set");
-    await page.getByLabel("Mặt trước").fill("Trước");
-    await page.getByLabel("Mặt sau").fill("Sau");
-    await page.getByRole("button", { name: "Tạo bộ" }).click();
-    await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
-
     await page.goto("/sets");
 
-    // Create source chips visible
-    const pasteChip = page.getByRole("link", { name: /Dán nội dung/ });
-    const sheetsChip = page.getByRole("link", { name: /Google Sheets/ });
-    const documentChip = page.getByRole("link", { name: /Tài liệu/ });
-    const manualChip = page.getByRole("link", { name: /Thủ công/ });
-    await expect(pasteChip).toBeVisible();
-    await expect(sheetsChip).toBeVisible();
-    await expect(documentChip).toBeVisible();
-    await expect(manualChip).toBeVisible();
+    // The launcher shows two navigation cards and nothing else.
+    const createCard = page.getByRole("link", { name: /Tạo Flash card/ });
+    const libraryCard = page.getByRole("link", { name: /Flash card của bạn/ });
+    await expect(createCard).toBeVisible();
+    await expect(libraryCard).toBeVisible();
 
-    // Create card heading is visible
-    await expect(page.getByRole("heading", { name: /Tạo Flash card/ })).toBeVisible();
+    // No source chips, no create form, no set list on the launcher.
+    await expect(page.getByRole("link", { name: /Dán nội dung/ })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Google Sheets/ })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Tài liệu/ })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Thủ công/ })).toHaveCount(0);
 
     // No horizontal overflow at mobile width
     expect(
@@ -100,12 +91,55 @@ test.describe("Mobile-first UI — Sets page", () => {
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       ),
     ).toBe(true);
+  });
 
-    // Sets list (tab content) should appear — first set card reachable
-    const firstCard = page.getByRole("link", { name: /Test Set/ }).first();
-    await expect(firstCard).toBeVisible();
+  test("launcher cards are stacked and fill the mobile viewport height", async ({ page }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("sets_stack"));
 
-    // No horizontal scroll
+    await page.goto("/sets");
+
+    const createCard = page.getByRole("link", { name: /Tạo Flash card/ });
+    const libraryCard = page.getByRole("link", { name: /Flash card của bạn/ });
+    const createBox = await createCard.boundingBox();
+    const libraryBox = await libraryCard.boundingBox();
+
+    // Cards are stacked vertically on mobile.
+    expect(createBox).not.toBeNull();
+    expect(libraryBox).not.toBeNull();
+    if (createBox && libraryBox) {
+      expect(libraryBox.y).toBeGreaterThanOrEqual(createBox.y + createBox.height - 4);
+    }
+
+    // The first card roughly fills one mobile screen.
+    if (createBox) {
+      expect(createBox.height).toBeGreaterThan(500);
+    }
+
+    // No horizontal overflow.
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+  });
+
+  test("create and library destinations have no horizontal overflow on mobile", async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE);
+    await signUpAndConfirm(page, uniqueEmail("sets_dest"));
+
+    await page.goto("/sets/create");
+    await expect(page.getByLabel("Dán nội dung")).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+
+    await page.goto("/sets/library");
+    await expect(page.getByRole("heading", { name: /Flash card của bạn/ })).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
@@ -118,6 +152,8 @@ test.describe("Mobile-first UI — Sets page", () => {
     await signUpAndConfirm(page, uniqueEmail("sets_desk"));
     await page.goto("/sets");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Tạo Flash card/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Flash card của bạn/ })).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
@@ -131,7 +167,7 @@ test.describe("Mobile-first UI — Study page", () => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("study_mob"));
 
-    await page.goto("/sets?create=manual");
+    await page.goto("/sets/create?source=manual");
     await page.getByLabel("Tên bộ").fill("Học thử");
     await page.getByLabel("Mặt trước").fill("Q");
     await page.getByLabel("Mặt sau").fill("A");
@@ -164,7 +200,7 @@ test.describe("Mobile-first UI — Study page", () => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("study_overlap"));
 
-    await page.goto("/sets?create=manual");
+    await page.goto("/sets/create?source=manual");
     await page.getByLabel("Tên bộ").fill("Học thử 2");
     await page.getByLabel("Mặt trước").fill("Q");
     await page.getByLabel("Mặt sau").fill("A");

@@ -6,7 +6,7 @@ const MOBILE = { width: 390, height: 844 };
 const PAGINATION_CSV = "tests/fixtures/pagination-cards.csv";
 
 async function createSetWithCard(page: Page, name: string) {
-  await page.goto("/sets?create=manual");
+  await page.goto("/sets/create?source=manual");
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByLabel("Mặt trước").fill("Trước");
   await page.getByLabel("Mặt sau").fill("Sau");
@@ -78,7 +78,7 @@ test.describe("Mastery summary", () => {
     await page.setViewportSize(MOBILE);
     await signUpAndConfirm(page, uniqueEmail("summary_set"));
 
-    await page.goto("/import");
+    await page.goto("/sets/create?source=file");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(PAGINATION_CSV);
     await page.getByLabel("Tên bộ").fill("Bộ phân trang");
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();

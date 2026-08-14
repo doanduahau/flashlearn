@@ -156,7 +156,7 @@ describe("StudySourceSelect", () => {
     expect(screen.getByText("Chưa có thẻ flashcard để học.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Nhập tệp đầu tiên/ })).toHaveAttribute(
       "href",
-      "/sets?create=import",
+      "/sets/create?source=file",
     );
   });
 });

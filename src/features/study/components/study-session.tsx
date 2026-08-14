@@ -227,34 +227,19 @@ export function StudySession({
             variant="icon"
           />
         </div>
-        <button
-          type="button"
-          className="absolute left-3 top-1/2 z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/60 text-text-primary shadow-soft-card backdrop-blur-sm transition-colors duration-150 hover:bg-surface/85 focus-visible:bg-surface/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40"
-          onClick={(event) => {
-            event.stopPropagation();
-            goPrevious();
-          }}
-          disabled={isFirst}
-          aria-label="Thẻ trước"
-          title="Thẻ trước"
-        >
-          <ChevronLeft aria-hidden="true" className="size-[22px]" />
-        </button>
-        <button
-          type="button"
-          className="absolute right-3 top-1/2 z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/60 text-text-primary shadow-soft-card backdrop-blur-sm transition-colors duration-150 hover:bg-surface/85 focus-visible:bg-surface/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-          onClick={(event) => {
-            event.stopPropagation();
-            goNext();
-          }}
-          aria-label="Thẻ tiếp theo"
-          title="Thẻ tiếp theo"
-        >
-          <ChevronRight aria-hidden="true" className="size-[22px]" />
-        </button>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <Button
+          type="button"
+          variant="soft"
+          onClick={() => goPrevious()}
+          disabled={isFirst}
+          aria-label="Thẻ trước"
+        >
+          <ChevronLeft aria-hidden="true" className="-ml-1 mr-1 size-5" />
+          Thẻ trước
+        </Button>
         <Button
           type="button"
           variant="soft"
@@ -262,6 +247,16 @@ export function StudySession({
           aria-pressed={isFlipped}
         >
           {isFlipped ? "Nhấn để xem mặt trước" : "Nhấn để lật"}
+        </Button>
+        <Button
+          type="button"
+          variant="soft"
+          onClick={() => goNext()}
+          disabled={isLast}
+          aria-label="Thẻ tiếp theo"
+        >
+          Thẻ tiếp theo
+          <ChevronRight aria-hidden="true" className="-mr-1 ml-1 size-5" />
         </Button>
         {isLast ? (
           <Button type="button" onClick={() => router.push("/study")}>

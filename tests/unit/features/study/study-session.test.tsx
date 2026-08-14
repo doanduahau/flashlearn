@@ -176,15 +176,12 @@ describe("StudySession", () => {
     expect(screen.getByRole("button", { name: /Thẻ tiếp theo/ })).toBeInTheDocument();
   });
 
-  it("overlays the navigation controls on the card edges with a touch target", () => {
+  it("renders the navigation controls below the card", () => {
     renderSession();
     const prev = screen.getByRole("button", { name: /Thẻ trước/ });
     const next = screen.getByRole("button", { name: /Thẻ tiếp theo/ });
-    expect(prev.className).toContain("absolute");
-    expect(prev.className).toContain("size-11");
-    expect(next.className).toContain("absolute");
-    expect(next.className).toContain("size-11");
-    expect(screen.getByText("Mặt trước 1").closest("div")?.className).toContain("px-16");
+    expect(prev.className).not.toContain("absolute");
+    expect(next.className).not.toContain("absolute");
   });
 
   it("swipes left on the card to advance to the next card", () => {

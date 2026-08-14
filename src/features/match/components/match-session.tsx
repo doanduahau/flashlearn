@@ -10,9 +10,14 @@ import { startMatchCoverageSession } from "@/features/match/server/actions";
 import type { MatchQuestionCount, StartedMatchSession } from "@/features/match/types/match-types";
 import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
 
+import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
+import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
+import { useVisibilityPause } from "@/features/learning-modes/hooks/use-visibility-pause";
+
 type MatchSessionProps = {
   sessionHref: string;
   questionCount: MatchQuestionCount;
+  exitHref: string;
 };
 
 function sourceFromHref(sessionHref: string, questionCount: MatchQuestionCount) {
@@ -26,11 +31,12 @@ function sourceFromHref(sessionHref: string, questionCount: MatchQuestionCount) 
   };
 }
 
-export function MatchSession({ sessionHref, questionCount }: MatchSessionProps) {
+export function MatchSession({ sessionHref, questionCount, exitHref }: MatchSessionProps) {
   const [session, setSession] = useState<StartedMatchSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const { isPaused, resume } = useVisibilityPause();
 
   const loadSession = useCallback(async () => {
     setSession(null);
@@ -134,11 +140,18 @@ export function MatchSession({ sessionHref, questionCount }: MatchSessionProps) 
     );
   }
   return (
-    <MatchBoard
-      key={session.coverageSessionId}
-      batches={session.batches}
-      questionCount={questionCount}
-      onComplete={handleComplete}
-    />
+    <>
+      <div className="mb-4 flex items-center justify-start">
+        <SessionExitButton fallbackHref={exitHref} />
+      </div>
+      <MatchBoard
+        key={session.coverageSessionId}
+        batches={session.batches}
+        questionCount={questionCount}
+        isPaused={isPaused}
+        onComplete={handleComplete}
+      />
+      {isPaused ? <PauseOverlay onResume={resume} /> : null}
+    </>
   );
 }

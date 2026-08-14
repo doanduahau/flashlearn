@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { MatchSession } from "@/features/match/components/match-session";
 import { MATCH_QUESTION_COUNTS } from "@/features/match/types/match-types";
 import { learningFilters, type LearningFilter } from "@/features/learning-modes/types";
+import { studyModeHrefFromSession } from "@/features/study/utils/study-mode-href";
 
 export const metadata: Metadata = { title: "Phiên Match" };
 
@@ -37,10 +38,11 @@ export default async function MatchSessionPage({
   if (!all && setIds.length === 0 && collectionIds.length === 0) redirect("/match");
 
   const sessionHref = `/match/session${buildQuery({ all, setIds, collectionIds, count: questionCount, filter })}`;
+  const exitHref = studyModeHrefFromSession(sessionHref);
 
   return (
     <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
-      <MatchSession sessionHref={sessionHref} questionCount={questionCount} />
+      <MatchSession sessionHref={sessionHref} questionCount={questionCount} exitHref={exitHref} />
     </main>
   );
 }

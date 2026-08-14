@@ -137,7 +137,8 @@ describe("StudySession", () => {
     const user = userEvent.setup();
     Object.defineProperty(window.history, "length", { configurable: true, value: 3 });
     renderSession();
-    await user.click(screen.getByRole("button", { name: /Quay lại/ }));
+    await user.click(screen.getByRole("button", { name: /Thoát phiên học/ }));
+    await user.click(screen.getByRole("button", { name: "Thoát" }));
     expect(mocks.back).toHaveBeenCalledTimes(1);
     expect(mocks.push).not.toHaveBeenCalled();
   });
@@ -146,7 +147,8 @@ describe("StudySession", () => {
     const user = userEvent.setup();
     Object.defineProperty(window.history, "length", { configurable: true, value: 1 });
     renderSession();
-    await user.click(screen.getByRole("button", { name: /Quay lại/ }));
+    await user.click(screen.getByRole("button", { name: /Thoát phiên học/ }));
+    await user.click(screen.getByRole("button", { name: "Thoát" }));
     expect(mocks.back).not.toHaveBeenCalled();
     expect(mocks.push).toHaveBeenCalledWith(
       "/study/mode?sets=22222222-2222-4222-8222-222222222222",
@@ -301,7 +303,7 @@ describe("StudySession", () => {
 
   it("ignores shortcuts while a control is focused", () => {
     renderSession();
-    const back = screen.getByRole("button", { name: /Quay lại/ });
+    const back = screen.getByRole("button", { name: /Thoát phiên học/ });
     fireEvent.keyDown(back, { key: " " });
     fireEvent.keyDown(back, { key: "ArrowRight" });
     expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(

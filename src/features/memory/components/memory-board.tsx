@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 type MemoryBoardProps = {
   batches: MemoryBatch[];
   questionCount: number;
+  isPaused?: boolean;
   onComplete: (elapsedMs: number) => Promise<void>;
 };
 
@@ -46,10 +47,10 @@ function formatTime(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardProps) {
+export function MemoryBoard({ batches, questionCount, isPaused, onComplete }: MemoryBoardProps) {
   const [state, setState] = useState<MemoryState>(() => createMemoryState(batches));
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [startTime] = useState(() => Date.now());
+  const lastTickRef = useRef(() => Date.now());
   const completedRef = useRef(false);
   const finalElapsedRef = useRef<number | null>(null);
 
@@ -59,11 +60,18 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
   const [gridHeightPx, setGridHeightPx] = useState(MEMORY_GRID_MIN_HEIGHT_PX);
 
   useEffect(() => {
+    lastTickRef.current = Date.now;
+    let lastTick = lastTickRef.current();
     const interval = setInterval(() => {
-      if (!completedRef.current) setElapsedMs(Date.now() - startTime);
+      const now = Date.now();
+      const delta = now - lastTick;
+      lastTick = now;
+      if (!completedRef.current && !isPaused) {
+        setElapsedMs((prev) => prev + delta);
+      }
     }, 250);
     return () => clearInterval(interval);
-  }, [startTime]);
+  }, [isPaused]);
 
   useEffect(() => {
     const grid = gridRef.current;
@@ -141,9 +149,7 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
     // before its one-second review delay and the celebration run.
     if (isFinalPendingPair(next) && !completedRef.current) {
       completedRef.current = true;
-      const finalElapsed = now - startTime;
-      finalElapsedRef.current = finalElapsed;
-      setElapsedMs(finalElapsed);
+      finalElapsedRef.current = elapsedMs;
     }
   }
 
@@ -200,8 +206,11 @@ export function MemoryBoard({ batches, questionCount, onComplete }: MemoryBoardP
             tile={tile}
             matched={isTileMatched(state, tile.key)}
             flipped={isTileFlipped(state, tile.key)}
-            disabled={state.matchedKeys.has(tile.key)}
-            onTap={() => handleTap(tile, Date.now())}
+            disabled={state.matchedKeys.has(tile.key) || isPaused === true}
+            onTap={() => {
+              if (isPaused) return;
+              handleTap(tile, Date.now());
+            }}
           />
         ))}
       </ul>

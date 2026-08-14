@@ -10,7 +10,7 @@ export default async function QuizSessionPage({
   const supabase = await createClient();
   const { data: session } = await supabase
     .from("quiz_sessions")
-    .select("id, actual_question_count, completed_at")
+    .select("id, actual_question_count, completed_at, origin")
     .eq("id", sessionId)
     .maybeSingle();
   if (!session) notFound();
@@ -24,12 +24,18 @@ export default async function QuizSessionPage({
     .limit(1)
     .maybeSingle();
   if (!question) redirect(`/quiz/${sessionId}/result`);
+
+  const origin = session.origin;
+  const exitHref =
+    origin === "smart_review" || origin === "new_cards" ? "/dashboard" : "/quiz/mode";
+
   return (
     <QuizSession
       key={question.id}
       sessionId={sessionId}
       total={session.actual_question_count}
       question={{ ...question, choices: question.choices as string[] }}
+      exitHref={exitHref}
     />
   );
 }

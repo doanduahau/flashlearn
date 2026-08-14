@@ -11,6 +11,9 @@ import type {
   StartedMemorySession,
 } from "@/features/memory/types/memory-types";
 import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
+import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
+import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
+import { useVisibilityPause } from "@/features/learning-modes/hooks/use-visibility-pause";
 import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
 
 type MemorySessionProps = {
@@ -42,6 +45,7 @@ export function MemorySession({ sessionHref, questionCount, exitHref }: MemorySe
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const { isPaused, resume } = useVisibilityPause();
   const goBack = useBackWithFallback(exitHref);
 
   const loadSession = useCallback(async () => {
@@ -151,11 +155,15 @@ export function MemorySession({ sessionHref, questionCount, exitHref }: MemorySe
     );
   }
   return (
-    <MemoryBoard
-      key={session.coverageSessionId}
-      batches={session.batches}
-      questionCount={questionCount}
-      onComplete={handleComplete}
-    />
+    <>
+      <MemoryBoard
+        key={session.coverageSessionId}
+        batches={session.batches}
+        questionCount={questionCount}
+        isPaused={isPaused}
+        onComplete={handleComplete}
+      />
+      {isPaused ? <PauseOverlay onResume={resume} /> : null}
+    </>
   );
 }

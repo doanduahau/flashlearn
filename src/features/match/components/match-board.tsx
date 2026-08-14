@@ -17,10 +17,11 @@ import { cn } from "@/lib/utils";
 type MatchBoardProps = {
   batches: MatchBatch[];
   questionCount: number;
+  isPaused?: boolean;
   onComplete: () => Promise<void>;
 };
 
-export function MatchBoard({ batches, questionCount, onComplete }: MatchBoardProps) {
+export function MatchBoard({ batches, questionCount, isPaused, onComplete }: MatchBoardProps) {
   const [state, setState] = useState<MatchState>(() => createMatchState(batches));
   const completionNotifiedRef = useRef(false);
 
@@ -41,6 +42,7 @@ export function MatchBoard({ batches, questionCount, onComplete }: MatchBoardPro
   const completed = completedCount(state);
 
   function handleSelect(side: "front" | "back", card: MatchCard): void {
+    if (isPaused) return;
     if (side === "front" && state.matchedFrontIds.has(card.id)) return;
     if (side === "back" && state.matchedBackIds.has(card.id)) return;
     setState((prev) => selectCard(prev, side, card.id));

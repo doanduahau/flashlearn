@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Flame } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
@@ -187,13 +188,18 @@ export default async function QuizResultPage({
           );
         })}
       </section>
-      <div className="mt-6 flex gap-4">
-        <Link className="underline" href="/quiz">
-          Làm bài mới
-        </Link>
-        <Link className="underline" href="/history">
-          Lịch sử
-        </Link>
+      <div className="mt-8 flex flex-wrap gap-3">
+        {session.origin === "manual" ? (
+          <Button asChild>
+            <Link href="/quiz/mode">Thiết lập bài mới</Link>
+          </Button>
+        ) : null}
+        <Button asChild variant={session.origin === "manual" ? "outline" : "default"}>
+          <Link href="/dashboard">Về màn hình chính</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/history">Xem lịch sử</Link>
+        </Button>
       </div>
     </main>
   );

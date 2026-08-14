@@ -4,16 +4,22 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { submitQuizAnswer } from "@/features/quiz/server/actions";
 
+import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
+import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
+import { useVisibilityPause } from "@/features/learning-modes/hooks/use-visibility-pause";
+
 const ADVANCE_DELAY_MS = 800;
 
 export function QuizSession({
   sessionId,
   question,
   total,
+  exitHref,
 }: {
   sessionId: string;
   total: number;
   question: { id: string; position: number; prompt: string; choices: string[] };
+  exitHref: string;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<number | null>(null);
@@ -25,6 +31,7 @@ export function QuizSession({
   const feedbackRef = useRef<HTMLParagraphElement>(null);
   const submittingRef = useRef(false);
   const advanceTimerRef = useRef<number | null>(null);
+  const { isPaused, resume } = useVisibilityPause();
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -38,7 +45,7 @@ export function QuizSession({
   }, [feedback]);
 
   const submit = () => {
-    if (pending || feedback !== null || submittingRef.current) return;
+    if (isPaused || pending || feedback !== null || submittingRef.current) return;
 
     if (selected === null) {
       setError("Hãy chọn một đáp án.");
@@ -86,56 +93,62 @@ export function QuizSession({
     else router.refresh();
   };
   return (
-    <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
-      <p className="text-sm text-text-secondary">
-        Câu {question.position + 1} / {total}
-      </p>
-      <h1
-        ref={headingRef}
-        tabIndex={-1}
-        className="mt-3 max-h-[45vh] overflow-y-auto break-words whitespace-pre-wrap text-xl font-bold sm:text-2xl"
-      >
-        {question.prompt}
-      </h1>
-      <fieldset className="mt-6 space-y-3" aria-label="Các đáp án">
-        {question.choices.map((choice, index) => (
-          <label
-            key={`${index}-${choice}`}
-            className="flex cursor-pointer gap-3 rounded-2xl border border-border-soft p-4"
-          >
-            <input
-              type="radio"
-              name="answer"
-              disabled={pending || feedback !== null}
-              checked={selected === index}
-              onChange={() => {
-                setSelected(index);
-                setError(null);
-              }}
-            />
-            <span className="whitespace-pre-wrap break-words">{choice}</span>
-          </label>
-        ))}
-      </fieldset>
-      {feedback !== null ? (
-        <p ref={feedbackRef} role="status" tabIndex={-1} className="mt-4 font-semibold">
-          {feedback ? "Chính xác." : "Chưa chính xác."}
+    <>
+      <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
+        <div className="mb-4 flex items-center justify-start">
+          <SessionExitButton fallbackHref={exitHref} />
+        </div>
+        <p className="text-sm text-text-secondary">
+          Câu {question.position + 1} / {total}
         </p>
-      ) : null}
-      {error ? (
-        <p role="alert" className="mt-4 text-danger">
-          {error}
-        </p>
-      ) : null}
-      {feedback === null ? (
-        <Button className="mt-6" type="button" onClick={submit} disabled={pending}>
-          {pending ? "Đang chấm…" : "Xác nhận đáp án"}
-        </Button>
-      ) : feedback === true && !completed ? null : (
-        <Button className="mt-6" type="button" onClick={advance} disabled={pending}>
-          {completed ? "Xem kết quả" : "Câu tiếp theo"}
-        </Button>
-      )}
-    </main>
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="mt-3 max-h-[45vh] overflow-y-auto break-words whitespace-pre-wrap text-xl font-bold sm:text-2xl"
+        >
+          {question.prompt}
+        </h1>
+        <fieldset className="mt-6 space-y-3" aria-label="Các đáp án">
+          {question.choices.map((choice, index) => (
+            <label
+              key={`${index}-${choice}`}
+              className="flex cursor-pointer gap-3 rounded-2xl border border-border-soft p-4"
+            >
+              <input
+                type="radio"
+                name="answer"
+                disabled={pending || feedback !== null}
+                checked={selected === index}
+                onChange={() => {
+                  setSelected(index);
+                  setError(null);
+                }}
+              />
+              <span className="whitespace-pre-wrap break-words">{choice}</span>
+            </label>
+          ))}
+        </fieldset>
+        {feedback !== null ? (
+          <p ref={feedbackRef} role="status" tabIndex={-1} className="mt-4 font-semibold">
+            {feedback ? "Chính xác." : "Chưa chính xác."}
+          </p>
+        ) : null}
+        {error ? (
+          <p role="alert" className="mt-4 text-danger">
+            {error}
+          </p>
+        ) : null}
+        {feedback === null ? (
+          <Button className="mt-6" type="button" onClick={submit} disabled={pending}>
+            {pending ? "Đang chấm…" : "Xác nhận đáp án"}
+          </Button>
+        ) : feedback === true && !completed ? null : (
+          <Button className="mt-6" type="button" onClick={advance} disabled={pending}>
+            {completed ? "Xem kết quả" : "Câu tiếp theo"}
+          </Button>
+        )}
+      </main>
+      {isPaused ? <PauseOverlay onResume={resume} /> : null}
+    </>
   );
 }

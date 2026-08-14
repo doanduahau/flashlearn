@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { BackButton } from "@/components/shared/back-button";
+import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
 import { MemorySession } from "@/features/memory/components/memory-session";
 import { MEMORY_QUESTION_COUNTS } from "@/features/memory/types/memory-types";
 import { studyModeHrefFromSession } from "@/features/study/utils/study-mode-href";
@@ -35,7 +35,7 @@ export default async function MemorySessionPage({
 
   return (
     <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
-      <BackButton fallbackHref={exitHref} className="mb-3" />
+      <SessionExitButton fallbackHref={exitHref} className="mb-3" />
       <MemorySession sessionHref={sessionHref} questionCount={questionCount} exitHref={exitHref} />
     </main>
   );

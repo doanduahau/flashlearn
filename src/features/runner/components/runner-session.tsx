@@ -21,6 +21,7 @@ import type {
 import { getRunnerDifficultyConfig, runnerDifficultyLabel } from "../utils/runner-difficulty";
 import { applyRunnerEvent, createRunnerState } from "../utils/runner-state";
 import { buildRunnerSessionHref } from "../utils/runner-session-url";
+import { ExitConfirmDialog } from "@/features/learning-modes/components/exit-confirm-dialog";
 import { RunnerBottomLabel } from "./runner-bottom-label";
 import { RunnerCanvas } from "./runner-canvas";
 import { RunnerEndOverlay, type RunnerBestTime } from "./runner-end-overlay";
@@ -201,6 +202,7 @@ export function RunnerSession({
     display.status === "game-over" ? "sad" : wrongCount <= 1 ? "congrats" : "sad";
   const exitHref = replaySource ? buildStudyModeHref(replaySource) : "/study/mode";
   const goBack = useBackWithFallback(exitHref);
+  const [isConfirmingExit, setIsConfirmingExit] = useState(false);
 
   async function replay(): Promise<void> {
     if (!replaySource || replayPendingRef.current) return;
@@ -237,8 +239,11 @@ export function RunnerSession({
         questionNumber={display.questionIndex + 1}
         totalQuestions={questions.length}
         question={question.front}
-        onBack={goBack}
+        onBack={() => setIsConfirmingExit(true)}
       />
+      {isConfirmingExit ? (
+        <ExitConfirmDialog onCancel={() => setIsConfirmingExit(false)} onConfirm={goBack} />
+      ) : null}
 
       <div
         className="relative min-h-40 flex-1"

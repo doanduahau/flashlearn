@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/shared/back-button";
+import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
 import { studyModeHrefFromSession } from "@/features/study/utils/study-mode-href";
 import type { StudyCard, StudyCollectionOption } from "@/features/study/types/study-types";
-import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
 import { STUDY_MAX_CARDS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+
+import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
 
 const SWIPE_THRESHOLD = 56;
 const SWIPE_RATIO = 1.2;
@@ -35,6 +36,8 @@ export function StudySession({
   sessionHref: string;
 }>) {
   const router = useRouter();
+  const fallbackHref = studyModeHrefFromSession(sessionHref);
+  const goBack = useBackWithFallback(fallbackHref);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -46,7 +49,6 @@ export function StudySession({
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === total - 1;
   const exitHref = studyModeHrefFromSession(sessionHref);
-  const goBack = useBackWithFallback(exitHref);
 
   const goPrevious = useCallback(() => {
     setIsFlipped(false);
@@ -149,7 +151,7 @@ export function StudySession({
   return (
     <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
       <div className="flex justify-start">
-        <BackButton fallbackHref={exitHref} label="Quay lại" />
+        <SessionExitButton fallbackHref={exitHref} />
       </div>
 
       <div

@@ -131,9 +131,7 @@ export function StudyModeSelect({
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold">Lật thẻ</h2>
-            <p className="text-sm text-text-secondary">
-              Ôn theo cách truyền thống, tự lật thẻ để xem đáp án.
-            </p>
+            <p className="text-sm text-text-secondary">thẻ truyền thống</p>
           </div>
           <p className="shrink-0 text-sm font-medium">{totalCards} thẻ</p>
         </div>
@@ -163,7 +161,7 @@ export function StudyModeSelect({
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold">Memory matching</h2>
-            <p className="text-sm text-text-secondary">Lật ô và ghép đúng mặt trước với mặt sau.</p>
+            <p className="text-sm text-text-secondary">Ghi nhớ vị trí và nội dung thẻ</p>
           </div>
           <p className="shrink-0 text-sm font-medium">{memory?.count ?? 0} thẻ</p>
         </div>
@@ -228,7 +226,7 @@ export function StudyModeSelect({
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold">Capy runner</h2>
-            <p className="text-sm text-text-secondary">Chạy nhanh và chọn đáp án đúng.</p>
+            <p className="text-sm text-text-secondary">Chướng ngại vật hay là đáp án</p>
           </div>
           <p className="shrink-0 text-sm font-medium">{runner?.count ?? 0} thẻ</p>
         </div>

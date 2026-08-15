@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     default: "CapyStudy",
     template: "%s | CapyStudy",
   },
-  description: "Biến bất kỳ file Excel hai cột nào thành bộ flashcard và bài kiểm tra thông minh.",
+  description: "Tạo bộ flashcard từ tài liệu của riêng bạn. Vừa học vừa chơi cùng CapyStudy.",
 };
 
 export default function RootLayout({

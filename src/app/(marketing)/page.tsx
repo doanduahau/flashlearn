@@ -17,8 +17,7 @@ export default function MarketingPage() {
       </h1>
 
       <p className="max-w-xl text-text-secondary">
-        Biến bất kỳ file Excel hai cột nào thành bộ flashcard và bài kiểm tra thông minh. Học ngoại
-        ngữ, lập trình, công thức, luật, y khoa và nhiều nội dung khác.
+        tạo bộ flashcard từ tài liệu của riêng bạn. Vừa học vừa chơi cùng CapyStudy
       </p>
 
       <div className="flex flex-col gap-3 sm:flex-row">

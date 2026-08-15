@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
+import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
 import { studyModeHrefFromSession } from "@/features/study/utils/study-mode-href";
 import type { StudyCard, StudyCollectionOption } from "@/features/study/types/study-types";
@@ -27,6 +29,7 @@ export function StudySession({
   truncated,
   seed,
   sessionHref,
+  mascotLevel,
 }: Readonly<{
   cards: StudyCard[];
   collections: StudyCollectionOption[];
@@ -34,12 +37,14 @@ export function StudySession({
   truncated: boolean;
   seed?: number;
   sessionHref: string;
+  mascotLevel: MascotLevel;
 }>) {
   const router = useRouter();
   const fallbackHref = studyModeHrefFromSession(sessionHref);
   const goBack = useBackWithFallback(fallbackHref);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   const gestureRef = useRef<{ startX: number; startY: number; active: boolean } | null>(null);
   const didMoveRef = useRef(false);
@@ -62,6 +67,7 @@ export function StudySession({
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      if (isCompleted) return;
       const target = event.target as HTMLElement | null;
       if (target && typeof target.closest === "function" && target.closest(INTERACTIVE_SELECTOR)) {
         return;
@@ -79,7 +85,7 @@ export function StudySession({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [currentIndex, total, goNext, goPrevious]);
+  }, [currentIndex, total, goNext, goPrevious, isCompleted]);
 
   function toggleShuffle(): void {
     const url = new URL(sessionHref, window.location.origin);
@@ -89,6 +95,12 @@ export function StudySession({
       url.searchParams.set("seed", String(Math.floor(Math.random() * 4294967296)));
     }
     router.replace(`${url.pathname}${url.search}`, { scroll: false });
+  }
+
+  function handleReplay(): void {
+    setIsCompleted(false);
+    setCurrentIndex(0);
+    setIsFlipped(false);
   }
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>): void {
@@ -147,6 +159,33 @@ export function StudySession({
   }
 
   const progress = ((currentIndex + 1) / total) * 100;
+
+  if (isCompleted) {
+    return (
+      <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
+        <div className="flex items-center gap-4">
+          <MascotImage
+            level={mascotLevel}
+            state="congrats"
+            size={80}
+            className="size-16 shrink-0 object-contain sm:size-20"
+          />
+          <div>
+            <h1 className="text-3xl font-bold">Hoàn thành!</h1>
+            <p className="mt-3 text-xl">Đã xem {total} thẻ</p>
+          </div>
+        </div>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Button type="button" onClick={handleReplay}>
+            Chơi lại
+          </Button>
+          <Button type="button" variant="outline" onClick={goBack}>
+            Quay lại
+          </Button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
@@ -256,7 +295,7 @@ export function StudySession({
           {isFlipped ? "Nhấn để xem mặt trước" : "Nhấn để lật"}
         </Button>
         {isLast ? (
-          <Button type="button" onClick={goBack}>
+          <Button type="button" onClick={() => setIsCompleted(true)}>
             Hoàn thành
           </Button>
         ) : null}

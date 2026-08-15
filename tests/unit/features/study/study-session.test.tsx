@@ -31,6 +31,7 @@ vi.mock("@/features/special-collections/server/actions", () => ({
 }));
 
 import { StudySession } from "@/features/study/components/study-session";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 
 const CARD_1 = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -55,14 +56,24 @@ function renderSession(
     truncated: boolean;
     seed: number;
     sessionHref: string;
+    mascotLevel: MascotLevel;
   }> = {},
 ) {
-  const props = {
+  const props: {
+    cards: (typeof CARD_1)[];
+    collections: typeof COLLECTIONS;
+    membershipsByCard: Record<string, string[]>;
+    truncated: boolean;
+    seed?: number;
+    sessionHref: string;
+    mascotLevel: MascotLevel;
+  } = {
     cards: [CARD_1, CARD_2],
     collections: COLLECTIONS,
     membershipsByCard: {},
     truncated: false,
     sessionHref: "/study/session?sets=22222222-2222-4222-8222-222222222222",
+    mascotLevel: 1,
     ...overrides,
   };
   return render(<StudySession {...props} />);
@@ -123,11 +134,52 @@ describe("StudySession", () => {
     );
   });
 
-  it("finishes the session on the last card", async () => {
+  it("shows the completion screen on the last card instead of leaving the page", async () => {
     const user = userEvent.setup();
     renderSession();
     await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
     await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
+    expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument();
+    expect(screen.getByText("Đã xem 2 thẻ")).toBeInTheDocument();
+    expect(document.querySelector("main img")).toHaveAttribute(
+      "src",
+      "/mascot/level-1/congrats.png",
+    );
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.back).not.toHaveBeenCalled();
+  });
+
+  it("replays the session from the first card after completing", async () => {
+    const user = userEvent.setup();
+    renderSession();
+    await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
+    await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
+    await user.click(screen.getByRole("button", { name: /Chơi lại/ }));
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+    expect(screen.getByText("Mặt trước 1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Hoàn thành/ })).not.toBeInTheDocument();
+  });
+
+  it("goes back to the previous path when history is available after completing", async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(window.history, "length", { configurable: true, value: 3 });
+    renderSession();
+    await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
+    await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
+    await user.click(screen.getByRole("button", { name: /Quay lại/ }));
+    expect(mocks.back).toHaveBeenCalledTimes(1);
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it("goes to the study mode selection when no history is available after completing", async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(window.history, "length", { configurable: true, value: 1 });
+    renderSession();
+    await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
+    await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
+    await user.click(screen.getByRole("button", { name: /Quay lại/ }));
+    expect(mocks.back).not.toHaveBeenCalled();
     expect(mocks.push).toHaveBeenCalledWith(
       "/study/mode?sets=22222222-2222-4222-8222-222222222222",
     );

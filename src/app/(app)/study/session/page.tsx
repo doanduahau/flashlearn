@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { StudySession } from "@/features/study/components/study-session";
 import { loadStudySession } from "@/features/study/server/load-study-session";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Phiên học" };
@@ -14,7 +15,10 @@ export default async function StudySessionPage({
 }>) {
   const raw = await searchParams;
   const supabase = await createClient();
-  const session = await loadStudySession(supabase, raw);
+  const [session, mascotLevel] = await Promise.all([
+    loadStudySession(supabase, raw),
+    loadMascotLevel(supabase),
+  ]);
   if (!session) redirect("/study");
 
   const orderKey = session.params.seed !== undefined ? `seed-${session.params.seed}` : "ordered";
@@ -28,6 +32,7 @@ export default async function StudySessionPage({
       truncated={session.truncated}
       seed={session.params.seed}
       sessionHref={session.sessionHref}
+      mascotLevel={mascotLevel}
     />
   );
 }

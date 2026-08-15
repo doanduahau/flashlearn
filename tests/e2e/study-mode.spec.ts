@@ -133,6 +133,18 @@ test.describe("Study mode", () => {
     await page.getByRole("button", { name: /Thẻ tiếp theo/ }).click();
     await expect(page.getByRole("button", { name: /Hoàn thành/ })).toBeVisible();
     await page.getByRole("button", { name: /Hoàn thành/ }).click();
+    await expect(page.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
+    await expect(page.getByText("Đã xem 2 thẻ")).toBeVisible();
+    await expect(page.locator('img[src*="congrats.png"]')).toBeVisible();
+
+    await page.getByRole("button", { name: /Chơi lại/ }).click();
+    await expect(page.getByText("1 / 2")).toBeVisible();
+
+    await page.getByRole("button", { name: /Thẻ tiếp theo/ }).click();
+    await expect(page.getByRole("button", { name: /Hoàn thành/ })).toBeVisible();
+    await page.getByRole("button", { name: /Hoàn thành/ }).click();
+    await expect(page.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
+    await page.getByRole("button", { name: /Quay lại/ }).click();
     await expect(page).toHaveURL(/\/study\/mode\?sets=/);
 
     await context.close();

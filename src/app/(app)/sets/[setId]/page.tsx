@@ -147,8 +147,8 @@ export default async function SetDetailPage({
             <MascotImage
               level={mascotLevel}
               state="thinking"
-              size={48}
-              className="mx-auto mb-2 size-12 object-contain"
+              size={64}
+              className="mx-auto mb-2 size-16 object-contain"
             />
             <p className="font-medium">Bộ này chưa có thẻ nào.</p>
             <p className="mt-1 text-sm text-text-secondary">Thêm thẻ đầu tiên ở phần trên.</p>

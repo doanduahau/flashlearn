@@ -554,8 +554,8 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
           <MascotImage
             level={mascotLevel}
             state="thinking"
-            size={32}
-            className="size-8 object-contain"
+            size={64}
+            className="size-16 object-contain"
           />
           <p>
             {mode === "picker_loading" ? "Đang kết nối Google Drive..." : "Đang đọc bảng tính..."}

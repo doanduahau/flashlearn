@@ -18,7 +18,7 @@ export function StreakMilestoneBanner({ streak }: Readonly<{ streak: number }>) 
         level={levelFromStreak(streak)}
         state="congrats"
         size={64}
-        className="size-12 shrink-0 object-contain sm:size-16"
+        className="size-16 shrink-0 object-contain"
       />
       <div>
         <h2 className="font-semibold">Chúc mừng! Bạn đã đạt chuỗi {streak} ngày</h2>

@@ -87,8 +87,8 @@ export function SetReorderList({
             <MascotImage
               level={mascotLevel}
               state="thinking"
-              size={48}
-              className="mb-2 size-12 object-contain"
+              size={64}
+              className="mb-2 size-16 object-contain"
             />
             Chưa có bộ flashcard để sắp xếp.
           </li>

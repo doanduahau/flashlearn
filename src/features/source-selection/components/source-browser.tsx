@@ -179,8 +179,8 @@ export function SourceBrowser({
           <MascotImage
             level={mascotLevel}
             state="thinking"
-            size={48}
-            className="mx-auto mb-2 size-12 object-contain"
+            size={64}
+            className="mx-auto mb-2 size-16 object-contain"
           />
           Không tìm thấy nguồn phù hợp.
         </p>

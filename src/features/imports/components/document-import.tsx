@@ -169,8 +169,8 @@ export function DocumentImport({
           <MascotImage
             level={mascotLevel}
             state="thinking"
-            size={32}
-            className="size-8 object-contain"
+            size={64}
+            className="size-16 object-contain"
           />
           <p>Đang đọc tài liệu...</p>
         </div>

@@ -20,8 +20,8 @@ export function SetsList({
         <MascotImage
           level={mascotLevel}
           state="thinking"
-          size={48}
-          className="size-12 object-contain"
+          size={64}
+          className="size-16 object-contain"
         />
         <p>{hasSearch ? "Không tìm thấy bộ phù hợp." : "Chưa có bộ flashcard nào."}</p>
       </div>

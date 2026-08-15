@@ -97,8 +97,8 @@ export default async function CollectionDetailPage({
             <MascotImage
               level={mascotLevel}
               state="thinking"
-              size={48}
-              className="mx-auto mb-2 size-12 object-contain"
+              size={64}
+              className="mx-auto mb-2 size-16 object-contain"
             />
             <p className="font-medium">Bộ đặc biệt này chưa có thẻ nào.</p>
             <p className="mt-1 text-sm text-text-secondary">

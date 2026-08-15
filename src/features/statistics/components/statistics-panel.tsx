@@ -63,7 +63,7 @@ export async function StatisticsPanel({
           level={mascotLevel}
           state="normal"
           size={64}
-          className="size-12 object-contain sm:size-16"
+          className="size-16 object-contain"
         />
         <h2 id="statistics-heading" className="text-2xl font-bold">
           Thống kê học tập
@@ -111,8 +111,8 @@ export async function StatisticsPanel({
             <MascotImage
               level={mascotLevel}
               state="thinking"
-              size={48}
-              className="size-12 object-contain"
+              size={64}
+              className="size-16 object-contain"
             />
             <p>Chưa có bài hoàn thành.</p>
           </div>
@@ -181,8 +181,8 @@ async function QuizHistory({
           <MascotImage
             level={mascotLevel}
             state="thinking"
-            size={48}
-            className="size-12 object-contain"
+            size={64}
+            className="size-16 object-contain"
           />
           <p>Bạn chưa hoàn thành bài kiểm tra nào.</p>
         </div>

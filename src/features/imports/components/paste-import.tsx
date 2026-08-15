@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -56,14 +56,18 @@ export function PasteImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel
         />
       </div>
 
-      <Button onClick={handleAnalyze} disabled={analyzing}>
+      <Button
+        onClick={handleAnalyze}
+        disabled={analyzing}
+        className={analyzing ? "h-auto py-2" : undefined}
+      >
         {analyzing ? (
           <>
             <MascotImage
               level={mascotLevel}
               state="thinking"
-              size={24}
-              className="size-6 object-contain"
+              size={64}
+              className="size-16 object-contain"
             />
             Đang phân tích...
           </>

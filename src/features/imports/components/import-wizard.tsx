@@ -96,8 +96,8 @@ export function ImportWizard({
           <MascotImage
             level={mascotLevel}
             state="thinking"
-            size={48}
-            className="mx-auto size-12 object-contain"
+            size={64}
+            className="mx-auto size-16 object-contain"
           />
           <Label htmlFor="import-file" className="block cursor-pointer text-lg font-semibold">
             Chọn hoặc kéo tệp CSV/XLSX vào đây
@@ -127,8 +127,8 @@ export function ImportWizard({
               <MascotImage
                 level={mascotLevel}
                 state="thinking"
-                size={32}
-                className="size-8 object-contain"
+                size={64}
+                className="size-16 object-contain"
               />
               <p>{"\u0110ang \u0111\u1ecdc t\u1ec7p..."}</p>
             </div>

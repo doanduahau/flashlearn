@@ -159,14 +159,18 @@ export function CreateSummary({
               disabled={importing}
             />
           </div>
-          <Button onClick={() => void handleCreate()} disabled={!canCreate}>
+          <Button
+            onClick={() => void handleCreate()}
+            disabled={!canCreate}
+            className={importing ? "h-auto py-2" : undefined}
+          >
             {importing ? (
               <>
                 <MascotImage
                   level={mascotLevel}
                   state="thinking"
-                  size={24}
-                  className="size-6 object-contain"
+                  size={64}
+                  className="size-16 object-contain"
                 />
                 Đang tạo...
               </>

@@ -162,8 +162,8 @@ export function StudySourceSelect({
           <MascotImage
             level={mascotLevel}
             state="thinking"
-            size={48}
-            className="mx-auto size-12 object-contain"
+            size={64}
+            className="mx-auto size-16 object-contain"
           />
           <p className="font-medium">Chưa có thẻ flashcard để học.</p>
           <Link className="mt-2 inline-block underline" href="/sets/create?source=file">

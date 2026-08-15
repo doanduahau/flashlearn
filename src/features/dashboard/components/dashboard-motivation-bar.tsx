@@ -20,7 +20,7 @@ export function DashboardMotivationBar({
           state={completedToday ? "happy" : "point-right"}
           size={64}
           loading="eager"
-          className="size-12 shrink-0 object-contain sm:size-16"
+          className="size-16 shrink-0 object-contain"
         />
         <h2 id="daily-motivation-heading" className="text-sm font-semibold sm:text-base">
           {completedToday ? "Đã nối chuỗi hôm nay! 🎉" : "Chưa làm bài hôm nay"}

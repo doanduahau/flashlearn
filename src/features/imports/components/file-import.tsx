@@ -38,8 +38,8 @@ export function FileImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel 
       <MascotImage
         level={mascotLevel}
         state="thinking"
-        size={48}
-        className="mx-auto size-12 object-contain"
+        size={64}
+        className="mx-auto size-16 object-contain"
       />
       <Label htmlFor="file-import-input" className="block cursor-pointer text-sm font-semibold">
         Chọn hoặc kéo tệp CSV/XLSX, Word (.docx) hoặc PDF vào đây

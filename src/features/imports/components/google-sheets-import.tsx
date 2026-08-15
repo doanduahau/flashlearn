@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 
 import {
@@ -26,6 +26,8 @@ import { IMPORT_PREVIEW_ROWS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const COLUMN_REANALYZE_DEBOUNCE_MS = 250;
 
 type SheetInfo = {
   spreadsheetTitle: string;
@@ -120,11 +122,20 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
   const tokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
   const gapiLoadedRef = useRef(false);
   const sheetTitleRef = useRef("");
+  const reanalyzeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const config = getGoogleConfig();
   const isConfigured = Boolean(config.clientId && config.apiKey && config.appId);
   const isPending =
     mode === "picker_loading" || mode === "opening" || mode === "analyzing" || mode === "importing";
+
+  useEffect(() => {
+    return () => {
+      if (reanalyzeTimerRef.current) {
+        clearTimeout(reanalyzeTimerRef.current);
+      }
+    };
+  }, []);
 
   const initGapi = useCallback(() => {
     if (typeof window === "undefined" || gapiLoadedRef.current) return;
@@ -442,8 +453,10 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
     else await changePrivateSheet(newIndex);
   }
 
-  async function analyzeWithMapping(): Promise<void> {
+  async function analyzeWithMapping(explicitFront?: number, explicitBack?: number): Promise<void> {
     if (!sheetInfo) return;
+    const front = explicitFront ?? frontColumn;
+    const back = explicitBack ?? backColumn;
     setMode("analyzing");
     setError("");
     const meta = {
@@ -453,8 +466,19 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
     await loadValues(
       meta,
       sheetTitleRef.current || sheetInfo.sheets[selectedSheetIndex]?.title || "",
-      [frontColumn, backColumn],
+      [front, back],
     );
+  }
+
+  function scheduleReanalysis(front: number, back: number): void {
+    if (front === back || isPending) return;
+    if (reanalyzeTimerRef.current) {
+      clearTimeout(reanalyzeTimerRef.current);
+    }
+    reanalyzeTimerRef.current = setTimeout(() => {
+      reanalyzeTimerRef.current = null;
+      void analyzeWithMapping(front, back);
+    }, COLUMN_REANALYZE_DEBOUNCE_MS);
   }
 
   async function handlePasteUrl(): Promise<void> {
@@ -599,7 +623,11 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
                   id="gs-front-col"
                   className="rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
                   value={frontColumn}
-                  onChange={(e) => setFrontColumn(Number(e.target.value))}
+                  onChange={(e) => {
+                    const next = Number(e.target.value);
+                    setFrontColumn(next);
+                    scheduleReanalysis(next, backColumn);
+                  }}
                   disabled={isPending}
                 >
                   {meaningfulColumns.map((col) => (
@@ -615,7 +643,11 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
                   id="gs-back-col"
                   className="rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
                   value={backColumn}
-                  onChange={(e) => setBackColumn(Number(e.target.value))}
+                  onChange={(e) => {
+                    const next = Number(e.target.value);
+                    setBackColumn(next);
+                    scheduleReanalysis(frontColumn, next);
+                  }}
                   disabled={isPending}
                 >
                   {meaningfulColumns.map((col) => (
@@ -628,7 +660,10 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
             </div>
           )}
 
-          <Button onClick={analyzeWithMapping} disabled={isPending || frontColumn === backColumn}>
+          <Button
+            onClick={() => void analyzeWithMapping()}
+            disabled={isPending || frontColumn === backColumn}
+          >
             {(() => {
               const m: string = mode;
               return m === "analyzing" ? "Đang phân tích..." : "Phân tích";

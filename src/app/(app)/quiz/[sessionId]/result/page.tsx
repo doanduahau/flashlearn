@@ -198,7 +198,7 @@ export default async function QuizResultPage({
           <Link href="/dashboard">Về màn hình chính</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/history">Xem lịch sử</Link>
+          <Link href="/profile?tab=statistics">Xem lịch sử</Link>
         </Button>
       </div>
     </main>

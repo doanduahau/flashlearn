@@ -38,8 +38,8 @@ test.describe("Primary application navigation", () => {
     await expect(page).toHaveURL(/\/sets\/library\?tab=special$/);
 
     await navigation.getByRole("link", { name: "Kiểm tra" }).click();
-    await page.getByRole("link", { name: "Lịch sử" }).click();
-    await expect(page).toHaveURL(/\/quiz\?tab=history$/);
+    await expect(page).toHaveURL(/\/quiz$/);
+    await expect(page.getByRole("button", { name: "Bắt đầu kiểm tra" })).toBeVisible();
 
     await navigation.getByRole("link", { name: "Cá nhân" }).click();
     await expect(page).toHaveURL(/\/profile$/);
@@ -55,7 +55,7 @@ test.describe("Primary application navigation", () => {
     await page.goto("/collections");
     await expect(page).toHaveURL(/\/sets\/library\?tab=special$/);
     await page.goto("/history");
-    await expect(page).toHaveURL(/\/quiz\?tab=history$/);
+    await expect(page).toHaveURL(/\/profile\?tab=statistics$/);
     await page.goto("/statistics");
     await expect(page).toHaveURL(/\/profile\?tab=statistics$/);
     await page.goto("/settings");

@@ -87,7 +87,6 @@ export function QuizModeSelect({
     if (source.setIds.length) q.set("sets", source.setIds.join(","));
     if (source.collectionIds.length) q.set("collections", source.collectionIds.join(","));
     q.set("count", String(count));
-    q.set("filter", "random");
     return q.toString();
   }
 

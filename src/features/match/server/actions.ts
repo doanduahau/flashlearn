@@ -8,8 +8,9 @@ import {
   buildMatchSession,
   createSeededMatchRandom,
   getMatchEligibility,
+  shuffle,
 } from "@/features/match/utils/match-session";
-import { applyLearningFilter } from "@/features/learning-modes/types";
+import { selectCardsByPriority } from "@/features/learning-modes/types";
 import {
   loadUncoveredIds,
   loadWrongAnswerCardIds,
@@ -43,32 +44,15 @@ export async function getMatchAvailability(input: unknown): Promise<MatchAvailab
 
   try {
     const cards = await loadCards(supabase, parsed.data);
-    const filtered = await filterCardsByMode(cards, parsed.data.filter);
-    const eligibility = getMatchEligibility(filtered);
+    const eligibility = getMatchEligibility(cards);
     return {
       ok: true,
-      eligibleCount: filtered.length,
+      eligibleCount: cards.length,
       eligibility: { availableCounts: eligibility.availableCounts, message: eligibility.message },
     };
   } catch {
     return { ok: false, error: "Không thể tải thẻ Match lúc này." };
   }
-}
-
-/**
- * Strict pool filtering: unseen/wrong never backfill with covered/never-wrong
- * cards. Random keeps the whole valid pool and is only coverage-aware during
- * selection.
- */
-async function filterCardsByMode(
-  cards: MatchCard[],
-  filter: "unseen" | "wrong" | "random",
-): Promise<MatchCard[]> {
-  const allIds = cards.map((card) => card.id);
-  const uncovered = new Set(await loadUncoveredIds("match", allIds));
-  const wrong = await loadWrongAnswerCardIds(allIds);
-  const eligibleIds = new Set(applyLearningFilter(filter, allIds, uncovered, wrong));
-  return cards.filter((card) => eligibleIds.has(card.id));
 }
 
 export async function startMatchCoverageSession(
@@ -84,8 +68,7 @@ export async function startMatchCoverageSession(
 
   try {
     const cards = await loadCards(supabase, parsed.data);
-    const filtered = await filterCardsByMode(cards, parsed.data.filter);
-    const eligibility = getMatchEligibility(filtered);
+    const eligibility = getMatchEligibility(cards);
     if (!eligibility.availableCounts.includes(parsed.data.questionCount)) {
       return {
         ok: false,
@@ -93,23 +76,25 @@ export async function startMatchCoverageSession(
       };
     }
 
-    // Random keeps the whole pool but stays coverage-aware; unseen/wrong are
-    // already strict so their selection needs no priority.
-    const priority =
-      parsed.data.filter === "random"
-        ? new Set(
-            await loadUncoveredIds(
-              "match",
-              filtered.map((card) => card.id),
-            ),
-          )
-        : undefined;
-    const batches = buildMatchSession(
-      filtered,
+    const random = createSeededMatchRandom(randomInt(0, 2 ** 32));
+    const shuffled = shuffle(cards, random);
+    const poolIds = shuffled.map((card) => card.id);
+    const [uncovered, wrong] = await Promise.all([
+      loadUncoveredIds("match", poolIds),
+      loadWrongAnswerCardIds(poolIds),
+    ]);
+    const selectedIds = selectCardsByPriority(
+      poolIds,
+      wrong,
+      new Set(uncovered),
       parsed.data.questionCount,
-      createSeededMatchRandom(randomInt(0, 2 ** 32)),
-      priority,
     );
+    const cardById = new Map(cards.map((card) => [card.id, card]));
+    const selectedCards = selectedIds.flatMap((id) => {
+      const card = cardById.get(id);
+      return card ? [card] : [];
+    });
+    const batches = buildMatchSession(selectedCards, parsed.data.questionCount, random);
     if (!batches) return { ok: false, error: "Không thể tạo phiên Match với phạm vi hiện tại." };
 
     const sessionCardIds = batches.flatMap((batch) => batch.fronts.map((card) => card.id));
@@ -118,7 +103,7 @@ export async function startMatchCoverageSession(
       p_user_id: userId,
       p_mode: "match",
       p_session_card_ids: sessionCardIds,
-      p_scope_card_ids: filtered.map((card) => card.id),
+      p_scope_card_ids: cards.map((card) => card.id),
     });
     if (error || !coverageSessionId) throw new Error("coverage session creation failed");
 
@@ -128,7 +113,7 @@ export async function startMatchCoverageSession(
         coverageSessionId,
         batches,
         selectedCount: sessionCardIds.length,
-        eligibleCount: filtered.length,
+        eligibleCount: cards.length,
       },
     };
   } catch {

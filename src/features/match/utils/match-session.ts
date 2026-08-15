@@ -20,7 +20,7 @@ type FlowEdge = {
 const FRONT_STREAM_SALT = 0x9e3779b9;
 const BACK_STREAM_SALT = 0x85ebca6b;
 
-function shuffle<T>(items: readonly T[], random: () => number): T[] {
+export function shuffle<T>(items: readonly T[], random: () => number): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));

@@ -53,7 +53,7 @@ export default async function QuizModePage({
 
   const [quizResult, matchResult] = await Promise.all([
     getQuizEligibility(source),
-    getMatchAvailability({ ...source, questionCount: 12, filter: "random" }),
+    getMatchAvailability({ ...source, questionCount: 12 }),
   ]);
 
   const quizTotal = quizResult.ok ? quizResult.total : 0;

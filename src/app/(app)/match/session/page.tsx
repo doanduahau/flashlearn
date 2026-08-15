@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 
 import { MatchSession } from "@/features/match/components/match-session";
 import { MATCH_QUESTION_COUNTS } from "@/features/match/types/match-types";
-import { learningFilters, type LearningFilter } from "@/features/learning-modes/types";
 import { studyModeHrefFromSession } from "@/features/study/utils/study-mode-href";
 
 export const metadata: Metadata = { title: "Phiên Match" };
@@ -12,12 +11,6 @@ function parseCount(value: string | string[] | undefined): 12 | 18 | 24 | null {
   if (typeof value !== "string") return null;
   const num = Number(value);
   return MATCH_QUESTION_COUNTS.includes(num as never) ? (num as 12 | 18 | 24) : null;
-}
-
-function parseFilter(value: string | string[] | undefined): LearningFilter {
-  return typeof value === "string" && (learningFilters as readonly string[]).includes(value)
-    ? (value as LearningFilter)
-    : "unseen";
 }
 
 export default async function MatchSessionPage({
@@ -33,11 +26,10 @@ export default async function MatchSessionPage({
   const setIds = typeof raw.sets === "string" ? raw.sets.split(",").filter(Boolean) : [];
   const collectionIds =
     typeof raw.collections === "string" ? raw.collections.split(",").filter(Boolean) : [];
-  const filter = parseFilter(raw.filter);
 
   if (!all && setIds.length === 0 && collectionIds.length === 0) redirect("/match");
 
-  const sessionHref = `/match/session${buildQuery({ all, setIds, collectionIds, count: questionCount, filter })}`;
+  const sessionHref = `/match/session${buildQuery({ all, setIds, collectionIds, count: questionCount })}`;
   const exitHref = studyModeHrefFromSession(sessionHref);
 
   return (
@@ -52,14 +44,12 @@ function buildQuery(params: {
   setIds: string[];
   collectionIds: string[];
   count: number;
-  filter: LearningFilter;
 }): string {
   const query = new URLSearchParams();
   if (params.all) query.set("all", "1");
   if (params.setIds.length) query.set("sets", params.setIds.join(","));
   if (params.collectionIds.length) query.set("collections", params.collectionIds.join(","));
   query.set("count", String(params.count));
-  query.set("filter", params.filter);
   const search = query.toString();
   return search ? `?${search}` : "";
 }

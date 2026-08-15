@@ -8,7 +8,6 @@ import {
   type CountOption,
 } from "@/features/learning-modes/components/question-count-selector";
 import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
-import { insufficientPoolMessage } from "@/features/learning-modes/types";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { getMatchAvailability } from "@/features/match/server/actions";
@@ -68,7 +67,6 @@ export function MatchSetup({
           setIds: currentSources.setIds,
           collectionIds: currentSources.collectionIds,
           questionCount: 12,
-          filter: "random",
         });
         if (cancelled) return;
         if (result.ok) {
@@ -136,7 +134,6 @@ export function MatchSetup({
         setIds: currentSources.setIds,
         collectionIds: currentSources.collectionIds,
         questionCount: effectiveCount,
-        filter: "random",
       });
       if (!result.ok) {
         setPending(false);
@@ -154,7 +151,6 @@ export function MatchSetup({
       if (currentSources.collectionIds.length)
         query.set("collections", currentSources.collectionIds.join(","));
       query.set("count", String(effectiveCount));
-      query.set("filter", "random");
       router.push(`/match/session?${query.toString()}`);
     })();
   }
@@ -163,7 +159,7 @@ export function MatchSetup({
 
   const poolMessage =
     countError === null && !counting && availableCounts.length === 0
-      ? (baseMessage ?? insufficientPoolMessage("random"))
+      ? (baseMessage ?? "Chưa đủ thẻ hợp lệ để bắt đầu Match.")
       : null;
 
   return (

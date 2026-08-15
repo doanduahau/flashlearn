@@ -84,16 +84,11 @@ async function ProfileDetails({ tab }: Readonly<{ tab: Exclude<ProfileTab, "stat
         />
         <section
           className="rounded-3xl border border-border-soft bg-surface p-5"
-          aria-labelledby="sign-out-heading"
+          aria-label="Đăng xuất"
         >
-          <h2 id="sign-out-heading" className="text-xl font-bold">
-            Đăng xuất
-          </h2>
-          <p className="mt-1 text-sm text-text-secondary">
-            Đăng xuất khỏi tài khoản trên thiết bị này.
-          </p>
-          <div className="mt-4">
+          <div className="flex items-center gap-3">
             <SignOutButton />
+            <span className="text-sm font-medium">Đăng xuất</span>
           </div>
         </section>
       </div>

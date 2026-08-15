@@ -21,6 +21,7 @@ import { columnIndexToLetters } from "@/features/imports/utils/sheets-a1";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { CreateSummary } from "@/features/imports/components/create-summary";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { IMPORT_PREVIEW_ROWS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,7 +102,7 @@ type RawSheetData = {
   rowCount: number;
 };
 
-export function GoogleSheetsImport() {
+export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel }>) {
   const [mode, setMode] = useState<Mode>("init");
   const [error, setError] = useState("");
   const [sheetInfo, setSheetInfo] = useState<SheetInfo | null>(null);
@@ -550,7 +551,12 @@ export function GoogleSheetsImport() {
 
       {(mode === "picker_loading" || mode === "opening") && (
         <div role="status" className="flex items-center gap-2 text-sm text-text-secondary">
-          <MascotImage level={1} state="thinking" size={32} className="size-8 object-contain" />
+          <MascotImage
+            level={mascotLevel}
+            state="thinking"
+            size={32}
+            className="size-8 object-contain"
+          />
           <p>
             {mode === "picker_loading" ? "Đang kết nối Google Drive..." : "Đang đọc bảng tính..."}
           </p>
@@ -644,6 +650,7 @@ export function GoogleSheetsImport() {
                     ]
                   : []),
               ]}
+              mascotLevel={mascotLevel}
             />
           ) : null}
         </>

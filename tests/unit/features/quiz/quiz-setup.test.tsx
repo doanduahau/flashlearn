@@ -38,7 +38,7 @@ describe("QuizSetup", () => {
 
   it("renders source selection and allows next step", async () => {
     const user = userEvent.setup();
-    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} />);
+    render(<QuizSetup sourcePage={SOURCE_PAGE} totalCards={25} mascotLevel={1} />);
 
     expect(screen.getByRole("heading", { name: "Chọn một hoặc nhiều nguồn" })).toBeInTheDocument();
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { BackButton } from "@/components/shared/back-button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { startQuiz } from "@/features/quiz/server/actions";
 import { QUIZ_MIN_QUESTIONS, QUIZ_MAX_QUESTIONS } from "@/features/quiz/schemas/quiz-schema";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ export type QuizModeSelectProps = {
   matchEligible: number;
   matchAvailableCounts: number[];
   backHref: string;
+  mascotLevel: MascotLevel;
 };
 
 const CARD_CLS =
@@ -44,6 +46,7 @@ export function QuizModeSelect({
   matchEligible,
   matchAvailableCounts,
   backHref,
+  mascotLevel,
 }: Readonly<QuizModeSelectProps>) {
   const router = useRouter();
   const [quizExpanded, setQuizExpanded] = useState(false);
@@ -108,7 +111,7 @@ export function QuizModeSelect({
         <article className={cn(CARD_CLS, !quizEnabled && "opacity-60")}>
           <div className="flex items-center gap-3">
             <MascotImage
-              level={1}
+              level={mascotLevel}
               state="normal"
               size={96}
               className="size-24 shrink-0 object-contain"
@@ -177,7 +180,7 @@ export function QuizModeSelect({
         <article className={cn(CARD_CLS, !matchEnabled && "opacity-60")}>
           <div className="flex items-center gap-3">
             <MascotImage
-              level={1}
+              level={mascotLevel}
               state="thinking"
               size={64}
               className="size-16 shrink-0 object-contain"

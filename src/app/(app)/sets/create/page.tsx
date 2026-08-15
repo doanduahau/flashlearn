@@ -9,7 +9,9 @@ import { ManualSetForm } from "@/features/flashcard-sets/components/manual-set-f
 import { FileImport } from "@/features/imports/components/file-import";
 import { GoogleSheetsImport } from "@/features/imports/components/google-sheets-import";
 import { PasteImport } from "@/features/imports/components/paste-import";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import type { RouteSearchParams } from "@/lib/pagination";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Tạo Flash card" };
 
@@ -26,6 +28,9 @@ export default async function CreateSetPage({
   const raw = await searchParams;
   const source = sourceOf(raw.source);
 
+  const supabase = await createClient();
+  const mascotLevel = await loadMascotLevel(supabase);
+
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
       <Link className="text-sm underline" href="/sets" scroll={false}>
@@ -36,9 +41,9 @@ export default async function CreateSetPage({
       <CreateSourceChips current={source} />
 
       <div className="mt-4">
-        {source === "paste" ? <PasteImport /> : null}
-        {source === "google_sheets" ? <GoogleSheetsImport /> : null}
-        {source === "file" ? <FileImport /> : null}
+        {source === "paste" ? <PasteImport mascotLevel={mascotLevel} /> : null}
+        {source === "google_sheets" ? <GoogleSheetsImport mascotLevel={mascotLevel} /> : null}
+        {source === "file" ? <FileImport mascotLevel={mascotLevel} /> : null}
         {source === "manual" ? <ManualSetForm /> : null}
       </div>
     </main>

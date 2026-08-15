@@ -13,6 +13,7 @@ import type {
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { CreateSummary } from "@/features/imports/components/create-summary";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { DOCUMENT_MAX_BYTES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 
@@ -52,7 +53,10 @@ function renderBlock(block: ExtractedDocumentBlock) {
   return <p className="text-sm whitespace-pre-wrap">{block.text}</p>;
 }
 
-export function DocumentImport({ initialFile }: Readonly<{ initialFile?: File }>) {
+export function DocumentImport({
+  initialFile,
+  mascotLevel,
+}: Readonly<{ initialFile?: File; mascotLevel: MascotLevel }>) {
   const [extraction, setExtraction] = useState<ExtractedDocument | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzedDocument | null>(null);
   const [generatedCards, setGeneratedCards] = useState<DraftFlashcard[] | null>(null);
@@ -162,7 +166,12 @@ export function DocumentImport({ initialFile }: Readonly<{ initialFile?: File }>
 
       {isPending ? (
         <div role="status" className="flex items-center gap-2 text-sm text-text-secondary">
-          <MascotImage level={1} state="thinking" size={32} className="size-8 object-contain" />
+          <MascotImage
+            level={mascotLevel}
+            state="thinking"
+            size={32}
+            className="size-8 object-contain"
+          />
           <p>Đang đọc tài liệu...</p>
         </div>
       ) : null}
@@ -243,6 +252,7 @@ export function DocumentImport({ initialFile }: Readonly<{ initialFile?: File }>
               ]}
               warnings={genWarnings}
               limitExceeded={genLimitExceeded}
+              mascotLevel={mascotLevel}
             >
               <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
                 Chọn tệp khác

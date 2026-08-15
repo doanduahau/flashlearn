@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { getQuizEligibility } from "@/features/quiz/server/actions";
@@ -24,9 +25,11 @@ function sameSources(a: SourceParams, b: SourceParams): boolean {
 export function QuizSetup({
   sourcePage,
   totalCards,
+  mascotLevel,
 }: Readonly<{
   sourcePage: SourcePage;
   totalCards: number;
+  mascotLevel: MascotLevel;
 }>) {
   const router = useRouter();
   const [all, setAll] = useState(true);
@@ -129,6 +132,7 @@ export function QuizSetup({
         allCount={totalCards}
         allSelected={all}
         onSelectAll={selectAll}
+        mascotLevel={mascotLevel}
       />
 
       {error ? (

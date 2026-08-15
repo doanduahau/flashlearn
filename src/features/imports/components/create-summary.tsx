@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { TrashIcon } from "lucide-react";
 
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { importFlashcards } from "@/features/imports/server/actions";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
@@ -23,6 +24,7 @@ type Props = {
   sourceMetadata?: CreateSummaryMetadata[];
   warnings?: string[];
   limitExceeded?: boolean;
+  mascotLevel: MascotLevel;
   children?: React.ReactNode;
 };
 
@@ -31,6 +33,7 @@ export function CreateSummary({
   sourceMetadata,
   warnings,
   limitExceeded,
+  mascotLevel,
   children,
 }: Props) {
   const router = useRouter();
@@ -160,7 +163,7 @@ export function CreateSummary({
             {importing ? (
               <>
                 <MascotImage
-                  level={1}
+                  level={mascotLevel}
                   state="thinking"
                   size={24}
                   className="size-6 object-contain"

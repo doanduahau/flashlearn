@@ -15,6 +15,7 @@ describe("SetLauncherCard", () => {
         mascotState="point-right"
         title="Tạo Flash card"
         description="Biến nội dung của bạn thành thẻ học"
+        mascotLevel={1}
       />,
     );
 
@@ -30,6 +31,7 @@ describe("SetLauncherCard", () => {
         mascotState="normal"
         title="Flash card của bạn"
         description="Bộ thường và bộ đặc biệt"
+        mascotLevel={1}
       />,
     );
 

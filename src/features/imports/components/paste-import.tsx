@@ -5,10 +5,11 @@ import { useState } from "react";
 import { analyzePasteContent } from "@/features/imports/server/analyze-paste";
 import { CreateSummary } from "@/features/imports/components/create-summary";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-export function PasteImport() {
+export function PasteImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel }>) {
   const [text, setText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [previewCards, setPreviewCards] = useState<Array<{
@@ -58,7 +59,12 @@ export function PasteImport() {
       <Button onClick={handleAnalyze} disabled={analyzing}>
         {analyzing ? (
           <>
-            <MascotImage level={1} state="thinking" size={24} className="size-6 object-contain" />
+            <MascotImage
+              level={mascotLevel}
+              state="thinking"
+              size={24}
+              className="size-6 object-contain"
+            />
             Đang phân tích...
           </>
         ) : (
@@ -71,6 +77,7 @@ export function PasteImport() {
           key={`paste-${previewCards.length}`}
           sourceCards={previewCards}
           sourceMetadata={[{ label: "Nguồn", value: "Dán nội dung" }]}
+          mascotLevel={mascotLevel}
         />
       )}
 

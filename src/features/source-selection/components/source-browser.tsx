@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import type {
   SourceOption,
   SourcePage,
@@ -27,6 +28,7 @@ export function SourceBrowser({
   allCount,
   allSelected,
   onSelectAll,
+  mascotLevel,
 }: Readonly<{
   path: string;
   sourcePage: SourcePage;
@@ -35,6 +37,7 @@ export function SourceBrowser({
   allCount: number;
   allSelected: boolean;
   onSelectAll: () => void;
+  mascotLevel: MascotLevel;
 }>) {
   const router = useRouter();
   const [query, setQuery] = useState(sourcePage.query);
@@ -174,7 +177,7 @@ export function SourceBrowser({
       {!isNavigating && sourcePage.sources.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-5 text-center text-text-secondary">
           <MascotImage
-            level={1}
+            level={mascotLevel}
             state="thinking"
             size={48}
             className="mx-auto mb-2 size-12 object-contain"

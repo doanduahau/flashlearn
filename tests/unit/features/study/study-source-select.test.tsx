@@ -38,7 +38,9 @@ describe("StudySourceSelect", () => {
   });
 
   it("defaults to all cards with the total count and an enabled start button", () => {
-    render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
     const allCard = screen.getByRole("radio", { name: "Tất cả 4 thẻ" });
     expect(allCard).toBeChecked();
     expect(screen.getByText("4 thẻ")).toBeInTheDocument();
@@ -47,13 +49,17 @@ describe("StudySourceSelect", () => {
 
   it("starts an all-cards session", async () => {
     const user = userEvent.setup();
-    render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
     await user.click(screen.getByRole("button", { name: /Bắt đầu học/ }));
     expect(mocks.push).toHaveBeenCalledWith("/study/mode?all=1");
   });
 
   it("prevents starting an all-cards session when there are no cards", () => {
-    render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={0} />);
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={0} mascotLevel={1} />,
+    );
     expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeDisabled();
   });
 
@@ -65,7 +71,9 @@ describe("StudySourceSelect", () => {
       }),
     );
     const user = userEvent.setup();
-    render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
     expect(screen.getByText("Đang tính thẻ…")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeDisabled();
@@ -75,7 +83,9 @@ describe("StudySourceSelect", () => {
 
   it("fetches a deduplicated count when a set is selected", async () => {
     const user = userEvent.setup();
-    render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
     await waitFor(() =>
       expect(mocks.getStudyCardCount).toHaveBeenCalledWith({
@@ -88,7 +98,9 @@ describe("StudySourceSelect", () => {
 
   it("combines sets and collections into a unique count", async () => {
     const user = userEvent.setup();
-    render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
     await user.click(screen.getByRole("checkbox", { name: /Khó nhớ/ }));
     await waitFor(() =>
@@ -105,7 +117,9 @@ describe("StudySourceSelect", () => {
         Promise.resolve({ ok: true, count: input.setIds.includes(SET_A_ID) ? 2 : 0 }),
     );
     const user = userEvent.setup();
-    render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
     await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
@@ -115,7 +129,9 @@ describe("StudySourceSelect", () => {
 
   it("starts a custom session and redirects with the chosen source ids", async () => {
     const user = userEvent.setup();
-    render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
     await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /Bắt đầu học/ }));
@@ -129,6 +145,7 @@ describe("StudySourceSelect", () => {
         collections={COLLECTIONS}
         totalCards={4}
         initialSource={{ all: false, setIds: [SET_A_ID], collectionIds: [] }}
+        mascotLevel={1}
       />,
     );
     expect(screen.getByRole("checkbox", { name: /Bộ A/ })).toBeChecked();
@@ -140,7 +157,9 @@ describe("StudySourceSelect", () => {
       .mockResolvedValueOnce({ ok: true, count: 2 })
       .mockResolvedValueOnce({ ok: true, count: 0 });
     const user = userEvent.setup();
-    render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
     await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /Bắt đầu học/ }));
@@ -156,7 +175,9 @@ describe("StudySourceSelect", () => {
       error: "Phiên đăng nhập đã hết hạn.",
     });
     const user = userEvent.setup();
-    render(<StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} />);
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("Phiên đăng nhập đã hết hạn."),
@@ -165,7 +186,7 @@ describe("StudySourceSelect", () => {
   });
 
   it("renders an empty state with an import link when there are no sources", () => {
-    render(<StudySourceSelect sets={[]} collections={[]} totalCards={0} />);
+    render(<StudySourceSelect sets={[]} collections={[]} totalCards={0} mascotLevel={1} />);
     expect(screen.getByText("Chưa có thẻ flashcard để học.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Nhập tệp đầu tiên/ })).toHaveAttribute(
       "href",

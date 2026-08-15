@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { QuizModeSelect } from "@/features/quiz/components/quiz-mode-select";
 import { getQuizEligibility } from "@/features/quiz/server/actions";
 import { getMatchAvailability } from "@/features/match/server/actions";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { createClient } from "@/lib/supabase/server";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -51,9 +52,10 @@ export default async function QuizModePage({
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims) redirect("/sign-in");
 
-  const [quizResult, matchResult] = await Promise.all([
+  const [quizResult, matchResult, mascotLevel] = await Promise.all([
     getQuizEligibility(source),
     getMatchAvailability({ ...source, questionCount: 12 }),
+    loadMascotLevel(supabase),
   ]);
 
   const quizTotal = quizResult.ok ? quizResult.total : 0;
@@ -68,6 +70,7 @@ export default async function QuizModePage({
         matchEligible={matchEligible}
         matchAvailableCounts={matchAvailableCounts}
         backHref={buildBackHref(source)}
+        mascotLevel={mascotLevel}
       />
     </main>
   );

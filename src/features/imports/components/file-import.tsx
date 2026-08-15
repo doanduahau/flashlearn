@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { DocumentImport } from "@/features/imports/components/document-import";
 import { ImportWizard } from "@/features/imports/components/import-wizard";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ function fileKind(fileName: string): "spreadsheet" | "document" {
   return extension === "xlsx" || extension === "csv" ? "spreadsheet" : "document";
 }
 
-export function FileImport() {
+export function FileImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel }>) {
   const [selection, setSelection] = useState<{ file: File; key: string } | null>(null);
   const [error, setError] = useState("");
 
@@ -26,16 +27,16 @@ export function FileImport() {
 
   if (selection) {
     return fileKind(selection.file.name) === "spreadsheet" ? (
-      <ImportWizard key={selection.key} initialFile={selection.file} />
+      <ImportWizard key={selection.key} initialFile={selection.file} mascotLevel={mascotLevel} />
     ) : (
-      <DocumentImport key={selection.key} initialFile={selection.file} />
+      <DocumentImport key={selection.key} initialFile={selection.file} mascotLevel={mascotLevel} />
     );
   }
 
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border-soft p-6">
       <MascotImage
-        level={1}
+        level={mascotLevel}
         state="thinking"
         size={48}
         className="mx-auto size-12 object-contain"

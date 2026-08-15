@@ -51,6 +51,7 @@ describe("SourceBrowser", () => {
         allCount={17}
         allSelected={true}
         onSelectAll={vi.fn()}
+        mascotLevel={1}
       />,
     );
 
@@ -95,6 +96,7 @@ function SelectionHarness({ sourcePage }: Readonly<{ sourcePage: SourcePage }>) 
       allCount={0}
       allSelected={false}
       onSelectAll={() => setSelected([])}
+      mascotLevel={1}
     />
   );
 }

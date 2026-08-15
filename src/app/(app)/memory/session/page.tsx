@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
 import { MemorySession } from "@/features/memory/components/memory-session";
 import { MEMORY_QUESTION_COUNTS } from "@/features/memory/types/memory-types";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { studyModeHrefFromSession } from "@/features/study/utils/study-mode-href";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Phiên Memory" };
 
@@ -30,13 +32,20 @@ export default async function MemorySessionPage({
 
   if (!all && setIds.length === 0 && collectionIds.length === 0) redirect("/memory");
 
+  const supabase = await createClient();
+  const mascotLevel = await loadMascotLevel(supabase);
   const sessionHref = `/memory/session${buildQuery({ all, setIds, collectionIds, count: questionCount })}`;
   const exitHref = studyModeHrefFromSession(sessionHref);
 
   return (
     <main className="mx-auto w-full max-w-3xl p-3 sm:p-8">
       <SessionExitButton fallbackHref={exitHref} className="mb-3" />
-      <MemorySession sessionHref={sessionHref} questionCount={questionCount} exitHref={exitHref} />
+      <MemorySession
+        sessionHref={sessionHref}
+        questionCount={questionCount}
+        exitHref={exitHref}
+        mascotLevel={mascotLevel}
+      />
     </main>
   );
 }

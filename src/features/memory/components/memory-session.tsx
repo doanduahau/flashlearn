@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { MemoryBoard } from "@/features/memory/components/memory-board";
 import { startMemoryCoverageSession } from "@/features/memory/server/actions";
 import type {
@@ -19,6 +20,7 @@ type MemorySessionProps = {
   sessionHref: string;
   questionCount: MemoryQuestionCount;
   exitHref: string;
+  mascotLevel: MascotLevel;
 };
 
 function sourceFromHref(sessionHref: string, questionCount: MemoryQuestionCount) {
@@ -38,7 +40,12 @@ function formatTime(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export function MemorySession({ sessionHref, questionCount, exitHref }: MemorySessionProps) {
+export function MemorySession({
+  sessionHref,
+  questionCount,
+  exitHref,
+  mascotLevel,
+}: MemorySessionProps) {
   const [session, setSession] = useState<StartedMemorySession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completionError, setCompletionError] = useState<string | null>(null);
@@ -117,7 +124,12 @@ export function MemorySession({ sessionHref, questionCount, exitHref }: MemorySe
   if (done) {
     return (
       <div className="space-y-4">
-        <MascotImage level={1} state="congrats" size={80} className="size-16 object-contain" />
+        <MascotImage
+          level={mascotLevel}
+          state="congrats"
+          size={80}
+          className="size-16 object-contain"
+        />
         <h2 className="text-xl font-bold sm:text-2xl">
           Hoàn thành {questionCount}/{questionCount}
         </h2>

@@ -8,6 +8,7 @@ import {
   type CountOption,
 } from "@/features/learning-modes/components/question-count-selector";
 import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { getMemoryAvailability } from "@/features/memory/server/actions";
@@ -28,7 +29,8 @@ function sameSources(a: SourceParams, b: SourceParams): boolean {
 export function MemorySetup({
   sourcePage,
   totalCards,
-}: Readonly<{ sourcePage: SourcePage; totalCards: number }>) {
+  mascotLevel,
+}: Readonly<{ sourcePage: SourcePage; totalCards: number; mascotLevel: MascotLevel }>) {
   const router = useRouter();
   const [all, setAll] = useState(true);
   const [selected, setSelected] = useState<Map<string, SourceOption>>(() => new Map());
@@ -190,6 +192,7 @@ export function MemorySetup({
         allCount={totalCards}
         allSelected={all}
         onSelectAll={selectAll}
+        mascotLevel={mascotLevel}
       />
 
       {error ? (

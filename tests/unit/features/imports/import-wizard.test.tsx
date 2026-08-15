@@ -49,7 +49,7 @@ describe("ImportWizard", () => {
   it.each(["cards.csv", "cards.xlsx"])(
     "selects a valid %s file and exposes mapping controls",
     async (name) => {
-      render(<ImportWizard />);
+      render(<ImportWizard mascotLevel={1} />);
       await upload(name);
       expect(await screen.findByLabelText(/^1\./)).toBeInTheDocument();
       expect(screen.getByLabelText(/^2\./)).toHaveValue("0");
@@ -69,7 +69,7 @@ describe("ImportWizard", () => {
       },
       { name: "Second", rows },
     ]);
-    render(<ImportWizard />);
+    render(<ImportWizard mascotLevel={1} />);
     const user = await upload("multi.xlsx");
     await user.selectOptions(screen.getByLabelText(/^1\./), "1");
     await user.selectOptions(screen.getByLabelText(/^2\./), "1");
@@ -82,14 +82,14 @@ describe("ImportWizard", () => {
   });
 
   it("announces same-column mapping", async () => {
-    render(<ImportWizard />);
+    render(<ImportWizard mascotLevel={1} />);
     const user = await upload("cards.csv");
     await user.selectOptions(screen.getByLabelText(/^3\./), "0");
     expect(screen.getByRole("alert")).toHaveTextContent(/hai cột khác nhau/i);
   });
 
   it("reset clears parsed state", async () => {
-    render(<ImportWizard />);
+    render(<ImportWizard mascotLevel={1} />);
     const user = await upload("cards.csv");
     // After upload, the wizard shows mapping controls + editor
     await screen.findByLabelText(/^1\./);
@@ -106,7 +106,7 @@ describe("ImportWizard", () => {
         resolveParse = resolve;
       }),
     );
-    render(<ImportWizard />);
+    render(<ImportWizard mascotLevel={1} />);
 
     const input = screen.getByLabelText(/CSV\/XLSX/i);
     fireEvent.change(input, { target: { files: [new File(["first"], "first.csv")] } });
@@ -128,7 +128,7 @@ describe("ImportWizard", () => {
 
   it("recovers the file control after a parsing failure", async () => {
     mocks.parseWorkbook.mockRejectedValueOnce(new Error("bad workbook"));
-    render(<ImportWizard />);
+    render(<ImportWizard mascotLevel={1} />);
 
     const input = screen.getByLabelText(/CSV\/XLSX/i);
     fireEvent.change(input, { target: { files: [new File(["broken"], "broken.csv")] } });

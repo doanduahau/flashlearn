@@ -12,6 +12,7 @@ import type { ActiveFlashcardMastery, MasteryStatus } from "@/features/mastery/t
 import { DeleteCollectionButton } from "@/features/special-collections/components/delete-collection-button";
 import { RemoveCollectionItemButton } from "@/features/special-collections/components/remove-collection-item-button";
 import { RenameCollectionForm } from "@/features/special-collections/components/rename-collection-form";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { PaginationControls } from "@/components/shared/pagination-controls";
 import { COLLECTION_CARDS_PAGE_SIZE } from "@/lib/constants";
@@ -32,6 +33,7 @@ export default async function CollectionDetailPage({
   const requestedPage = parsePage(raw.page);
 
   const supabase = await createClient();
+  const mascotLevel = await loadMascotLevel(supabase);
   const { data: collection } = await supabase
     .from("special_collections")
     .select("id, name")
@@ -95,7 +97,7 @@ export default async function CollectionDetailPage({
         {totalCount === 0 ? (
           <div className="mt-4 rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-8 text-center">
             <MascotImage
-              level={1}
+              level={mascotLevel}
               state="thinking"
               size={48}
               className="mx-auto mb-2 size-12 object-contain"

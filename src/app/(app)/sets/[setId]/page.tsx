@@ -18,6 +18,7 @@ import { EditCardForm } from "@/features/flashcard-sets/components/edit-card-for
 import { RenameSetForm } from "@/features/flashcard-sets/components/rename-set-form";
 import { sanitizeSearchQuery } from "@/features/flashcard-sets/utils/search";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { PaginationControls } from "@/components/shared/pagination-controls";
 import { SET_CARDS_PAGE_SIZE } from "@/lib/constants";
@@ -39,6 +40,7 @@ export default async function SetDetailPage({
   const requestedPage = parsePage(raw.page);
 
   const supabase = await createClient();
+  const mascotLevel = await loadMascotLevel(supabase);
   const { data: set } = await supabase
     .from("flashcard_sets")
     .select("id, name")
@@ -145,7 +147,7 @@ export default async function SetDetailPage({
         {total === 0 ? (
           <div className="mt-4 rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-8 text-center">
             <MascotImage
-              level={1}
+              level={mascotLevel}
               state="thinking"
               size={48}
               className="mx-auto mb-2 size-12 object-contain"

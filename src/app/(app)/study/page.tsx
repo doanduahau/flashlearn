@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { StudySourceSelect } from "@/features/study/components/study-source-select";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { parseStudySessionParams } from "@/features/study/schemas/study-schema";
 import { loadSourcePage, sourceType } from "@/features/source-selection/server/load-source-page";
 import { parsePage, type RouteSearchParams } from "@/lib/pagination";
@@ -15,13 +16,14 @@ export default async function StudyPage({
   const supabase = await createClient();
   const query = typeof raw.q === "string" ? raw.q : "";
   const initialSource = parseStudySessionParams(raw);
-  const [sourcePage, totalResult] = await Promise.all([
+  const [sourcePage, totalResult, mascotLevel] = await Promise.all([
     loadSourcePage(supabase, {
       page: parsePage(raw.page),
       query,
       type: sourceType(raw.sourceType),
     }),
     supabase.from("flashcards").select("id", { count: "exact", head: true }),
+    loadMascotLevel(supabase),
   ]);
 
   return (
@@ -31,6 +33,7 @@ export default async function StudyPage({
         sourcePage={sourcePage}
         totalCards={totalResult.count ?? 0}
         initialSource={initialSource ?? undefined}
+        mascotLevel={mascotLevel}
       />
     </main>
   );

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
 import { getStudyCardCount } from "@/features/study/server/actions";
@@ -34,12 +35,14 @@ export function StudySourceSelect({
   collections,
   totalCards,
   initialSource,
+  mascotLevel,
 }: Readonly<{
   sourcePage?: SourcePage;
   sets?: { id: string; name: string; cardCount: number }[];
   collections?: { id: string; name: string; cardCount: number }[];
   totalCards: number;
   initialSource?: InitialSource;
+  mascotLevel: MascotLevel;
 }>) {
   const router = useRouter();
   const [all, setAll] = useState(initialSource?.all ?? true);
@@ -157,7 +160,7 @@ export function StudySourceSelect({
       {!totalCards ? (
         <div className="rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-5 text-center">
           <MascotImage
-            level={1}
+            level={mascotLevel}
             state="thinking"
             size={48}
             className="mx-auto size-12 object-contain"
@@ -176,6 +179,7 @@ export function StudySourceSelect({
         allCount={totalCards}
         allSelected={all}
         onSelectAll={selectAll}
+        mascotLevel={mascotLevel}
       />
       {actionError ? (
         <p role="alert" className="text-danger">

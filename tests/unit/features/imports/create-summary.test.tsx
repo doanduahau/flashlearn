@@ -31,6 +31,7 @@ describe("CreateSummary", () => {
           { front: "C", back: "" },
           { front: "A", back: "1" },
         ]}
+        mascotLevel={1}
       />,
     );
 
@@ -42,7 +43,7 @@ describe("CreateSummary", () => {
 
   it("requires a set name before creating", async () => {
     const user = userEvent.setup();
-    render(<CreateSummary sourceCards={[{ front: "A", back: "1" }]} />);
+    render(<CreateSummary sourceCards={[{ front: "A", back: "1" }]} mascotLevel={1} />);
 
     const createButton = screen.getByRole("button", { name: /Tạo bộ flashcard/i });
     expect(createButton).toBeDisabled();
@@ -60,6 +61,7 @@ describe("CreateSummary", () => {
           { front: "A", back: "1" },
           { front: "B", back: "" },
         ]}
+        mascotLevel={1}
       />,
     );
 
@@ -76,14 +78,16 @@ describe("CreateSummary", () => {
   });
 
   it("shows a clear error when no valid cards remain and disables creation", () => {
-    render(<CreateSummary sourceCards={[{ front: "", back: "1" }]} />);
+    render(<CreateSummary sourceCards={[{ front: "", back: "1" }]} mascotLevel={1} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("Không có thẻ hợp lệ");
     expect(screen.queryByRole("button", { name: /Tạo bộ flashcard/i })).not.toBeInTheDocument();
   });
 
   it("blocks creation when the limit is exceeded", () => {
-    render(<CreateSummary sourceCards={[{ front: "A", back: "1" }]} limitExceeded />);
+    render(
+      <CreateSummary sourceCards={[{ front: "A", back: "1" }]} limitExceeded mascotLevel={1} />,
+    );
 
     expect(screen.getByText(/tối đa/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Tạo bộ flashcard/i })).not.toBeInTheDocument();
@@ -94,6 +98,7 @@ describe("CreateSummary", () => {
       <CreateSummary
         sourceCards={[{ front: "A", back: "1" }]}
         warnings={["Một số nội dung chưa được phân tích."]}
+        mascotLevel={1}
       />,
     );
 
@@ -103,7 +108,7 @@ describe("CreateSummary", () => {
   it("shows a server error when the import action fails", async () => {
     mocks.importFlashcards.mockResolvedValueOnce({ error: "Tên bộ đã tồn tại." });
     const user = userEvent.setup();
-    render(<CreateSummary sourceCards={[{ front: "A", back: "1" }]} />);
+    render(<CreateSummary sourceCards={[{ front: "A", back: "1" }]} mascotLevel={1} />);
 
     await user.type(screen.getByLabelText("Tên bộ"), "Trùng");
     await user.click(screen.getByRole("button", { name: /Tạo bộ flashcard/i }));
@@ -113,7 +118,7 @@ describe("CreateSummary", () => {
   });
 
   it("displays preview cards in editable inputs", () => {
-    render(<CreateSummary sourceCards={[{ front: "FrontA", back: "Back1" }]} />);
+    render(<CreateSummary sourceCards={[{ front: "FrontA", back: "Back1" }]} mascotLevel={1} />);
     expect(screen.getByDisplayValue("FrontA")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Back1")).toBeInTheDocument();
   });
@@ -126,6 +131,7 @@ describe("CreateSummary", () => {
           { front: "FrontA", back: "Back1" },
           { front: "FrontB", back: "Back2" },
         ]}
+        mascotLevel={1}
       />,
     );
 
@@ -145,6 +151,7 @@ describe("CreateSummary", () => {
           { front: "FrontA", back: "Back1" },
           { front: "FrontB", back: "Back2" },
         ]}
+        mascotLevel={1}
       />,
     );
 
@@ -158,7 +165,7 @@ describe("CreateSummary", () => {
 
   it("shows a notice when there are more than 100 cards", () => {
     const manyCards = Array.from({ length: 105 }, (_, i) => ({ front: `F${i}`, back: `B${i}` }));
-    render(<CreateSummary sourceCards={manyCards} />);
+    render(<CreateSummary sourceCards={manyCards} mascotLevel={1} />);
 
     expect(screen.getByText(/105 thẻ hợp lệ/)).toBeInTheDocument();
     expect(screen.getByText(/\.\.\. và 5 thẻ khác/)).toBeInTheDocument();

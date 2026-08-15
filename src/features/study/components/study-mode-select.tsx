@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { BackButton } from "@/components/shared/back-button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { getMemoryAvailability } from "@/features/memory/server/actions";
 import { startRunnerSession, getRunnerAvailability } from "@/features/runner/server/actions";
 import { DifficultySelector } from "@/features/runner/components/difficulty-selector";
@@ -48,7 +49,8 @@ function requirement(minimum: number, count: number): string {
 export function StudyModeSelect({
   source,
   totalCards,
-}: Readonly<{ source: StudyModeSource; totalCards: number }>) {
+  mascotLevel,
+}: Readonly<{ source: StudyModeSource; totalCards: number; mascotLevel: MascotLevel }>) {
   const router = useRouter();
   const [memory, setMemory] = useState<Availability | null>(null);
   const [runner, setRunner] = useState<Availability | null>(null);
@@ -122,7 +124,7 @@ export function StudyModeSelect({
       <article className="flex flex-1 flex-col rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">
         <div className="flex items-center gap-3">
           <MascotImage
-            level={1}
+            level={mascotLevel}
             state="normal"
             size={96}
             className="size-24 shrink-0 object-contain"
@@ -154,7 +156,7 @@ export function StudyModeSelect({
       <article className="flex flex-1 flex-col rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">
         <div className="flex items-center gap-3">
           <MascotImage
-            level={1}
+            level={mascotLevel}
             state="thinking"
             size={96}
             className="size-24 shrink-0 object-contain"
@@ -219,7 +221,7 @@ export function StudyModeSelect({
       >
         <div className="flex items-center gap-3">
           <MascotImage
-            level={1}
+            level={mascotLevel}
             state="run"
             size={96}
             className="size-24 shrink-0 object-contain"

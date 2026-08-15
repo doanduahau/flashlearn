@@ -48,6 +48,7 @@ describe("MemorySession visibility pause", () => {
         sessionHref="/memory/session?all=1&count=12"
         questionCount={12}
         exitHref="/study/mode?all=1"
+        mascotLevel={1}
       />,
     );
 

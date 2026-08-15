@@ -7,12 +7,16 @@ import { parseWorkbook, validateImportFile } from "@/features/imports/utils/pars
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
 import { CreateSummary } from "@/features/imports/components/create-summary";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ParsedSheet } from "@/features/imports/types/import-types";
 
-export function ImportWizard({ initialFile }: Readonly<{ initialFile?: File }>) {
+export function ImportWizard({
+  initialFile,
+  mascotLevel,
+}: Readonly<{ initialFile?: File; mascotLevel: MascotLevel }>) {
   const inputRef = useRef<HTMLInputElement>(null);
   const parsingRef = useRef(false);
   const initialFileRef = useRef(initialFile);
@@ -90,7 +94,7 @@ export function ImportWizard({ initialFile }: Readonly<{ initialFile?: File }>) 
       {!sheet ? (
         <section className="rounded-3xl border border-dashed border-border-soft bg-surface-subtle p-6 text-center">
           <MascotImage
-            level={1}
+            level={mascotLevel}
             state="thinking"
             size={48}
             className="mx-auto size-12 object-contain"
@@ -120,7 +124,12 @@ export function ImportWizard({ initialFile }: Readonly<{ initialFile?: File }>) 
               role="status"
               className="mt-3 flex items-center justify-center gap-2 text-sm text-text-secondary"
             >
-              <MascotImage level={1} state="thinking" size={32} className="size-8 object-contain" />
+              <MascotImage
+                level={mascotLevel}
+                state="thinking"
+                size={32}
+                className="size-8 object-contain"
+              />
               <p>{"\u0110ang \u0111\u1ecdc t\u1ec7p..."}</p>
             </div>
           ) : null}
@@ -185,6 +194,7 @@ export function ImportWizard({ initialFile }: Readonly<{ initialFile?: File }>) 
               key={`excel-${sheetIndex}-${frontColumn}-${backColumn}`}
               sourceCards={summary.rows}
               sourceMetadata={[{ label: "Nguồn", value: "Excel" }]}
+              mascotLevel={mascotLevel}
             >
               <Button type="button" variant="outline" onClick={reset}>
                 Thay tệp

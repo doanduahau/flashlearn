@@ -46,7 +46,7 @@ describe("StudyModeSelect", () => {
 
   it("renders exactly the three requested modes and starts normal study directly", async () => {
     const user = userEvent.setup();
-    render(<StudyModeSelect source={source} totalCards={24} />);
+    render(<StudyModeSelect source={source} totalCards={24} mascotLevel={1} />);
     expect(screen.getByRole("heading", { name: "Lật thẻ" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Memory matching" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Capy runner" })).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe("StudyModeSelect", () => {
 
   it("reveals Memory counts and Runner count plus difficulty controls only after selecting a mode", async () => {
     const user = userEvent.setup();
-    render(<StudyModeSelect source={source} totalCards={24} />);
+    render(<StudyModeSelect source={source} totalCards={24} mascotLevel={1} />);
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Bắt đầu Memory" })).toBeVisible(),
     );
@@ -80,7 +80,7 @@ describe("StudyModeSelect", () => {
       eligibleCount: 7,
       eligibility: { availableCounts: [], message: "not enough", hiddenByEligibility: false },
     });
-    render(<StudyModeSelect source={source} totalCards={0} />);
+    render(<StudyModeSelect source={source} totalCards={0} mascotLevel={1} />);
     expect(screen.getByRole("button", { name: "Bắt đầu lật thẻ" })).toBeDisabled();
     expect(screen.getByText("Cần tối thiểu 1 thẻ — phạm vi hiện có 0 thẻ")).toBeVisible();
     await waitFor(() =>

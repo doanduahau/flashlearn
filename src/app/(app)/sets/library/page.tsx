@@ -10,6 +10,7 @@ import { LibrarySearchForm } from "@/features/flashcard-sets/components/library-
 import { SetReorderList } from "@/features/flashcard-sets/components/set-reorder-list";
 import { SetsList, type SetSummary } from "@/features/flashcard-sets/components/sets-list";
 import { sanitizeSearchQuery } from "@/features/flashcard-sets/utils/search";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import {
   CollectionsList,
   type CollectionSummary,
@@ -83,6 +84,7 @@ async function LibraryTabContent({
   const requestedPage = parsePage(searchParams.page);
   const isReordering = searchParams.reorder === "1";
   const supabase = await createClient();
+  const mascotLevel = await loadMascotLevel(supabase);
   const searchLabel = tab === "regular" ? "Tìm bộ thường" : "Tìm bộ đặc biệt";
   const placeholder = tab === "regular" ? "Tên bộ flashcard" : "Tên bộ đặc biệt";
 
@@ -108,6 +110,7 @@ async function LibraryTabContent({
             cardCount: set.flashcards[0]?.count ?? 0,
           }))}
           doneHref={doneHref}
+          mascotLevel={mascotLevel}
         />
       );
     }
@@ -148,7 +151,7 @@ async function LibraryTabContent({
           </Button>
         </div>
         <LibrarySearchForm defaultValue={query} label={searchLabel} placeholder={placeholder} />
-        <SetsList sets={sets} hasSearch={Boolean(query)} />
+        <SetsList sets={sets} hasSearch={Boolean(query)} mascotLevel={mascotLevel} />
         {totalPages > 1 ? (
           <PaginationControls
             page={page}
@@ -190,7 +193,11 @@ async function LibraryTabContent({
         <CreateCollectionToggle />
       </div>
       <LibrarySearchForm defaultValue={query} label={searchLabel} placeholder={placeholder} />
-      <CollectionsList collections={collections} hasSearch={Boolean(query)} />
+      <CollectionsList
+        collections={collections}
+        hasSearch={Boolean(query)}
+        mascotLevel={mascotLevel}
+      />
       {totalPages > 1 ? (
         <PaginationControls
           page={page}

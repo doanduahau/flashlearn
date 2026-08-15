@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { SetLauncherCard } from "@/features/flashcard-sets/components/set-launcher-card";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import type { RouteSearchParams } from "@/lib/pagination";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Bộ flashcard" };
 
@@ -46,6 +48,9 @@ export default async function SetsPage({
   const raw = await searchParams;
   redirectForLegacyParams(raw);
 
+  const supabase = await createClient();
+  const mascotLevel = await loadMascotLevel(supabase);
+
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
       <h1 className="text-2xl font-bold sm:text-3xl">Bộ flashcard</h1>
@@ -55,12 +60,14 @@ export default async function SetsPage({
           mascotState="point-right"
           title="Tạo Flash card"
           description="Biến nội dung của bạn thành thẻ học"
+          mascotLevel={mascotLevel}
         />
         <SetLauncherCard
           href="/sets/library"
           mascotState="normal"
           title="Flash card của bạn"
           description="Bộ thường và bộ đặc biệt"
+          mascotLevel={mascotLevel}
         />
       </div>
     </main>

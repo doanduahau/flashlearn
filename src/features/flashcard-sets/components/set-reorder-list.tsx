@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { moveSet } from "@/features/flashcard-sets/server/actions";
 
 export type ReorderableSet = {
@@ -17,9 +18,11 @@ export type ReorderableSet = {
 export function SetReorderList({
   initialSets,
   doneHref,
+  mascotLevel,
 }: Readonly<{
   initialSets: ReorderableSet[];
   doneHref: string;
+  mascotLevel: MascotLevel;
 }>) {
   const [sets, setSets] = useState(initialSets);
   const [error, setError] = useState("");
@@ -82,7 +85,7 @@ export function SetReorderList({
         {sets.length === 0 ? (
           <li className="rounded-2xl border border-dashed border-border-soft bg-surface p-4 text-text-secondary">
             <MascotImage
-              level={1}
+              level={mascotLevel}
               state="thinking"
               size={48}
               className="mb-2 size-12 object-contain"

@@ -17,7 +17,7 @@ import { FileImport } from "@/features/imports/components/file-import";
 
 describe("FileImport", () => {
   it("renders a single file input accepting spreadsheet and document types", () => {
-    render(<FileImport />);
+    render(<FileImport mascotLevel={1} />);
 
     const input = screen.getByLabelText(/CSV\/XLSX/i) as HTMLInputElement;
     expect(input.type).toBe("file");
@@ -29,7 +29,7 @@ describe("FileImport", () => {
 
   it("delegates spreadsheet files to the excel wizard", async () => {
     const user = userEvent.setup();
-    render(<FileImport />);
+    render(<FileImport mascotLevel={1} />);
 
     await user.upload(screen.getByLabelText(/CSV\/XLSX/i), new File(["data"], "cards.csv"));
     expect(screen.getByTestId("import-wizard")).toHaveTextContent("cards.csv");
@@ -37,7 +37,7 @@ describe("FileImport", () => {
 
   it("delegates document files to the document extractor", async () => {
     const user = userEvent.setup();
-    render(<FileImport />);
+    render(<FileImport mascotLevel={1} />);
 
     await user.upload(screen.getByLabelText(/CSV\/XLSX/i), new File(["data"], "notes.pdf"));
     expect(screen.getByTestId("document-import")).toHaveTextContent("notes.pdf");

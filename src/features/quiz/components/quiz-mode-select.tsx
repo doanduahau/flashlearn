@@ -24,22 +24,10 @@ export type QuizModeSelectSource = {
 export type QuizModeSelectProps = {
   source: QuizModeSelectSource;
   quizTotal: number;
-  quizWrong: number;
-  quizUncovered: number;
   matchEligible: number;
   matchAvailableCounts: number[];
   backHref: string;
 };
-
-function autoQuizMode(
-  wrong: number,
-  uncovered: number,
-  count: number,
-): "wrong_answers" | "never_tested" | "balanced" {
-  if (wrong >= count) return "wrong_answers";
-  if (uncovered >= count) return "never_tested";
-  return "balanced";
-}
 
 const CARD_CLS =
   "flex flex-col rounded-2xl border border-border-soft bg-surface p-4 shadow-soft sm:p-5";
@@ -53,8 +41,6 @@ function requirementMsg(min: number, count: number): string {
 export function QuizModeSelect({
   source,
   quizTotal,
-  quizWrong,
-  quizUncovered,
   matchEligible,
   matchAvailableCounts,
   backHref,
@@ -101,7 +87,6 @@ export function QuizModeSelect({
         all: source.all,
         setIds: source.setIds,
         collectionIds: source.collectionIds,
-        mode: autoQuizMode(quizWrong, quizUncovered, effectiveQuizCount),
         questionCount: effectiveQuizCount,
       });
       if (!result.ok || !result.sessionId) {

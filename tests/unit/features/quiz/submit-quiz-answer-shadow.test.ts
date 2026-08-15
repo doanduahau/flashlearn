@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
+  createAdminClient: vi.fn(),
   reconcileCardSchedule: vi.fn(),
   completeLearningCoverageSession: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("@/features/spaced-repetition/server/reconcile-card-schedule", () => ({
   reconcileCardSchedule: mocks.reconcileCardSchedule,
 }));

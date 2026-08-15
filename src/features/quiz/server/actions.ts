@@ -1,5 +1,7 @@
 "use server";
 
+import { randomInt } from "node:crypto";
+
 import {
   answerSchema,
   quizEligibilitySchema,
@@ -10,8 +12,11 @@ import {
   loadUncoveredIds,
   loadWrongAnswerCardIds,
 } from "@/features/practice-coverage/server/actions";
+import { selectCardsByPriority } from "@/features/learning-modes/types";
 import { collectStudyCardIds } from "@/features/study/server/load-study-cards";
+import { seededShuffle } from "@/features/study/utils/shuffle";
 import { reconcileCardSchedule } from "@/features/spaced-repetition/server/reconcile-card-schedule";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type Result =
@@ -46,15 +51,45 @@ export async function startQuiz(input: unknown): Promise<Result> {
   const parsed = quizStartSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? generic };
   const supabase = await createClient();
-  if (!(await signedIn(supabase))) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
-  const { data, error } = await supabase.rpc("create_quiz_session", {
-    p_mode: parsed.data.mode,
-    p_set_ids: parsed.data.setIds,
-    p_collection_ids: parsed.data.collectionIds,
-    p_all: parsed.data.all,
-    p_question_count: parsed.data.questionCount,
-  });
-  return error || !data ? { ok: false, error: generic } : { ok: true, sessionId: data };
+  const userId = await authenticatedUserId(supabase);
+  if (!userId) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+
+  try {
+    const poolIds = await collectStudyCardIds(supabase, {
+      all: parsed.data.all,
+      setIds: parsed.data.setIds,
+      collectionIds: parsed.data.collectionIds,
+    });
+    if (poolIds.length < parsed.data.questionCount) {
+      return { ok: false, error: "Không đủ thẻ để tạo bài kiểm tra." };
+    }
+
+    // Wrong-first, then unseen, then seeded-random fallback — the same policy
+    // Study modes use. The shuffled pool makes the random remainder non-flat.
+    const shuffled = seededShuffle(poolIds, randomInt(0, 2 ** 32));
+    const [uncovered, wrong] = await Promise.all([
+      loadUncoveredIds("quiz", shuffled),
+      loadWrongAnswerCardIds(shuffled),
+    ]);
+    const selectedIds = selectCardsByPriority(
+      shuffled,
+      wrong,
+      new Set(uncovered),
+      parsed.data.questionCount,
+    );
+
+    const admin = createAdminClient();
+    const { data: sessionId, error } = await admin.rpc("create_quiz_session_prioritized", {
+      p_user_id: userId,
+      p_card_ids: selectedIds,
+      p_scope_card_ids: poolIds,
+      p_question_count: parsed.data.questionCount,
+    });
+    if (error || !sessionId) return { ok: false, error: generic };
+    return { ok: true, sessionId };
+  } catch {
+    return { ok: false, error: generic };
+  }
 }
 
 /**

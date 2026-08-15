@@ -32,7 +32,6 @@ describe("coverage source-selection boundary", () => {
         all: true,
         setIds: [REGULAR],
         collectionIds: [],
-        mode: "balanced",
         questionCount: 10,
       }).success,
     ).toBe(false);
@@ -41,7 +40,6 @@ describe("coverage source-selection boundary", () => {
         all: false,
         setIds: [REGULAR],
         collectionIds: [SPECIAL],
-        mode: "balanced",
         questionCount: 10,
       }).success,
     ).toBe(false);

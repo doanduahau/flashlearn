@@ -58,7 +58,6 @@ export const quizEligibilitySchema = z
 
 export const quizStartSchema = z
   .object({
-    mode: z.enum(quizModes),
     setIds: idList.default([]),
     collectionIds: idList.default([]),
     all: z.boolean(),

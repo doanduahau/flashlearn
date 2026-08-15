@@ -659,6 +659,15 @@ export type Database = {
         Args: { p_card_ids: string[] }
         Returns: string
       }
+      create_quiz_session_prioritized: {
+        Args: {
+          p_card_ids: string[]
+          p_question_count: number
+          p_scope_card_ids: string[]
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_runner_session: {
         Args: {
           p_difficulty: string

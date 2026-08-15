@@ -57,8 +57,6 @@ export default async function QuizModePage({
   ]);
 
   const quizTotal = quizResult.ok ? quizResult.total : 0;
-  const quizWrong = quizResult.ok ? quizResult.wrong : 0;
-  const quizUncovered = quizResult.ok ? quizResult.uncovered : 0;
   const matchEligible = matchResult.ok ? matchResult.eligibleCount : 0;
   const matchAvailableCounts = matchResult.ok ? matchResult.eligibility.availableCounts : [];
 
@@ -67,8 +65,6 @@ export default async function QuizModePage({
       <QuizModeSelect
         source={source}
         quizTotal={quizTotal}
-        quizWrong={quizWrong}
-        quizUncovered={quizUncovered}
         matchEligible={matchEligible}
         matchAvailableCounts={matchAvailableCounts}
         backHref={buildBackHref(source)}

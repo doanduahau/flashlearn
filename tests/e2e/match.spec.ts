@@ -101,11 +101,20 @@ test.describe("Match learning mode", () => {
     const wrongBack = backButtons.nth(wrongBackIndex);
     const wrongBackText = (await wrongBack.textContent()) ?? "";
 
+    // The 12 cells must keep a fixed size when the error notice appears.
+    const cellBoxBefore = await wrongFront.boundingBox();
+
     await wrongFront.click();
     await wrongBack.click();
     await expect(page.getByText("Chưa đúng, thử cặp khác.")).toBeVisible();
     await expect(wrongFront).toBeEnabled();
     await expect(page.getByRole("button", { name: wrongBackText, exact: true })).toBeEnabled();
+
+    const cellBoxAfter = await wrongFront.boundingBox();
+    expect(cellBoxBefore).not.toBeNull();
+    expect(cellBoxAfter).not.toBeNull();
+    expect(cellBoxAfter?.height).toBeCloseTo(cellBoxBefore?.height ?? 0, 1);
+    expect(cellBoxAfter?.width).toBeCloseTo(cellBoxBefore?.width ?? 0, 1);
 
     // Complete the first batch (6 pairs).
     await completeBatch(page, 6);

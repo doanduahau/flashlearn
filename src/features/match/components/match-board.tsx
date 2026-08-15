@@ -58,11 +58,13 @@ export function MatchBoard({ batches, questionCount, isPaused, onComplete }: Mat
           Đã nối {completed} / {questionCount}
         </p>
       </div>
-      {state.lastResult === "incorrect" ? (
-        <p role="alert" aria-live="polite" className="shrink-0 text-sm text-danger">
-          Chưa đúng, thử cặp khác.
-        </p>
-      ) : null}
+      <div aria-live="polite" className="flex h-8 shrink-0 items-center">
+        {state.lastResult === "incorrect" ? (
+          <p role="alert" className="text-sm text-danger">
+            Chưa đúng, thử cặp khác.
+          </p>
+        ) : null}
+      </div>
       <div className="grid min-h-0 min-w-0 flex-1 grid-cols-2 gap-2 sm:gap-3">
         <MatchColumn
           side="front"

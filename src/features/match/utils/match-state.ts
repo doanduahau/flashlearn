@@ -51,12 +51,12 @@ export function phaseOf(state: MatchState): MatchPhase {
 
 /**
  * Selects a Front or Back card. Returns a new state (immutable) reflecting the
- * selection and any match resolution that results.
+ * selection and any match resolution that results. A pair is resolved whenever
+ * exactly one Front and one Back are selected, regardless of click order.
  */
 export function selectCard(state: MatchState, side: MatchSide, cardId: string): MatchState {
   if (phaseOf(state) === "completed") return state;
 
-  const batch = currentBatch(state);
   const frontMatched = state.matchedFrontIds.has(cardId);
   const backMatched = state.matchedBackIds.has(cardId);
   if (side === "front" && frontMatched) return state;
@@ -70,8 +70,11 @@ export function selectCard(state: MatchState, side: MatchSide, cardId: string): 
   };
 
   if (side === "front") {
+    // A Back is already selected -> resolve this Front against it.
+    if (state.selectedBackId !== null) {
+      return resolvePair(copy, cardId, state.selectedBackId);
+    }
     copy.selectedFrontId = state.selectedFrontId === cardId ? null : cardId;
-    copy.selectedBackId = null;
     return copy;
   }
 
@@ -81,31 +84,36 @@ export function selectCard(state: MatchState, side: MatchSide, cardId: string): 
     return copy;
   }
 
-  const frontCard = batch.fronts.find((card) => card.id === state.selectedFrontId);
-  const backCard = batch.backs.find((card) => card.id === cardId);
+  return resolvePair(copy, state.selectedFrontId, cardId);
+}
+
+function resolvePair(state: MatchState, frontId: string, backId: string): MatchState {
+  const batch = currentBatch(state);
+  const frontCard = batch.fronts.find((card) => card.id === frontId);
+  const backCard = batch.backs.find((card) => card.id === backId);
   if (!frontCard || !backCard) {
-    copy.selectedFrontId = null;
-    copy.selectedBackId = null;
-    return copy;
+    state.selectedFrontId = null;
+    state.selectedBackId = null;
+    return state;
   }
 
   const isCorrect = frontCard.id === backCard.id;
-  copy.selectedFrontId = null;
-  copy.selectedBackId = null;
-  copy.lastResult = isCorrect ? "correct" : "incorrect";
+  state.selectedFrontId = null;
+  state.selectedBackId = null;
+  state.lastResult = isCorrect ? "correct" : "incorrect";
 
   if (isCorrect) {
-    copy.matchedFrontIds.add(frontCard.id);
-    copy.matchedBackIds.add(backCard.id);
-    copy.completedPairCount = state.completedPairCount + 1;
+    state.matchedFrontIds.add(frontCard.id);
+    state.matchedBackIds.add(backCard.id);
+    state.completedPairCount = state.completedPairCount + 1;
 
     // Automatically advance to the next batch once all six pairs are matched.
-    if (copy.matchedFrontIds.size === batch.fronts.length) {
-      return advanceBatch(copy);
+    if (state.matchedFrontIds.size === batch.fronts.length) {
+      return advanceBatch(state);
     }
   }
 
-  return copy;
+  return state;
 }
 
 /**

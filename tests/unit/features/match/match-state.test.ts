@@ -26,6 +26,79 @@ describe("match state machine", () => {
     expect(afterMatch.matchedBackIds.size).toBe(1);
   });
 
+  it("resolves a correct pair when the Back is selected before the Front", () => {
+    const batch = makeBatch(["a", "b", "c", "d", "e", "f"]);
+    const state = createMatchState([batch]);
+
+    const afterSelectBack = selectCard(state, "back", "a");
+    expect(afterSelectBack.selectedBackId).toBe("a");
+    expect(afterSelectBack.selectedFrontId).toBeNull();
+
+    const afterMatch = selectCard(afterSelectBack, "front", "a");
+    expect(afterMatch.matchedFrontIds.has("a")).toBe(true);
+    expect(afterMatch.matchedBackIds.has("a")).toBe(true);
+    expect(afterMatch.lastResult).toBe("correct");
+    expect(afterMatch.selectedFrontId).toBeNull();
+    expect(afterMatch.selectedBackId).toBeNull();
+  });
+
+  it("resolves a correct pair when the Front is selected before the Back", () => {
+    const batch = makeBatch(["a", "b", "c", "d", "e", "f"]);
+    const state = createMatchState([batch]);
+
+    const afterSelectFront = selectCard(state, "front", "a");
+    expect(afterSelectFront.selectedFrontId).toBe("a");
+
+    const afterMatch = selectCard(afterSelectFront, "back", "a");
+    expect(afterMatch.matchedFrontIds.has("a")).toBe(true);
+    expect(afterMatch.matchedBackIds.has("a")).toBe(true);
+    expect(afterMatch.lastResult).toBe("correct");
+  });
+
+  it("reports an incorrect pair regardless of click order", () => {
+    const batch = makeBatch(["a", "b", "c", "d", "e", "f"]);
+    const state = createMatchState([batch]);
+
+    const frontFirst = selectCard(selectCard(state, "front", "a"), "back", "b");
+    expect(frontFirst.lastResult).toBe("incorrect");
+    expect(frontFirst.matchedFrontIds.size).toBe(0);
+
+    const backFirst = selectCard(selectCard(state, "back", "b"), "front", "a");
+    expect(backFirst.lastResult).toBe("incorrect");
+    expect(backFirst.matchedFrontIds.size).toBe(0);
+    expect(backFirst.selectedFrontId).toBeNull();
+    expect(backFirst.selectedBackId).toBeNull();
+  });
+
+  it("toggles off when re-selecting a Front already selected with no Back pending", () => {
+    const batch = makeBatch(["a", "b", "c", "d", "e", "f"]);
+    const state = createMatchState([batch]);
+
+    const first = selectCard(state, "front", "a");
+    expect(first.selectedFrontId).toBe("a");
+    const second = selectCard(first, "front", "a");
+    expect(second.selectedFrontId).toBeNull();
+  });
+
+  it("toggles off when re-selecting a Back already selected with no Front pending", () => {
+    const batch = makeBatch(["a", "b", "c", "d", "e", "f"]);
+    const state = createMatchState([batch]);
+
+    const first = selectCard(state, "back", "b");
+    expect(first.selectedBackId).toBe("b");
+    const second = selectCard(first, "back", "b");
+    expect(second.selectedBackId).toBeNull();
+  });
+
+  it("ignores a matched Back tapped after a Back-first selection", () => {
+    const batch = makeBatch(["a", "b", "c", "d", "e", "f"]);
+    const state = createMatchState([batch]);
+    const matched = selectCard(selectCard(state, "back", "a"), "front", "a");
+    const again = selectCard(matched, "back", "a");
+    expect(again.selectedBackId).toBeNull();
+    expect(again.matchedBackIds.has("a")).toBe(true);
+  });
+
   it("does not mark either card matched on an incorrect selection", () => {
     const batch = makeBatch(["a", "b", "c", "d", "e", "f"]);
     const state = createMatchState([batch]);

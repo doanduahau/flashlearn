@@ -161,14 +161,14 @@ export default async function SetDetailPage({
               const status = masteryByCard.get(card.id) ?? "untested";
               return (
                 <li key={card.id} className={masteryCardClassName(status)}>
-                  <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <MasteryCardContent
                       status={status}
                       badge={`#${card.position + 1}`}
                       front={card.front}
                       back={card.back}
                     />
-                    <div className="flex shrink-0 items-center gap-1">
+                    <div className="flex shrink-0 items-center gap-1 self-start sm:self-auto">
                       <EditCardForm
                         setId={set.id}
                         cardId={card.id}

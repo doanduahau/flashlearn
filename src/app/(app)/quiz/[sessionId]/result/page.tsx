@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Flame } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
@@ -14,6 +12,7 @@ import { buildQuizResultCollectionTargets } from "@/features/quiz/utils/result-c
 import { quizSessionOrigin } from "@/features/quiz/utils/quiz-session-origin";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { levelFromStreak } from "@/features/mascot/utils/mascot-level";
+import { QuizResultActions } from "@/features/quiz/components/quiz-result-actions";
 import { createClient } from "@/lib/supabase/server";
 export default async function QuizResultPage({
   params,
@@ -123,6 +122,7 @@ export default async function QuizResultPage({
           </p>
         </div>
       </div>
+      <QuizResultActions />
       {streakSummary ? (
         <section
           aria-label="Chuỗi học tập"
@@ -188,19 +188,6 @@ export default async function QuizResultPage({
           );
         })}
       </section>
-      <div className="mt-8 flex flex-wrap gap-3">
-        {session.origin === "manual" ? (
-          <Button asChild>
-            <Link href="/quiz/mode">Thiết lập bài mới</Link>
-          </Button>
-        ) : null}
-        <Button asChild variant={session.origin === "manual" ? "outline" : "default"}>
-          <Link href="/dashboard">Về màn hình chính</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/profile?tab=statistics">Xem lịch sử</Link>
-        </Button>
-      </div>
     </main>
   );
 }

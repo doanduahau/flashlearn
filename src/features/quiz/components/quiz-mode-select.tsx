@@ -118,7 +118,7 @@ export function QuizModeSelect({
             />
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-bold">Trắc nghiệm</h2>
-              <p className="text-sm text-text-secondary">Chọn đáp án đúng trong 4 lựa chọn.</p>
+              <p className="text-sm text-text-secondary">Chọn đáp án đúng</p>
             </div>
             <p className="shrink-0 text-sm font-medium">{quizTotal} thẻ</p>
           </div>
@@ -187,7 +187,7 @@ export function QuizModeSelect({
             />
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-bold">Match</h2>
-              <p className="text-sm text-text-secondary">Lật ô và ghép đúng cặp thẻ.</p>
+              <p className="text-sm text-text-secondary">ghép 2 thẻ phù hợp</p>
             </div>
             <p className="shrink-0 text-sm font-medium">{matchEligible} thẻ</p>
           </div>

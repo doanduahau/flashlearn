@@ -116,7 +116,7 @@ test.describe("Match learning mode", () => {
     await completeBatch(page, 6);
     await expect(page.getByRole("heading", { name: "Hoàn thành 12/12" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Chơi lại" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Quay lại" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Thoát", exact: true })).toBeVisible();
 
     // Replay starts a fresh playable session.
     await page.getByRole("button", { name: "Chơi lại" }).click();

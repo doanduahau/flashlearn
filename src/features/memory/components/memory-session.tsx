@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
@@ -14,7 +15,6 @@ import type {
 import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
 import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
 import { useVisibilityPause } from "@/features/learning-modes/hooks/use-visibility-pause";
-import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
 
 type MemorySessionProps = {
   sessionHref: string;
@@ -52,7 +52,6 @@ export function MemorySession({
   const [done, setDone] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const { isPaused, resume } = useVisibilityPause();
-  const goBack = useBackWithFallback(exitHref);
 
   const loadSession = useCallback(async () => {
     setSession(null);
@@ -109,9 +108,7 @@ export function MemorySession({
         >
           {error}
         </p>
-        <Button type="button" variant="outline" onClick={goBack}>
-          Quay lại
-        </Button>
+        <BackButton fallbackHref={exitHref} />
       </div>
     );
   }
@@ -138,9 +135,7 @@ export function MemorySession({
           <Button type="button" onClick={replay}>
             Chơi lại
           </Button>
-          <Button type="button" variant="outline" onClick={goBack}>
-            Quay lại
-          </Button>
+          <BackButton fallbackHref={exitHref} />
         </div>
       </div>
     );
@@ -158,9 +153,7 @@ export function MemorySession({
           <Button type="button" onClick={() => session && void handleComplete(elapsedMs)}>
             Thử lại
           </Button>
-          <Button type="button" variant="outline" onClick={goBack}>
-            Quay lại
-          </Button>
+          <BackButton fallbackHref={exitHref} />
         </div>
       </div>
     );

@@ -1,4 +1,4 @@
-import { ChevronLeft, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 
 import { formatRunnerTime } from "../utils/format-runner-time";
 
@@ -25,10 +25,10 @@ export function RunnerHud({
             <button
               type="button"
               onClick={onBack}
-              aria-label="Quay lại"
-              className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border-soft bg-surface text-text-primary hover:bg-surface-subtle"
+              aria-label="Thoát phiên học"
+              className="flex min-h-11 items-center px-1 text-sm underline"
             >
-              <ChevronLeft className="size-6" aria-hidden="true" />
+              ← Thoát
             </button>
           ) : null}
           <div className="flex gap-1" role="img" aria-label={`${lives} mạng`}>

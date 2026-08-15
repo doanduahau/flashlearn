@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
+import { BackButton } from "@/components/shared/back-button";
 import {
   CreateSourceChips,
   type CreateSource,
@@ -33,9 +33,7 @@ export default async function CreateSetPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
-      <Link className="text-sm underline" href="/sets" scroll={false}>
-        ← Bộ flashcard
-      </Link>
+      <BackButton fallbackHref="/sets" />
       <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Tạo Flash card</h1>
 
       <CreateSourceChips current={source} />

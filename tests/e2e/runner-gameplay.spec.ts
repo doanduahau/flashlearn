@@ -76,13 +76,13 @@ test.describe("Capy Runner gameplay session", () => {
     await expect(page.getByText("Chạm để bắt đầu")).toHaveCount(0);
 
     // Hủy keeps the learner in the session.
-    await page.getByRole("button", { name: "Quay lại" }).click();
+    await page.getByRole("button", { name: "Thoát phiên học" }).click();
     await expect(page.getByRole("dialog", { name: "Thoát phiên?" })).toBeVisible();
     await page.getByRole("button", { name: "Hủy" }).click();
     await expect(page).toHaveURL(/\/runner\/session\?sessionId=/);
 
     // Confirmed exit returns to the previous page.
-    await page.getByRole("button", { name: "Quay lại" }).click();
+    await page.getByRole("button", { name: "Thoát phiên học" }).click();
     await page.getByRole("button", { name: "Thoát", exact: true }).click();
     await expect(page).toHaveURL(/\/runner$/);
   });

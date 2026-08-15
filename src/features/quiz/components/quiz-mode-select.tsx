@@ -103,7 +103,7 @@ export function QuizModeSelect({
   return (
     <section aria-label="Chọn chế độ kiểm tra" className="flex flex-1 flex-col gap-3">
       <div className="flex justify-start">
-        <BackButton fallbackHref={backHref} label="Quay lại chọn nguồn" />
+        <BackButton fallbackHref={backHref} />
       </div>
 
       <div className="flex flex-col gap-3">

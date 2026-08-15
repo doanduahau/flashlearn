@@ -1,30 +1,28 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
 import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
 import { cn } from "@/lib/utils";
 
 export function BackButton({
   fallbackHref,
   className,
-  label = "Quay lại trang trước",
+  label = "← Thoát",
+  ariaLabel = "Thoát",
 }: Readonly<{
   fallbackHref: string;
   className?: string;
   label?: string;
+  ariaLabel?: string;
 }>) {
   const goBack = useBackWithFallback(fallbackHref);
   return (
-    <Button
+    <button
       type="button"
-      variant="ghost"
-      className={cn("size-11 shrink-0 gap-1 p-0", className)}
-      aria-label={label}
       onClick={goBack}
+      aria-label={ariaLabel}
+      className={cn("min-h-11 px-1 text-sm underline", className)}
     >
-      <ChevronLeft className="size-6" aria-hidden="true" />
-    </Button>
+      {label}
+    </button>
   );
 }

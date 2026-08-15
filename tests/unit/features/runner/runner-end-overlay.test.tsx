@@ -1,6 +1,12 @@
 import type { ComponentProps } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const router = vi.hoisted(() => ({ push: vi.fn(), back: vi.fn(), refresh: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => router,
+}));
 
 import { RunnerEndOverlay } from "@/features/runner/components/runner-end-overlay";
 
@@ -16,7 +22,7 @@ function renderOverlay(overrides: Partial<ComponentProps<typeof RunnerEndOverlay
     best: { bestMs: 60_000, isNewBest: true },
     persistenceError: null,
     replayPending: false,
-    onBack: vi.fn(),
+    fallbackHref: "/study/mode",
     onReplay: vi.fn(),
     onRetry: null,
     ...overrides,
@@ -25,6 +31,12 @@ function renderOverlay(overrides: Partial<ComponentProps<typeof RunnerEndOverlay
 }
 
 describe("RunnerEndOverlay", () => {
+  beforeEach(() => {
+    router.push.mockReset();
+    router.back.mockReset();
+    router.refresh.mockReset();
+  });
+
   it("shows a completed new personal best and replay controls", () => {
     renderOverlay();
 
@@ -57,11 +69,21 @@ describe("RunnerEndOverlay", () => {
     expect(screen.queryByRole("button", { name: "Chơi lại" })).toBeNull();
   });
 
-  it("keeps the back action available", () => {
-    const onBack = vi.fn();
-    renderOverlay({ onBack, onReplay: null });
+  it("goes back to the previous path when history is available", () => {
+    Object.defineProperty(window.history, "length", { configurable: true, value: 3 });
+    renderOverlay({ onReplay: null });
 
-    fireEvent.click(screen.getByRole("button", { name: "Quay lại" }));
-    expect(onBack).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Thoát" }));
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the setup path when there is no history", () => {
+    Object.defineProperty(window.history, "length", { configurable: true, value: 1 });
+    renderOverlay({ onReplay: null });
+
+    fireEvent.click(screen.getByRole("button", { name: "Thoát" }));
+    expect(router.push).toHaveBeenCalledWith("/study/mode");
+    expect(router.back).not.toHaveBeenCalled();
   });
 });

@@ -118,7 +118,7 @@ export function StudyModeSelect({
   return (
     <section aria-label="Chọn chế độ học" className="flex flex-1 flex-col gap-3">
       <div className="flex justify-start">
-        <BackButton fallbackHref={`/study?${query}`} label="Quay lại chọn nguồn" />
+        <BackButton fallbackHref={`/study?${query}`} />
       </div>
 
       <article className="flex flex-1 flex-col rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">

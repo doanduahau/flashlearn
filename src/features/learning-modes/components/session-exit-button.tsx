@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
 import { cn } from "@/lib/utils";
 import { ExitConfirmDialog } from "./exit-confirm-dialog";
@@ -20,15 +18,14 @@ export function SessionExitButton({
 
   return (
     <>
-      <Button
+      <button
         type="button"
-        variant="ghost"
-        className={cn("size-11 shrink-0 p-0", className)}
-        aria-label="Thoát phiên học"
         onClick={() => setIsConfirming(true)}
+        aria-label="Thoát phiên học"
+        className={cn("min-h-11 px-1 text-sm underline", className)}
       >
-        <ChevronLeft className="size-6" aria-hidden="true" />
-      </Button>
+        ← Thoát
+      </button>
       {isConfirming ? (
         <ExitConfirmDialog onCancel={() => setIsConfirming(false)} onConfirm={goBack} />
       ) : null}

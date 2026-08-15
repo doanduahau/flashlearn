@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 
+import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
@@ -95,9 +95,7 @@ export function MatchSession({
         >
           {error}
         </p>
-        <Button asChild variant="outline">
-          <Link href="/study">Quay lại</Link>
-        </Button>
+        <BackButton fallbackHref="/quiz/mode" />
       </div>
     );
   }
@@ -123,9 +121,7 @@ export function MatchSession({
           <Button type="button" onClick={replay}>
             Chơi lại
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/study">Quay lại</Link>
-          </Button>
+          <BackButton fallbackHref="/quiz/mode" />
         </div>
       </div>
     );
@@ -143,9 +139,7 @@ export function MatchSession({
           <Button type="button" onClick={() => void handleComplete()}>
             Thử lại
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/study">Quay lại</Link>
-          </Button>
+          <BackButton fallbackHref="/quiz/mode" />
         </div>
       </div>
     );

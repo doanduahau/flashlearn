@@ -287,7 +287,7 @@ export function RunnerSession({
                   void (coverageCompletedRef.current ? saveBest() : completeCoverageAndSaveBest())
               : null
           }
-          onBack={goBack}
+          fallbackHref={exitHref}
         />
       ) : null}
     </div>

@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
 import type { MascotLevel, MascotState } from "@/features/mascot/types/mascot-types";
 import { mascotAssetPath } from "@/features/mascot/utils/mascot-asset";
@@ -19,7 +20,7 @@ export function RunnerEndOverlay({
   best,
   persistenceError,
   replayPending,
-  onBack,
+  fallbackHref,
   onReplay,
   onRetry,
 }: Readonly<{
@@ -33,7 +34,7 @@ export function RunnerEndOverlay({
   best: RunnerBestTime | null;
   persistenceError: string | null;
   replayPending: boolean;
-  onBack: () => void;
+  fallbackHref: string;
   onReplay: (() => void) | null;
   onRetry: (() => void) | null;
 }>) {
@@ -86,9 +87,7 @@ export function RunnerEndOverlay({
             Chơi lại
           </Button>
         ) : null}
-        <Button type="button" variant={onReplay ? "outline" : "default"} onClick={onBack}>
-          Quay lại
-        </Button>
+        <BackButton fallbackHref={fallbackHref} />
       </div>
     </div>
   );

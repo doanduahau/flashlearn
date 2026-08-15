@@ -200,6 +200,31 @@ test.describe("Match learning mode", () => {
     await expect(back).toBeDisabled();
   });
 
+  test("exit button asks for confirmation and confirmed exit returns to setup", async ({
+    page,
+  }) => {
+    await page.setViewportSize(DESKTOP);
+    await signUpAndConfirm(page, uniqueEmail("match_exit_confirm"));
+    await importSet(page, "Bộ match thoát");
+
+    await page.goto("/match");
+    await page.getByRole("button", { name: "12 câu" }).click();
+    await page.getByRole("button", { name: "Bắt đầu Match" }).click();
+    await expect(page).toHaveURL(/\/match\/session/);
+    await expect(page.getByRole("button", { name: /^Smart prompt \d+$/ }).first()).toBeVisible();
+
+    // Hủy keeps the learner in the session.
+    await page.getByRole("button", { name: /Thoát phiên học/ }).click();
+    await expect(page.getByRole("dialog", { name: "Thoát phiên?" })).toBeVisible();
+    await page.getByRole("button", { name: "Hủy" }).click();
+    await expect(page).toHaveURL(/\/match\/session/);
+
+    // Confirmed exit returns to the previous page.
+    await page.getByRole("button", { name: /Thoát phiên học/ }).click();
+    await page.getByRole("button", { name: "Thoát", exact: true }).click();
+    await expect(page).toHaveURL(/\/match$/);
+  });
+
   test("uses independent deterministic Front and Back orderings", async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await signUpAndConfirm(page, uniqueEmail("match_independent_shuffle"));

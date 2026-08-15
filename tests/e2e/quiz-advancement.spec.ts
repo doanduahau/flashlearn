@@ -64,3 +64,32 @@ test("correct answers auto-advance while wrong answers wait for the learner", as
   await expect(heading).not.toHaveText(secondPrompt);
   await expect(page.getByRole("status")).toHaveCount(0);
 });
+
+test("exit button asks for confirmation and confirmed exit returns to setup", async ({ page }) => {
+  await signUpAndConfirm(page, uniqueEmail("quiz_exit"));
+
+  await page.goto("/sets/create?source=file");
+  await page.getByLabel(/CSV\/XLSX/i).setInputFiles(QUIZ_CSV);
+  await page.getByLabel("Tên bộ").fill("Bộ thoát kiểm tra");
+  await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
+  await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
+
+  await page.goto("/quiz");
+  await expect(page.getByText("10 thẻ hợp lệ").filter({ visible: true })).toBeVisible();
+  await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+  await expect(page).toHaveURL(/\/quiz\/mode/);
+  await page.getByLabel("Bắt đầu Trắc nghiệm").click();
+  await page.getByRole("button", { name: "Bắt đầu" }).first().click();
+  await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
+
+  // Hủy keeps the learner in the quiz.
+  await page.getByRole("button", { name: /Thoát phiên học/ }).click();
+  await expect(page.getByRole("dialog", { name: "Thoát phiên?" })).toBeVisible();
+  await page.getByRole("button", { name: "Hủy" }).click();
+  await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
+
+  // Confirmed exit returns to the setup page.
+  await page.getByRole("button", { name: /Thoát phiên học/ }).click();
+  await page.getByRole("button", { name: "Thoát", exact: true }).click();
+  await expect(page).toHaveURL(/\/quiz\/mode/);
+});

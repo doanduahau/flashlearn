@@ -177,4 +177,27 @@ describe("QuizSession", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/Chưa học|Cần ôn|Đang học|Đã nhớ/)).not.toBeInTheDocument();
   });
+
+  it("pauses the quiz when the tab becomes hidden and resumes on continue", async () => {
+    const user = userEvent.setup();
+    render(<QuizSession exitHref="/quiz/mode" sessionId="session" total={2} question={first} />);
+
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    fireEvent(document, new Event("visibilitychange"));
+
+    const dialog = screen.getByRole("dialog", { name: "Đã tạm dừng" });
+    expect(dialog).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
+
+    expect(screen.queryByRole("dialog", { name: "Đã tạm dừng" })).not.toBeInTheDocument();
+
+    // A submission must still work after resuming.
+    submitQuizAnswer.mockResolvedValue({ ok: true, correct: true, completed: false });
+    await user.click(screen.getByRole("radio", { name: "One" }));
+    await user.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
+    expect(submitQuizAnswer).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+  });
 });

@@ -308,7 +308,15 @@ test.describe("Memory Matching", () => {
     await page.getByRole("button", { name: "Bắt đầu Memory" }).click();
     await expect(page).toHaveURL(/\/memory\/session\?all=1/);
 
-    await page.getByRole("button", { name: /Quay lại/ }).click();
+    // Hủy keeps the learner in the session.
+    await page.getByRole("button", { name: /Thoát phiên học/ }).click();
+    await expect(page.getByRole("dialog", { name: "Thoát phiên?" })).toBeVisible();
+    await page.getByRole("button", { name: "Hủy" }).click();
+    await expect(page).toHaveURL(/\/memory\/session\?all=1/);
+
+    // Confirmed exit returns to the previous page.
+    await page.getByRole("button", { name: /Thoát phiên học/ }).click();
+    await page.getByRole("button", { name: "Thoát", exact: true }).click();
     await expect(page).toHaveURL(/\/memory$/);
   });
 

@@ -11,7 +11,6 @@ import type {
   StartedMemorySession,
 } from "@/features/memory/types/memory-types";
 import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
-import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
 import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
 import { useVisibilityPause } from "@/features/learning-modes/hooks/use-visibility-pause";
 import { useBackWithFallback } from "@/hooks/use-back-with-fallback";

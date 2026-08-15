@@ -152,7 +152,15 @@ test.describe("Study mode", () => {
     await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
     await expect(page).toHaveURL(/\/study\/session\?sets=/);
 
-    await page.getByRole("button", { name: /Quay lại/ }).click();
+    // Hủy keeps the learner in the session.
+    await page.getByRole("button", { name: /Thoát phiên học/ }).click();
+    await expect(page.getByRole("dialog", { name: "Thoát phiên?" })).toBeVisible();
+    await page.getByRole("button", { name: "Hủy" }).click();
+    await expect(page).toHaveURL(/\/study\/session\?sets=/);
+
+    // Confirmed exit returns to the mode selection with the same source.
+    await page.getByRole("button", { name: /Thoát phiên học/ }).click();
+    await page.getByRole("button", { name: "Thoát", exact: true }).click();
     await expect(page).toHaveURL(/\/study\/mode\?sets=/);
     await expect(page.getByRole("heading", { name: "Lật thẻ" })).toBeVisible();
 

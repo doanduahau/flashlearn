@@ -17,6 +17,7 @@ import { DeleteSetButton } from "@/features/flashcard-sets/components/delete-set
 import { EditCardForm } from "@/features/flashcard-sets/components/edit-card-form";
 import { RenameSetForm } from "@/features/flashcard-sets/components/rename-set-form";
 import { sanitizeSearchQuery } from "@/features/flashcard-sets/utils/search";
+import { ShareDialog } from "@/features/sharing/components/share-dialog";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
 import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
@@ -43,7 +44,7 @@ export default async function SetDetailPage({
   const mascotLevel = await loadMascotLevel(supabase);
   const { data: set } = await supabase
     .from("flashcard_sets")
-    .select("id, name")
+    .select("id, name, share_token, share_classroom_enabled")
     .eq("id", setId)
     .maybeSingle();
   if (!set) notFound();
@@ -117,6 +118,12 @@ export default async function SetDetailPage({
         </div>
         <div className="flex flex-wrap gap-2">
           <RenameSetForm setId={set.id} initialName={set.name} />
+          <ShareDialog
+            setId={set.id}
+            hasToken={Boolean(set.share_token)}
+            token={set.share_token ?? null}
+            classroomEnabled={Boolean(set.share_classroom_enabled)}
+          />
           <DeleteSetButton setId={set.id} />
         </div>
       </div>

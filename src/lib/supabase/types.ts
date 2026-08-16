@@ -233,6 +233,8 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          share_classroom_enabled: boolean
+          share_token: string | null
           sort_order: number
           source_filename: string | null
           updated_at: string
@@ -243,6 +245,8 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          share_classroom_enabled?: boolean
+          share_token?: string | null
           sort_order?: number
           source_filename?: string | null
           updated_at?: string
@@ -253,6 +257,8 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          share_classroom_enabled?: boolean
+          share_token?: string | null
           sort_order?: number
           source_filename?: string | null
           updated_at?: string
@@ -542,6 +548,45 @@ export type Database = {
           },
         ]
       }
+      shared_set_memberships: {
+        Row: {
+          clone_set_id: string
+          id: string
+          joined_at: string
+          member_user_id: string
+          set_id: string
+        }
+        Insert: {
+          clone_set_id: string
+          id?: string
+          joined_at?: string
+          member_user_id: string
+          set_id: string
+        }
+        Update: {
+          clone_set_id?: string
+          id?: string
+          joined_at?: string
+          member_user_id?: string
+          set_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_set_memberships_clone_set_id_fkey"
+            columns: ["clone_set_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_set_memberships_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       special_collection_items: {
         Row: {
           collection_id: string
@@ -677,11 +722,35 @@ export type Database = {
         }
         Returns: string
       }
+      create_set_share_token: {
+        Args: { p_set_id: string; p_user_id: string }
+        Returns: string
+      }
       create_special_collection: {
         Args: { p_color?: string; p_icon?: string; p_name: string }
         Returns: string
       }
       get_learning_statistics: { Args: never; Returns: Json }
+      get_shared_set_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          card_count: number
+          created_at: string
+          description: string
+          name: string
+          owner_display_name: string
+          set_id: string
+        }[]
+      }
+      get_shared_set_cards: {
+        Args: { p_token: string }
+        Returns: {
+          back: string
+          card_id: string
+          front: string
+          position: number
+        }[]
+      }
       import_flashcard_set: {
         Args: { p_cards: Json; p_name: string }
         Returns: {
@@ -717,9 +786,25 @@ export type Database = {
         Args: { p_direction: string; p_set_id: string }
         Returns: undefined
       }
+      register_set_membership: {
+        Args: {
+          p_clone_set_id: string
+          p_member_user_id: string
+          p_token: string
+        }
+        Returns: string
+      }
+      revoke_set_share_token: {
+        Args: { p_set_id: string; p_user_id: string }
+        Returns: undefined
+      }
       set_card_collections: {
         Args: { p_card_id: string; p_collection_ids: string[] }
         Returns: string
+      }
+      set_set_classroom_enabled: {
+        Args: { p_enabled: boolean; p_set_id: string; p_user_id: string }
+        Returns: undefined
       }
       submit_quiz_answer: {
         Args: { p_question_id: string; p_selected_choice_index: number }

@@ -3,6 +3,8 @@ import { Suspense } from "react";
 
 import { SectionTabs } from "@/components/shared/section-tabs";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
+import { MilestoneMascots } from "@/features/mascot/components/milestone-mascots";
+import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { ProfileSettingsForm } from "@/features/profile/components/profile-settings-form";
 import { loadProfileSettings } from "@/features/profile/server/load-profile";
 import { StatisticsPanel } from "@/features/statistics/components/statistics-panel";
@@ -62,7 +64,11 @@ export default async function ProfilePage({
 }
 
 async function ProfileDetails({ tab }: Readonly<{ tab: Exclude<ProfileTab, "statistics"> }>) {
-  const profile = await loadProfileSettings(await createClient());
+  const supabase = await createClient();
+  const [profile, mascotLevel] = await Promise.all([
+    loadProfileSettings(supabase),
+    loadMascotLevel(supabase),
+  ]);
 
   if (!profile) {
     return (
@@ -96,28 +102,31 @@ async function ProfileDetails({ tab }: Readonly<{ tab: Exclude<ProfileTab, "stat
   }
 
   return (
-    <section
-      className="mt-6 rounded-3xl border border-border-soft bg-surface p-5"
-      aria-labelledby="profile-summary-heading"
-    >
-      <h2 id="profile-summary-heading" className="text-xl font-bold">
-        Hồ sơ của bạn
-      </h2>
-      <dl className="mt-4 space-y-4">
-        <div>
-          <dt className="text-sm text-text-secondary">Tên hiển thị</dt>
-          <dd className="mt-1 font-semibold">{profile.displayName || profile.email}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-text-secondary">Email</dt>
-          <dd className="mt-1 font-semibold">{profile.email}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-text-secondary">Múi giờ</dt>
-          <dd className="mt-1 font-semibold">{profile.timezone}</dd>
-        </div>
-      </dl>
-    </section>
+    <div className="space-y-6">
+      <section
+        className="mt-6 rounded-3xl border border-border-soft bg-surface p-5"
+        aria-labelledby="profile-summary-heading"
+      >
+        <h2 id="profile-summary-heading" className="text-xl font-bold">
+          Hồ sơ của bạn
+        </h2>
+        <dl className="mt-4 space-y-4">
+          <div>
+            <dt className="text-sm text-text-secondary">Tên hiển thị</dt>
+            <dd className="mt-1 font-semibold">{profile.displayName || profile.email}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-text-secondary">Email</dt>
+            <dd className="mt-1 font-semibold">{profile.email}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-text-secondary">Múi giờ</dt>
+            <dd className="mt-1 font-semibold">{profile.timezone}</dd>
+          </div>
+        </dl>
+      </section>
+      <MilestoneMascots mascotLevel={mascotLevel} />
+    </div>
   );
 }
 

@@ -119,15 +119,14 @@ test.describe("Study mode", () => {
     await page.getByRole("button", { name: /Nhấn để lật/ }).click();
     await expect(page.getByRole("button", { name: /Nhấn để xem mặt trước/ })).toBeVisible();
 
-    await page.getByRole("button", { name: /Thẻ tiếp theo/ }).click();
+    await page.keyboard.press("ArrowDown");
     await expect(page.getByText("2 / 2")).toBeVisible();
     await expect(page.getByText("Cảm ơn")).toBeVisible();
 
-    await page.getByRole("button", { name: /Thẻ trước/ }).click();
+    await page.keyboard.press("ArrowUp");
     await expect(page.getByText("1 / 2")).toBeVisible();
-    await expect(page.getByRole("button", { name: /Thẻ trước/ })).toBeDisabled();
 
-    await page.getByRole("button", { name: /Thẻ tiếp theo/ }).click();
+    await page.keyboard.press("ArrowDown");
     await expect(page.getByRole("button", { name: /Hoàn thành/ })).toBeVisible();
     await page.getByRole("button", { name: /Hoàn thành/ }).click();
     await expect(page.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
@@ -137,7 +136,7 @@ test.describe("Study mode", () => {
     await page.getByRole("button", { name: /Chơi lại/ }).click();
     await expect(page.getByText("1 / 2")).toBeVisible();
 
-    await page.getByRole("button", { name: /Thẻ tiếp theo/ }).click();
+    await page.keyboard.press("ArrowDown");
     await expect(page.getByRole("button", { name: /Hoàn thành/ })).toBeVisible();
     await page.getByRole("button", { name: /Hoàn thành/ }).click();
     await expect(page.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
@@ -176,7 +175,7 @@ test.describe("Study mode", () => {
     await context.close();
   });
 
-  test("swipe navigation on the card advances and goes back", async ({ browser }) => {
+  test("keyboard navigation on the Flashcard Wheel advances and goes back", async ({ browser }) => {
     const context = await browser.newContext({
       storageState: AUTH_STATE,
       viewport: { width: 390, height: 844 },
@@ -198,25 +197,14 @@ test.describe("Study mode", () => {
       ),
     ).toBe(true);
 
-    const card = page.getByTestId("study-card");
-    const box = await card.boundingBox();
-    expect(box).not.toBeNull();
-
-    await page.mouse.move(box!.x + box!.width * 0.6, box!.y + box!.height * 0.5);
-    await page.mouse.down();
-    await page.mouse.move(box!.x + box!.width * 0.2, box!.y + box!.height * 0.5, { steps: 8 });
-    await page.mouse.up();
+    await page.keyboard.press("ArrowDown");
     await expect(page.getByText("2 / 2")).toBeVisible();
 
-    await page.mouse.move(box!.x + box!.width * 0.2, box!.y + box!.height * 0.5);
-    await page.mouse.down();
-    await page.mouse.move(box!.x + box!.width * 0.6, box!.y + box!.height * 0.5, { steps: 8 });
-    await page.mouse.up();
+    await page.keyboard.press("ArrowUp");
     await expect(page.getByText("1 / 2")).toBeVisible();
 
     await page.getByRole("button", { name: /Nhấn để lật/ }).click();
-    await expect(page.getByRole("button", { name: /Thẻ tiếp theo/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Thẻ trước/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Nhấn để xem mặt trước/ })).toBeVisible();
 
     await context.close();
   });

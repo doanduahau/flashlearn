@@ -111,15 +111,16 @@ describe("StudySession", () => {
     );
   });
 
-  it("disables previous on the first card and advances to the next", async () => {
-    const user = userEvent.setup();
+  it("advances to the next card with keyboard ArrowDown and goes back with ArrowUp", async () => {
     renderSession();
-    expect(screen.getByRole("button", { name: /Thẻ trước/ })).toBeDisabled();
-    await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "ArrowDown" });
     expect(screen.getByText("2 / 2")).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
     expect(screen.getByText("Mặt trước 2")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Thẻ trước/ })).toBeEnabled();
+    fireEvent.keyDown(window, { key: "ArrowUp" });
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
   });
 
   it("resets the flip when navigating to another card", async () => {
@@ -127,7 +128,7 @@ describe("StudySession", () => {
     renderSession();
     await user.click(screen.getByRole("button", { name: /Nhấn để lật/ }));
     expect(screen.getByRole("button", { name: /Nhấn để xem mặt trước/ })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
+    fireEvent.keyDown(window, { key: "ArrowDown" });
     expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
       "aria-pressed",
       "false",
@@ -137,7 +138,7 @@ describe("StudySession", () => {
   it("shows the completion screen on the last card instead of leaving the page", async () => {
     const user = userEvent.setup();
     renderSession();
-    await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
+    fireEvent.keyDown(window, { key: "ArrowDown" });
     await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
     expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument();
     expect(screen.getByText("Đã xem 2 thẻ")).toBeInTheDocument();
@@ -152,7 +153,7 @@ describe("StudySession", () => {
   it("replays the session from the first card after completing", async () => {
     const user = userEvent.setup();
     renderSession();
-    await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
+    fireEvent.keyDown(window, { key: "ArrowDown" });
     await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
     await user.click(screen.getByRole("button", { name: /Chơi lại/ }));
     expect(screen.getByText("1 / 2")).toBeInTheDocument();
@@ -165,7 +166,7 @@ describe("StudySession", () => {
     const user = userEvent.setup();
     Object.defineProperty(window.history, "length", { configurable: true, value: 3 });
     renderSession();
-    await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
+    fireEvent.keyDown(window, { key: "ArrowDown" });
     await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
     await user.click(screen.getByRole("button", { name: /Thoát/ }));
     expect(mocks.back).toHaveBeenCalledTimes(1);
@@ -176,7 +177,7 @@ describe("StudySession", () => {
     const user = userEvent.setup();
     Object.defineProperty(window.history, "length", { configurable: true, value: 1 });
     renderSession();
-    await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
+    fireEvent.keyDown(window, { key: "ArrowDown" });
     await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
     await user.click(screen.getByRole("button", { name: /Thoát/ }));
     expect(mocks.back).not.toHaveBeenCalled();
@@ -223,7 +224,7 @@ describe("StudySession", () => {
     await user.click(trigger);
     expect(screen.getByRole("checkbox", { name: "Khó nhớ" })).toBeChecked();
     await user.click(screen.getByRole("button", { name: /^Hủy$/i }));
-    await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
+    fireEvent.keyDown(window, { key: "ArrowDown" });
     await user.click(screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" }));
     expect(screen.getByRole("checkbox", { name: "Khó nhớ" })).not.toBeChecked();
   });
@@ -246,83 +247,6 @@ describe("StudySession", () => {
     expect(screen.getByText("1 / 2")).toBeInTheDocument();
   });
 
-  it("keeps the overlay controls available after flipping", async () => {
-    const user = userEvent.setup();
-    renderSession();
-    await user.click(screen.getByRole("button", { name: /Nhấn để lật/ }));
-    expect(screen.getByRole("button", { name: /Thẻ trước/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Thẻ tiếp theo/ })).toBeInTheDocument();
-  });
-
-  it("renders the navigation arrows beside the card without overlapping it", () => {
-    renderSession();
-    const prev = screen.getByRole("button", { name: /Thẻ trước/ });
-    const next = screen.getByRole("button", { name: /Thẻ tiếp theo/ });
-    expect(prev.className).not.toContain("absolute");
-    expect(next.className).not.toContain("absolute");
-    expect(prev).toHaveAccessibleName(/Thẻ trước/);
-    expect(next).toHaveAccessibleName(/Thẻ tiếp theo/);
-  });
-
-  it("swipes left on the card to advance to the next card", () => {
-    renderSession();
-    const card = screen.getByTestId("study-card");
-    fireEvent.pointerDown(card, { clientX: 200, clientY: 120, button: 0 });
-    fireEvent.pointerMove(card, { clientX: 120, clientY: 120 });
-    fireEvent.pointerUp(card, { clientX: 120, clientY: 120 });
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
-    expect(screen.getByText("2 / 2")).toBeInTheDocument();
-  });
-
-  it("swipes right on the card to go back to the previous card", () => {
-    renderSession();
-    const card = screen.getByTestId("study-card");
-    fireEvent.pointerDown(card, { clientX: 120, clientY: 120, button: 0 });
-    fireEvent.pointerMove(card, { clientX: 200, clientY: 120 });
-    fireEvent.pointerUp(card, { clientX: 200, clientY: 120 });
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
-    expect(screen.getByRole("button", { name: /Thẻ trước/ })).toBeDisabled();
-  });
-
-  it("does not navigate on a vertical gesture", () => {
-    renderSession();
-    const card = screen.getByTestId("study-card");
-    fireEvent.pointerDown(card, { clientX: 200, clientY: 120, button: 0 });
-    fireEvent.pointerMove(card, { clientX: 205, clientY: 340 });
-    fireEvent.pointerUp(card, { clientX: 205, clientY: 340 });
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
-  });
-
-  it("does not navigate on a small movement", () => {
-    renderSession();
-    const card = screen.getByTestId("study-card");
-    fireEvent.pointerDown(card, { clientX: 200, clientY: 120, button: 0 });
-    fireEvent.pointerMove(card, { clientX: 180, clientY: 120 });
-    fireEvent.pointerUp(card, { clientX: 180, clientY: 120 });
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
-  });
-
-  it("does not navigate when a swipe starts on an interactive control", () => {
-    renderSession();
-    const trigger = screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" });
-    fireEvent.pointerDown(trigger, { clientX: 300, clientY: 60, button: 0 });
-    fireEvent.pointerMove(trigger, { clientX: 200, clientY: 60 });
-    fireEvent.pointerUp(trigger, { clientX: 200, clientY: 60 });
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
-  });
-
-  it("does not flip the card after a swipe gesture", () => {
-    renderSession();
-    const card = screen.getByTestId("study-card");
-    fireEvent.pointerDown(card, { clientX: 200, clientY: 120, button: 0 });
-    fireEvent.pointerMove(card, { clientX: 120, clientY: 120 });
-    fireEvent.pointerUp(card, { clientX: 120, clientY: 120 });
-    expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-  });
-
   it("shows a notice when the session is truncated", () => {
     renderSession({ truncated: true });
     expect(screen.getByText(/Phiên giới hạn ở 1000 thẻ/)).toBeInTheDocument();
@@ -343,9 +267,9 @@ describe("StudySession", () => {
 
   it("ignores keys while a form control is focused", () => {
     renderSession();
-    const prevButton = screen.getByRole("button", { name: /Thẻ trước/ });
-    fireEvent.keyDown(prevButton, { key: " " });
-    fireEvent.keyDown(prevButton, { key: "ArrowRight" });
+    const flipButton = screen.getByRole("button", { name: /Nhấn để lật/ });
+    fireEvent.keyDown(flipButton, { key: " " });
+    fireEvent.keyDown(flipButton, { key: "ArrowDown" });
     expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
       "aria-pressed",
       "false",

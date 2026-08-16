@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
@@ -15,11 +14,20 @@ import type { StudyCard, StudyCollectionOption } from "@/features/study/types/st
 import { STUDY_MAX_CARDS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-const SWIPE_THRESHOLD = 56;
-const SWIPE_RATIO = 1.2;
+const DRAG_THRESHOLD = 25;
 const CLICK_SLOP = 8;
+const CONTAINER_HEIGHT = 440;
 const INTERACTIVE_SELECTOR =
   'a, button, input, textarea, select, [role="button"], [contenteditable="true"]';
+
+function getSignedDistance(index: number, current: number, total: number): number {
+  if (total <= 1) return 0;
+  let diff = index - current;
+  const half = total / 2;
+  if (diff > half) diff -= total;
+  if (diff < -half) diff += total;
+  return diff;
+}
 
 export function StudySession({
   cards,
@@ -43,25 +51,57 @@ export function StudySession({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const gestureRef = useRef<{ startX: number; startY: number; active: boolean } | null>(null);
-  const didMoveRef = useRef(false);
+  const dragRef = useRef<{ startY: number; startTime: number; active: boolean } | null>(null);
+  const touchStartRef = useRef<{ y: number; time: number } | null>(null);
+  const didDragRef = useRef(false);
+  const lastWheelRef = useRef(0);
+  const lastSwipeRef = useRef(0);
 
   const total = cards.length;
-  const card = cards[currentIndex] ?? cards[0];
-  const isFirst = currentIndex === 0;
   const isLast = currentIndex === total - 1;
   const exitHref = studyModeHrefFromSession(sessionHref);
 
+  const activeCard = cards[currentIndex] ?? cards[0];
+
   const goPrevious = useCallback(() => {
     setIsFlipped(false);
-    setCurrentIndex((index) => Math.max(0, index - 1));
-  }, []);
+    setCurrentIndex((index) => (index - 1 + total) % total);
+  }, [total]);
 
   const goNext = useCallback(() => {
     setIsFlipped(false);
-    setCurrentIndex((index) => Math.min(total - 1, index + 1));
+    setCurrentIndex((index) => (index + 1) % total);
   }, [total]);
+
+  const triggerMultiSwipe = useCallback(
+    (direction: "next" | "prev", steps: number) => {
+      if (steps <= 0) return;
+      const now = Date.now();
+      if (now - lastSwipeRef.current < 250) return;
+      lastSwipeRef.current = now;
+      setIsFlipped(false);
+      const delta = direction === "next" ? steps : -steps;
+      setCurrentIndex((index) => (index + delta + total * 1000) % total);
+    },
+    [total],
+  );
+
+  function calculateSwipeStep(dyPx: number, dtMs: number): number {
+    const absDy = Math.abs(dyPx);
+    if (absDy < DRAG_THRESHOLD) return 0;
+    const velocity = absDy / Math.max(1, dtMs); // px per ms
+
+    if (velocity >= 1.5 || absDy >= 240) {
+      return 3;
+    }
+    if (velocity >= 0.85 || absDy >= 120) {
+      return 2;
+    }
+    return 1;
+  }
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -73,17 +113,17 @@ export function StudySession({
       if (event.key === " " || event.key === "Enter") {
         event.preventDefault();
         setIsFlipped((flipped) => !flipped);
-      } else if (event.key === "ArrowRight") {
+      } else if (event.key === "ArrowRight" || event.key === "ArrowDown") {
         event.preventDefault();
-        if (currentIndex < total - 1) goNext();
-      } else if (event.key === "ArrowLeft") {
+        goNext();
+      } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
         event.preventDefault();
-        if (currentIndex > 0) goPrevious();
+        goPrevious();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [currentIndex, total, goNext, goPrevious, isCompleted]);
+  }, [goNext, goPrevious, isCompleted]);
 
   function toggleShuffle(): void {
     const url = new URL(sessionHref, window.location.origin);
@@ -101,56 +141,101 @@ export function StudySession({
     setIsFlipped(false);
   }
 
+  function handleTouchStart(e: React.TouchEvent<HTMLDivElement>): void {
+    const touch = e.touches[0];
+    if (!touch) return;
+    const target = e.target as HTMLElement | null;
+    if (target && typeof target.closest === "function" && target.closest(INTERACTIVE_SELECTOR)) {
+      touchStartRef.current = null;
+      return;
+    }
+    touchStartRef.current = { y: touch.clientY, time: Date.now() };
+    didDragRef.current = false;
+    setIsDragging(true);
+  }
+
+  function handleTouchMove(e: React.TouchEvent<HTMLDivElement>): void {
+    const start = touchStartRef.current;
+    if (!start) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dy) > CLICK_SLOP) {
+      didDragRef.current = true;
+    }
+    setDragY(dy);
+  }
+
+  function handleTouchEnd(e: React.TouchEvent<HTMLDivElement>): void {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    setIsDragging(false);
+    setDragY(0);
+    if (!start) return;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    const dy = touch.clientY - start.y;
+    const dt = Date.now() - start.time;
+    const steps = calculateSwipeStep(dy, dt);
+    if (steps > 0) {
+      triggerMultiSwipe(dy < 0 ? "next" : "prev", steps);
+    }
+  }
+
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>): void {
+    if (event.pointerType === "touch") return;
     const target = event.target as HTMLElement | null;
     if (
       event.button !== 0 ||
       (target && typeof target.closest === "function" && target.closest(INTERACTIVE_SELECTOR))
     ) {
-      gestureRef.current = null;
-      didMoveRef.current = false;
+      dragRef.current = null;
+      didDragRef.current = false;
       return;
     }
-    gestureRef.current = {
-      startX: event.clientX,
-      startY: event.clientY,
-      active: true,
-    };
-    didMoveRef.current = false;
+    dragRef.current = { startY: event.clientY, startTime: Date.now(), active: true };
+    didDragRef.current = false;
+    setIsDragging(true);
   }
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>): void {
-    const gesture = gestureRef.current;
-    if (!gesture?.active) return;
-    const dx = Math.abs(event.clientX - gesture.startX);
-    const dy = Math.abs(event.clientY - gesture.startY);
-    if (dx > CLICK_SLOP || dy > CLICK_SLOP) {
-      didMoveRef.current = true;
+    if (event.pointerType === "touch") return;
+    const drag = dragRef.current;
+    if (!drag?.active) return;
+    const dy = event.clientY - drag.startY;
+    if (Math.abs(dy) > CLICK_SLOP) {
+      didDragRef.current = true;
     }
+    setDragY(dy);
   }
 
   function handlePointerUp(event: React.PointerEvent<HTMLDivElement>): void {
-    const gesture = gestureRef.current;
-    gestureRef.current = null;
-    if (!gesture?.active) return;
-    const dx = event.clientX - gesture.startX;
-    const dy = event.clientY - gesture.startY;
-    if (Math.abs(dx) < SWIPE_THRESHOLD) return;
-    if (Math.abs(dx) <= Math.abs(dy) * SWIPE_RATIO) return;
-    if (dx < 0) {
-      goNext();
-    } else {
-      goPrevious();
+    if (event.pointerType === "touch") return;
+    const drag = dragRef.current;
+    dragRef.current = null;
+    setIsDragging(false);
+    setDragY(0);
+    if (!drag?.active) return;
+    const dy = event.clientY - drag.startY;
+    const dt = Date.now() - drag.startTime;
+    const steps = calculateSwipeStep(dy, dt);
+    if (steps > 0) {
+      triggerMultiSwipe(dy < 0 ? "next" : "prev", steps);
     }
   }
 
-  function handlePointerCancel(): void {
-    gestureRef.current = null;
+  function handleWheel(event: React.WheelEvent<HTMLDivElement>): void {
+    const now = Date.now();
+    if (now - lastWheelRef.current < 200) return;
+    if (Math.abs(event.deltaY) > 15) {
+      lastWheelRef.current = now;
+      triggerMultiSwipe(event.deltaY > 0 ? "next" : "prev", 1);
+    }
   }
 
-  function handleCardClick(): void {
-    if (didMoveRef.current) {
-      didMoveRef.current = false;
+  function handleActiveCardClick(): void {
+    if (didDragRef.current) {
+      didDragRef.current = false;
       return;
     }
     setIsFlipped((flipped) => !flipped);
@@ -207,80 +292,138 @@ export function StudySession({
         </span>
       </div>
 
-      <div className="mt-6 flex items-center justify-center gap-2">
-        <Button
-          type="button"
-          variant="soft"
-          className="size-12 shrink-0 rounded-full p-0"
-          onClick={() => goPrevious()}
-          disabled={isFirst}
-          aria-label="Thẻ trước"
-        >
-          <ChevronLeft aria-hidden="true" className="size-6" />
-        </Button>
+      {/* Animated Flashcard Wheel Container */}
+      <div
+        className="relative my-4 flex h-[440px] sm:h-[480px] w-full max-w-2xl mx-auto flex-col items-center justify-center overflow-hidden py-2 select-none [touch-action:none]"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onWheel={handleWheel}
+      >
+        {cards.map((c, index) => {
+          const diff = getSignedDistance(index, currentIndex, total);
+          const isActive = diff === 0;
 
-        <div
-          data-testid="study-card"
-          className="relative min-w-0 flex-1 [touch-action:pan-y]"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
-        >
-          <div
-            key={card.id}
-            className="animate-card-in cursor-pointer select-none [perspective:1200px] motion-reduce:animate-none"
-            onClick={handleCardClick}
-          >
+          const dragRatio = dragY / CONTAINER_HEIGHT;
+          const effectiveDiff = diff + dragRatio;
+
+          const translateY = diff * 76 + dragRatio * 100;
+          const absEff = Math.abs(effectiveDiff);
+
+          const scale = Math.max(0.9, 1 - Math.min(1, absEff) * 0.04);
+          let opacity = 1 - Math.min(1, absEff) * 0.25;
+          if (absEff > 1.5) {
+            opacity = Math.max(0, 0.75 - (absEff - 1) * 0.75);
+          }
+
+          const zIndex = Math.max(0, Math.round(10 - absEff * 5));
+          const pointerEvents: "auto" | "none" = absEff < 1.2 ? "auto" : "none";
+
+          return (
             <div
+              key={c.id}
+              data-testid="study-card"
+              data-active={isActive ? "true" : "false"}
+              style={{
+                transform: `translateY(${translateY}%) scale(${scale})`,
+                opacity,
+                zIndex,
+                pointerEvents,
+              }}
               className={cn(
-                "relative transition-transform duration-300 [transform-style:preserve-3d] motion-reduce:transition-none",
-                isFlipped && "[transform:rotateY(180deg)]",
+                "absolute top-1/2 left-0 -translate-y-1/2 w-full motion-reduce:transition-none",
+                isDragging
+                  ? "transition-none"
+                  : "transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
               )}
+              onClick={() => {
+                if (isActive) {
+                  handleActiveCardClick();
+                } else if (diff === -1) {
+                  goPrevious();
+                } else if (diff === 1) {
+                  goNext();
+                }
+              }}
             >
-              <div
-                aria-hidden={isFlipped}
-                className="flex min-h-72 w-full items-center justify-center rounded-3xl border border-border-soft bg-surface px-4 py-6 [backface-visibility:hidden] sm:px-8 sm:py-8"
-              >
-                <p className="max-h-[55vh] overflow-y-auto break-words whitespace-pre-wrap text-center text-lg font-semibold leading-relaxed sm:text-xl">
-                  {card.front}
-                </p>
-              </div>
-              <div
-                aria-hidden={!isFlipped}
-                className="absolute inset-0 flex w-full items-center justify-center rounded-3xl border border-border-soft bg-primary-soft px-4 py-6 [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-8"
-              >
-                <p className="max-h-[55vh] overflow-y-auto break-words whitespace-pre-wrap text-center text-lg font-semibold leading-relaxed sm:text-xl">
-                  {card.back}
-                </p>
+              <div className="select-none [perspective:1200px]">
+                <div
+                  className={cn(
+                    "relative transition-transform duration-200 ease-out [transform-style:preserve-3d] motion-reduce:transition-none",
+                    isActive && isFlipped && "[transform:rotateY(180deg)]",
+                  )}
+                >
+                  {/* Front */}
+                  <div
+                    aria-hidden={isActive && isFlipped}
+                    className={cn(
+                      "relative flex min-h-72 w-full items-center justify-center rounded-3xl bg-surface px-4 py-6 [backface-visibility:hidden] sm:px-8 sm:py-8",
+                      isActive
+                        ? "border-2 border-primary shadow-lg ring-4 ring-primary/15"
+                        : "border border-border-soft/80 shadow-md",
+                    )}
+                  >
+                    <p
+                      className={cn(
+                        "break-words whitespace-pre-wrap text-center font-semibold leading-relaxed",
+                        isActive
+                          ? "max-h-[50vh] overflow-y-auto text-lg sm:text-xl"
+                          : "line-clamp-2 text-base font-bold text-text-primary opacity-80 sm:text-lg",
+                      )}
+                    >
+                      {c.front}
+                    </p>
+                    {isActive ? (
+                      <div className="absolute right-4 top-4 z-20">
+                        <CardCollectionsControl
+                          key={c.id}
+                          cardId={c.id}
+                          setId={c.setId}
+                          collections={collections}
+                          memberships={membershipsByCard[c.id] ?? []}
+                          variant="icon"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Back */}
+                  <div
+                    aria-hidden={!isActive || !isFlipped}
+                    className={cn(
+                      "absolute inset-0 flex w-full items-center justify-center rounded-3xl bg-primary-soft px-4 py-6 [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-8",
+                      isActive
+                        ? "border-2 border-primary shadow-lg ring-4 ring-primary/15"
+                        : "border border-border-soft/80 shadow-md",
+                    )}
+                  >
+                    <p className="max-h-[50vh] overflow-y-auto break-words whitespace-pre-wrap text-center text-lg font-semibold leading-relaxed sm:text-xl">
+                      {c.back}
+                    </p>
+                    {isActive ? (
+                      <div className="absolute right-4 top-4 z-20">
+                        <CardCollectionsControl
+                          key={c.id}
+                          cardId={c.id}
+                          setId={c.setId}
+                          collections={collections}
+                          memberships={membershipsByCard[c.id] ?? []}
+                          variant="icon"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="absolute right-4 top-4 z-10">
-            <CardCollectionsControl
-              key={card.id}
-              cardId={card.id}
-              setId={card.setId}
-              collections={collections}
-              memberships={membershipsByCard[card.id] ?? []}
-              variant="icon"
-            />
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          variant="soft"
-          className="size-12 shrink-0 rounded-full p-0"
-          onClick={() => goNext()}
-          disabled={isLast}
-          aria-label="Thẻ tiếp theo"
-        >
-          <ChevronRight aria-hidden="true" className="size-6" />
-        </Button>
+          );
+        })}
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
         <Button
           type="button"
           variant="soft"
@@ -300,7 +443,7 @@ export function StudySession({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm text-text-secondary">Bộ gốc</p>
-            <p className="truncate font-semibold">{card.setName}</p>
+            <p className="truncate font-semibold">{activeCard.setName}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button

@@ -23,6 +23,14 @@ export function escapeA1SheetName(title: string): string {
   return `'${title.replace(/'/g, "''")}'`;
 }
 
+// Google's A1 range parser rejects sheet names containing brackets even when
+// single-quoted (they are reserved for external-reference syntax). When the
+// title is unsafe, callers must read via spreadsheets.get + includeGridData
+// and select the tab by its numeric sheetId instead of by name.
+export function isRangeSafeSheetName(title: string): boolean {
+  return !/[\[\]]/.test(title);
+}
+
 // Scans the whole sheet (open-ended row range) so every column that holds any
 // data is discovered, no matter how far down the first value sits.
 export function buildHeaderScanRange(sheetTitle: string, columnCount: number): string {

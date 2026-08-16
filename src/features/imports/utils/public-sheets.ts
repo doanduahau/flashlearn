@@ -1,7 +1,17 @@
 import type { GoogleSheetMeta, SheetData } from "../adapters/google-sheets-adapter";
 import { extractSpreadsheetId } from "../utils/extract-spreadsheet-id";
-import { buildDataColumnRange, buildHeaderScanRange } from "../utils/sheets-a1";
-import { parseColumnBodies, parseHeaderScan, parseSpreadsheetMeta } from "../utils/sheets-parser";
+import {
+  buildDataColumnRange,
+  buildHeaderScanRange,
+  isRangeSafeSheetName,
+} from "../utils/sheets-a1";
+import {
+  extractColumnsFromGrid,
+  parseColumnBodies,
+  parseGridDataSheet,
+  parseHeaderScan,
+  parseSpreadsheetMeta,
+} from "../utils/sheets-parser";
 import { GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
 
 const SHEETS_API_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
@@ -27,6 +37,31 @@ async function sheetsJson(url: string): Promise<{ json: unknown; status: number 
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   const json = await res.json().catch(() => null);
   return { json, status: res.status };
+}
+
+// Some sheet titles (e.g. containing `[` or `]`) cannot be expressed in A1
+// ranges at all, even quoted. For those, read the whole tab via
+// spreadsheets.get + includeGridData, selecting the sheet by numeric sheetId.
+async function fetchPublicGridData(
+  spreadsheetId: string,
+  sheetId: number,
+  apiKey: string,
+): Promise<
+  { error: string; status: number; detail?: string } | { headers: string[]; rows: string[][] }
+> {
+  const fields = "sheets.properties(sheetId),sheets.data.rowData.values.userEnteredValue";
+  const url = `${SHEETS_API_BASE}/${spreadsheetId}?includeGridData=true&fields=${encodeURIComponent(fields)}&key=${apiKey}`;
+  const result = await sheetsJson(url);
+  if (result.status !== 200) {
+    return {
+      error: "Không thể đọc bảng tính.",
+      status: result.status,
+      detail: googleErrorDetail(result.json),
+    };
+  }
+  const parsed = parseGridDataSheet(result.json, sheetId);
+  if (!parsed) return { error: "Sheet không tồn tại.", status: 404 };
+  return { headers: parsed.headers, rows: parsed.rows };
 }
 
 export function validatePublicSpreadsheetUrl(
@@ -70,6 +105,14 @@ export async function fetchPublicSpreadsheet(
   const sheet = meta.sheets[sheetIndex];
   if (!sheet) return { kind: "error", message: "Sheet không tồn tại." };
 
+  if (!isRangeSafeSheetName(sheet.title)) {
+    const grid = await fetchPublicGridData(spreadsheetId, sheet.sheetId, apiKey);
+    if ("error" in grid) {
+      return { kind: "error", message: grid.error, status: grid.status, detail: grid.detail };
+    }
+    return { kind: "success", meta, headers: grid.headers, sheetTitle: sheet.title };
+  }
+
   const range = buildHeaderScanRange(sheet.title, GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS);
   const headerUrl = `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
   const headerResult = await sheetsJson(headerUrl);
@@ -98,9 +141,26 @@ export async function fetchPublicSheetValues(
   sheetTitle: string,
   apiKey: string,
   columns: number[],
+  sheetId: number,
 ): Promise<PublicSheetValuesResult> {
   if (columns.length === 0 || columns.length > 26) {
     return { kind: "error", message: "Cột không hợp lệ." };
+  }
+
+  if (!isRangeSafeSheetName(sheetTitle)) {
+    const grid = await fetchPublicGridData(spreadsheetId, sheetId, apiKey);
+    if ("error" in grid) {
+      return { kind: "error", message: grid.error, status: grid.status, detail: grid.detail };
+    }
+    const result = extractColumnsFromGrid(grid.rows, columns);
+    return {
+      kind: "success",
+      sheetData: {
+        headers: result.headers,
+        rows: result.rows.slice(0, IMPORT_MAX_ROWS),
+        rowCount: Math.min(result.rowCount, IMPORT_MAX_ROWS),
+      },
+    };
   }
 
   const ranges = columns.map((col) => buildDataColumnRange(sheetTitle, col, IMPORT_MAX_ROWS));

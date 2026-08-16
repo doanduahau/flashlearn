@@ -23,14 +23,12 @@ export function escapeA1SheetName(title: string): string {
   return `'${title.replace(/'/g, "''")}'`;
 }
 
-export function buildHeaderScanRange(
-  sheetTitle: string,
-  columnCount: number,
-  rowCount = 20,
-): string {
+// Scans the whole sheet (open-ended row range) so every column that holds any
+// data is discovered, no matter how far down the first value sits.
+export function buildHeaderScanRange(sheetTitle: string, columnCount: number): string {
   const escaped = escapeA1SheetName(sheetTitle);
   const endCol = columnIndexToLetters(columnCount - 1);
-  return `${escaped}!A1:${endCol}${rowCount}`;
+  return `${escaped}!A1:${endCol}`;
 }
 
 export function buildDataColumnRange(

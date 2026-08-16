@@ -90,7 +90,7 @@ describe("openGoogleSheet (private flow) — header discovery", () => {
     }
   });
 
-  it("requests a header scan bounded to one row across the discovery width", async () => {
+  it("requests a header scan across the full sheet and discovery width", async () => {
     mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
     okFetch("http://x");
     vi.stubGlobal("fetch", mocks.fetch);
@@ -105,7 +105,7 @@ describe("openGoogleSheet (private flow) — header discovery", () => {
     expect(headerCall).toBeTruthy();
     const url = String(headerCall?.[0]);
     const expected = encodeURIComponent(
-      `A1:${colLetters(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS - 1)}20`,
+      `A1:${colLetters(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS - 1)}`,
     );
     expect(url).toContain(expected);
   });

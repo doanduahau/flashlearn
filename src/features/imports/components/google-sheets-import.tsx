@@ -171,23 +171,40 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
     }
 
     if (analysis.kind === "needs_mapping") {
-      setFullCards(null);
-      const columns = buildMeaningfulColumns(sheetData.headers);
-      setMeaningfulColumns(columns);
-      setNeedsMapping(true);
+      // No automatic front/back detection: fall back to the first two
+      // discovered columns so the column selectors and preview always appear
+      // right after analysis. The discovered columns already cover every
+      // column that has data (full-sheet scan), so the user can pick any pair.
+      const columns = meaningfulColumns;
+      const fallbackMapping = {
+        frontColumn: columns[0]?.index ?? 0,
+        backColumn: columns[1]?.index ?? columns[0]?.index ?? 1,
+      };
+      const fallback = adaptSheetData(sheetData, fallbackMapping);
+      if (fallback.kind !== "structured") {
+        setFullCards(null);
+        setError("Không thể xác định cột dữ liệu.");
+        setMode("loaded");
+        return;
+      }
+      const validation = validateDraftCards(fallback.cards);
+      setFullCards(validation.cards);
       setSheetInfo({
         spreadsheetTitle: meta.spreadsheetTitle,
         sheets: meta.sheets,
         headers: sheetData.headers,
         rowCount: sheetData.rowCount,
-        previewRows: [],
-        valid: 0,
-        blank: 0,
-        partial: 0,
-        duplicate: 0,
-        frontColumn: columns[0]?.index ?? 0,
-        backColumn: columns[1]?.index ?? 1,
+        previewRows: validation.cards.slice(0, IMPORT_PREVIEW_ROWS),
+        valid: validation.valid,
+        blank: validation.blank,
+        partial: validation.partial,
+        duplicate: validation.duplicate,
+        frontColumn: fallbackMapping.frontColumn,
+        backColumn: fallbackMapping.backColumn,
       });
+      setFrontColumn(fallbackMapping.frontColumn);
+      setBackColumn(fallbackMapping.backColumn);
+      setNeedsMapping(false);
       setMode("loaded");
       return;
     }
@@ -249,6 +266,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
     meta: SheetMetaLike,
     sheetTitle: string,
     columns: number[],
+    preferredMapping?: { frontColumn: number; backColumn: number },
   ): Promise<void> {
     if (columns.length === 0) {
       setError("Chưa xác định được cột dữ liệu.");
@@ -274,11 +292,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
         setMode("loaded");
         return;
       }
-      applyAnalysis(
-        meta,
-        result.sheetData,
-        columns.length === 2 ? { frontColumn: columns[0]!, backColumn: columns[1]! } : undefined,
-      );
+      applyAnalysis(meta, result.sheetData, preferredMapping);
     } catch {
       setError("Không thể đọc dữ liệu bảng tính.");
       setMode("loaded");
@@ -326,11 +340,18 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
 
     const allColIndices = meaningfulColumns.map((c) => c.index);
     const colsToFetch = allColIndices.length >= 2 ? allColIndices : [front, back];
+    // When the user picks columns explicitly (first analysis or a dropdown
+    // change), keep that mapping; otherwise let automatic detection decide.
+    const preferredMapping =
+      explicitFront !== undefined && explicitBack !== undefined
+        ? { frontColumn: explicitFront, backColumn: explicitBack }
+        : undefined;
 
     await loadValues(
       meta,
       sheetTitleRef.current || sheetInfo.sheets[selectedSheetIndex]?.title || "",
       colsToFetch,
+      preferredMapping,
     );
   }
 

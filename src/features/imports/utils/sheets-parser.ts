@@ -25,8 +25,10 @@ export function parseHeaderScan(json: unknown): string[] {
   const values = (json as { values?: unknown }).values;
   const rows = Array.isArray(values) ? (values as unknown[][]) : [];
 
+  // The label of a column is its first non-empty cell across the whole sheet;
+  // a column with no data at all becomes "" and is filtered out upstream.
   return Array.from({ length: GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS }, (_, colIdx) => {
-    for (let r = 0; r < Math.min(rows.length, 20); r += 1) {
+    for (let r = 0; r < rows.length; r += 1) {
       const row = rows[r];
       if (Array.isArray(row)) {
         const text = String(row[colIdx] ?? "").trim();

@@ -68,7 +68,7 @@ describe("fetchPublicSpreadsheet — browser API key header discovery", () => {
     expect(firstUrl).toContain("sheets.googleapis.com");
   });
 
-  it("requests a header scan bounded to one row across the discovery width", async () => {
+  it("requests a header scan across the full sheet and discovery width", async () => {
     const calls: string[] = [];
     vi.stubGlobal(
       "fetch",
@@ -98,7 +98,7 @@ describe("fetchPublicSpreadsheet — browser API key header discovery", () => {
     const headerUrl = calls.find((u) => u.includes("/values/"));
     expect(headerUrl).toBeTruthy();
     const expected = encodeURIComponent(
-      `A1:${colLetters(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS - 1)}20`,
+      `A1:${colLetters(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS - 1)}`,
     );
     expect(headerUrl).toContain(expected);
   });

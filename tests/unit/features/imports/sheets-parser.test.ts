@@ -21,6 +21,15 @@ describe("parseHeaderScan", () => {
     expect(result).toHaveLength(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS);
     expect(result.every((cell) => cell === "")).toBe(true);
   });
+
+  it("finds the first non-empty cell anywhere in the sheet, past the old 20-row cap", () => {
+    const values: unknown[][] = Array.from({ length: 30 }, () => []);
+    values[29] = ["", "", "Deep"]; // only row 30 holds data, in column C
+    const result = parseHeaderScan({ values });
+    expect(result[0]).toBe("");
+    expect(result[1]).toBe("");
+    expect(result[2]).toBe("Deep");
+  });
 });
 
 describe("parseColumnBodies", () => {

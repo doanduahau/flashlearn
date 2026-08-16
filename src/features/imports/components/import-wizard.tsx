@@ -31,7 +31,9 @@ export function ImportWizard({
   const columnOptions = useMemo(() => {
     if (!sheet?.rows || sheet.rows.length === 0) return [];
     const maxCols = Math.max(...sheet.rows.map((r) => r.length));
-    const scanLimit = Math.min(sheet.rows.length, 20);
+    // Every column that holds any data is offered, no matter how far down its
+    // first value sits; the label is that first non-empty cell.
+    const scanLimit = sheet.rows.length;
 
     const list: Array<{ index: number; label: string }> = [];
     for (let colIdx = 0; colIdx < maxCols; colIdx += 1) {

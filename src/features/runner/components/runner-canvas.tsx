@@ -13,8 +13,9 @@ const CHARACTER_HEIGHT = 120;
 const CHARACTER_POSITION_RATIO = 0.3;
 const BOTTOM_MARGIN = 24;
 const FOOD_SIZE = 28;
-const JUMP_VELOCITY = 0.55;
-const GRAVITY = 0.0008;
+const SKY_HEIGHT = 135;
+const JUMP_VELOCITY = 0.75;
+const GRAVITY = 0.0018;
 const MAX_DELTA_MS = 50;
 const BURST_MS = 300;
 const CHARACTER_STATE_MS = 600;
@@ -102,11 +103,12 @@ export function RunnerCanvas({
       context.lineTo(cssWidth, gy);
       context.stroke();
 
-      // Food.
+      // Food in the sky.
+      const foodY = gy - CHARACTER_HEIGHT - SKY_HEIGHT;
       if (foodX >= -FOOD_SIZE && state.status !== "ready") {
         context.fillStyle = "#f3a66a";
         context.beginPath();
-        context.arc(foodX + FOOD_SIZE / 2, gy - FOOD_SIZE / 2, FOOD_SIZE / 2, 0, Math.PI * 2);
+        context.arc(foodX + FOOD_SIZE / 2, foodY + FOOD_SIZE / 2, FOOD_SIZE / 2, 0, Math.PI * 2);
         context.fill();
       }
 
@@ -158,7 +160,7 @@ export function RunnerCanvas({
         }
 
         foodX -= speed * delta;
-        const foodY = gy - FOOD_SIZE;
+        const foodY = gy - CHARACTER_HEIGHT - SKY_HEIGHT;
         const characterHitbox = {
           x: characterX() + CHARACTER_WIDTH * 0.2,
           y: charY + CHARACTER_HEIGHT * 0.2,

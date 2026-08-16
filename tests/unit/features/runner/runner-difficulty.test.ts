@@ -13,10 +13,10 @@ describe("runner difficulty configuration", () => {
     expect(getRunnerDifficultyConfig("hard").lives).toBe(1);
   });
 
-  it("exposes the frozen time-per-item values", () => {
-    expect(getRunnerDifficultyConfig("easy").timePerItemMs).toBe(4500);
-    expect(getRunnerDifficultyConfig("medium").timePerItemMs).toBe(3200);
-    expect(getRunnerDifficultyConfig("hard").timePerItemMs).toBe(2400);
+  it("exposes the difficulty time-per-item values", () => {
+    expect(getRunnerDifficultyConfig("easy").timePerItemMs).toBe(3300);
+    expect(getRunnerDifficultyConfig("medium").timePerItemMs).toBe(2500);
+    expect(getRunnerDifficultyConfig("hard").timePerItemMs).toBe(2000);
   });
 
   it("rejects an unknown difficulty", () => {

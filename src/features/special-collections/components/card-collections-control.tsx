@@ -30,6 +30,7 @@ export function CardCollectionsControl({
   label?: string;
 }>) {
   const router = useRouter();
+  const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const hasOpened = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -45,14 +46,26 @@ export function CardCollectionsControl({
 
   useEffect(() => {
     if (!isOpen) return;
+
+    function onPointerDown(event: PointerEvent): void {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        closePanel();
+      }
+    }
+
     function onKeyDown(event: KeyboardEvent): void {
       if (event.key === "Escape") {
         event.preventDefault();
         closePanel();
       }
     }
+
+    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [isOpen]);
 
   if (collections.length === 0) {
@@ -101,8 +114,9 @@ export function CardCollectionsControl({
 
   return (
     <div
+      ref={containerRef}
       className={isIcon ? "relative" : "space-y-2"}
-      onClick={isIcon ? (event) => event.stopPropagation() : undefined}
+      onClick={(event) => event.stopPropagation()}
     >
       <Button
         ref={triggerRef}

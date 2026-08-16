@@ -360,7 +360,7 @@ export function StudySession({
                   <div
                     aria-hidden={isActive && isFlipped}
                     className={cn(
-                      "relative flex min-h-72 w-full items-center justify-center rounded-3xl bg-surface px-4 py-6 [backface-visibility:hidden] sm:px-8 sm:py-8",
+                      "relative flex min-h-72 w-full items-center justify-center rounded-3xl bg-surface px-4 py-6 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] sm:px-8 sm:py-8",
                       isActive
                         ? "border-2 border-primary shadow-lg ring-4 ring-primary/15"
                         : "border border-border-soft/80 shadow-md",
@@ -376,7 +376,7 @@ export function StudySession({
                     >
                       {c.front}
                     </p>
-                    {isActive ? (
+                    {isActive && !isFlipped ? (
                       <div className="absolute right-4 top-4 z-20">
                         <CardCollectionsControl
                           key={c.id}
@@ -394,7 +394,7 @@ export function StudySession({
                   <div
                     aria-hidden={!isActive || !isFlipped}
                     className={cn(
-                      "absolute inset-0 flex w-full items-center justify-center rounded-3xl bg-primary-soft px-4 py-6 [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-8",
+                      "absolute inset-0 flex w-full items-center justify-center rounded-3xl bg-primary-soft px-4 py-6 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-8",
                       isActive
                         ? "border-2 border-primary shadow-lg ring-4 ring-primary/15"
                         : "border border-border-soft/80 shadow-md",
@@ -403,7 +403,7 @@ export function StudySession({
                     <p className="max-h-[50vh] overflow-y-auto break-words whitespace-pre-wrap text-center text-lg font-semibold leading-relaxed sm:text-xl">
                       {c.back}
                     </p>
-                    {isActive ? (
+                    {isActive && isFlipped ? (
                       <div className="absolute right-4 top-4 z-20">
                         <CardCollectionsControl
                           key={c.id}

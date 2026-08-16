@@ -30,10 +30,25 @@ import { Label } from "@/components/ui/label";
 const COLUMN_REANALYZE_DEBOUNCE_MS = 250;
 
 function buildMeaningfulColumns(headers: string[]): MeaningfulColumn[] {
-  return headers.map((name, index) => ({
-    index,
-    name: name.trim() || columnIndexToLetters(index),
-  }));
+  let lastNonEmptyIndex = -1;
+  for (let i = headers.length - 1; i >= 0; i -= 1) {
+    if (headers[i]?.trim()) {
+      lastNonEmptyIndex = i;
+      break;
+    }
+  }
+
+  const maxIndex = Math.max(lastNonEmptyIndex, 1);
+
+  const result: MeaningfulColumn[] = [];
+  for (let i = 0; i <= maxIndex; i += 1) {
+    const headerName = headers[i]?.trim();
+    result.push({
+      index: i,
+      name: headerName || columnIndexToLetters(i),
+    });
+  }
+  return result;
 }
 
 type SheetInfo = {
@@ -601,11 +616,13 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
           </div>
 
           {sheetInfo.sheets.length > 1 && (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="gs-sheet-select">Bảng</Label>
+            <div className="flex flex-col gap-1.5 rounded-2xl border border-border-soft bg-surface p-4 sm:p-5">
+              <Label htmlFor="gs-sheet-select" className="text-sm font-semibold text-text-primary">
+                Bảng
+              </Label>
               <select
                 id="gs-sheet-select"
-                className="rounded-xl border border-border-soft bg-surface px-4 py-2 text-sm focus:border-primary focus:outline-none"
+                className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 value={selectedSheetIndex}
                 onChange={(e) => {
                   void changeSheet(Number(e.target.value));
@@ -622,12 +639,14 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
           )}
 
           {meaningfulColumns.length > 0 && (
-            <div className="flex flex-wrap gap-3">
-              <div className="flex flex-1 flex-col gap-1">
-                <Label htmlFor="gs-front-col">Mặt trước</Label>
+            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border-soft bg-surface p-4 sm:grid-cols-2 sm:p-5">
+              <div>
+                <Label htmlFor="gs-front-col" className="text-sm font-semibold text-text-primary">
+                  Mặt trước
+                </Label>
                 <select
                   id="gs-front-col"
-                  className="rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   value={frontColumn}
                   onChange={(e) => {
                     const next = Number(e.target.value);
@@ -638,16 +657,18 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
                 >
                   {meaningfulColumns.map((col) => (
                     <option key={col.index} value={col.index}>
-                      {col.name || `Cột ${columnIndexToLetters(col.index)}`}
+                      {col.name || columnIndexToLetters(col.index)}
                     </option>
                   ))}
                 </select>
               </div>
-              <div className="flex flex-1 flex-col gap-1">
-                <Label htmlFor="gs-back-col">Mặt sau</Label>
+              <div>
+                <Label htmlFor="gs-back-col" className="text-sm font-semibold text-text-primary">
+                  Mặt sau
+                </Label>
                 <select
                   id="gs-back-col"
-                  className="rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   value={backColumn}
                   onChange={(e) => {
                     const next = Number(e.target.value);
@@ -658,7 +679,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
                 >
                   {meaningfulColumns.map((col) => (
                     <option key={col.index} value={col.index}>
-                      {col.name || `Cột ${columnIndexToLetters(col.index)}`}
+                      {col.name || columnIndexToLetters(col.index)}
                     </option>
                   ))}
                 </select>

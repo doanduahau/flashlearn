@@ -32,7 +32,7 @@ export default async function CreateSetPage({
   const mascotLevel = await loadMascotLevel(supabase);
 
   return (
-    <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
+    <div className="mx-auto w-full max-w-4xl space-y-4 pb-20">
       <BackButton fallbackHref="/sets" />
       <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Tạo Flash card</h1>
 
@@ -44,6 +44,6 @@ export default async function CreateSetPage({
         {source === "file" ? <FileImport mascotLevel={mascotLevel} /> : null}
         {source === "manual" ? <ManualSetForm /> : null}
       </div>
-    </main>
+    </div>
   );
 }

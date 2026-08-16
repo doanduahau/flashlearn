@@ -28,7 +28,26 @@ export function ImportWizard({
   const [error, setError] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const sheet = sheets[sheetIndex];
-  const headers = sheet?.rows[0] ?? [];
+  const columnOptions = useMemo(() => {
+    if (!sheet?.rows || sheet.rows.length === 0) return [];
+    const headerRow = sheet.rows[0] ?? [];
+    const maxCols = Math.max(...sheet.rows.map((r) => r.length), headerRow.length);
+
+    const list: Array<{ index: number; label: string }> = [];
+    for (let colIdx = 0; colIdx < maxCols; colIdx += 1) {
+      const hasData = sheet.rows.some((row) => (row[colIdx] ?? "").trim().length > 0);
+      if (hasData) {
+        const headerText = headerRow[colIdx]?.trim();
+        const colLetter = columnIndexToLetters(colIdx);
+        list.push({
+          index: colIdx,
+          label: headerText || colLetter,
+        });
+      }
+    }
+    return list;
+  }, [sheet]);
+
   const hasSameColumns = Boolean(sheet) && frontColumn === backColumn;
   const summary = useMemo(() => {
     if (!sheet || frontColumn === backColumn) return null;
@@ -53,6 +72,7 @@ export function ImportWizard({
       initialFileRef.current = undefined;
     }
   }, []);
+
   function reset(): void {
     setSheets([]);
     setSheetIndex(0);
@@ -61,6 +81,7 @@ export function ImportWizard({
     setError("");
     if (inputRef.current) inputRef.current.value = "";
   }
+
   async function selectFile(file: File | undefined): Promise<void> {
     if (!file || parsingRef.current) return;
     const validation = validateImportFile(file);
@@ -85,11 +106,13 @@ export function ImportWizard({
       setIsParsing(false);
     }
   }
-  const options = headers.map((header, index) => (
-    <option key={index} value={index}>
-      {header.trim() || columnIndexToLetters(index)}
+
+  const options = columnOptions.map((col) => (
+    <option key={col.index} value={col.index}>
+      {col.label}
     </option>
   ));
+
   return (
     <div className="space-y-6">
       {!sheet ? (
@@ -137,15 +160,18 @@ export function ImportWizard({
         </section>
       ) : (
         <>
-          <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-border-soft bg-surface p-5">
-            <div className="min-w-48 flex-1">
-              <Label htmlFor="sheet">1. Trang tính</Label>
+          <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border-soft bg-surface p-4 sm:grid-cols-3 sm:p-5">
+            <div>
+              <Label htmlFor="sheet" className="text-sm font-semibold text-text-primary">
+                1. Trang tính
+              </Label>
               <select
                 id="sheet"
-                className="mt-1 w-full rounded-xl border p-2"
+                className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 value={sheetIndex}
                 onChange={(event) => {
-                  setSheetIndex(Number(event.target.value));
+                  const newIdx = Number(event.target.value);
+                  setSheetIndex(newIdx);
                   setFrontColumn(0);
                   setBackColumn(1);
                 }}
@@ -157,22 +183,26 @@ export function ImportWizard({
                 ))}
               </select>
             </div>
-            <div className="min-w-48 flex-1">
-              <Label htmlFor="front-column">2. Mặt trước</Label>
+            <div>
+              <Label htmlFor="front-column" className="text-sm font-semibold text-text-primary">
+                2. Mặt trước
+              </Label>
               <select
                 id="front-column"
-                className="mt-1 w-full rounded-xl border p-2"
+                className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 value={frontColumn}
                 onChange={(event) => setFrontColumn(Number(event.target.value))}
               >
                 {options}
               </select>
             </div>
-            <div className="min-w-48 flex-1">
-              <Label htmlFor="back-column">3. Mặt sau</Label>
+            <div>
+              <Label htmlFor="back-column" className="text-sm font-semibold text-text-primary">
+                3. Mặt sau
+              </Label>
               <select
                 id="back-column"
-                className="mt-1 w-full rounded-xl border p-2"
+                className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 value={backColumn}
                 onChange={(event) => setBackColumn(Number(event.target.value))}
               >

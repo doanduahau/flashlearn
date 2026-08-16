@@ -106,6 +106,25 @@ describe("ImportWizard", () => {
     expect(screen.getByText(/2 thẻ hợp lệ/)).toBeInTheDocument();
   });
 
+  it("filters out completely empty columns with no data in any row", async () => {
+    mocks.parseWorkbook.mockResolvedValue([
+      {
+        name: "Sheet 1",
+        rows: [
+          ["Col1", "Col2", "", "", ""],
+          ["Val1", "Val2", "", "", ""],
+          ["Val3", "Val4", "", "", ""],
+        ],
+      },
+    ]);
+    render(<ImportWizard mascotLevel={1} />);
+    await upload("empty-cols.csv");
+    await screen.findByLabelText(/^1\./);
+    const front = screen.getByLabelText(/^2\./);
+    const optionTexts = Array.from(front.querySelectorAll("option")).map((o) => o.textContent);
+    expect(optionTexts).toEqual(["Col1", "Col2"]);
+  });
+
   it("announces same-column mapping", async () => {
     render(<ImportWizard mascotLevel={1} />);
     const user = await upload("cards.csv");

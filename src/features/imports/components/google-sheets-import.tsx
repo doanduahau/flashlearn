@@ -29,6 +29,13 @@ import { Label } from "@/components/ui/label";
 
 const COLUMN_REANALYZE_DEBOUNCE_MS = 250;
 
+function buildMeaningfulColumns(headers: string[]): MeaningfulColumn[] {
+  return headers.map((name, index) => ({
+    index,
+    name: name.trim() || columnIndexToLetters(index),
+  }));
+}
+
 type SheetInfo = {
   spreadsheetTitle: string;
   sheets: Array<{ title: string; sheetId: number; index: number }>;
@@ -159,7 +166,8 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
 
     if (analysis.kind === "needs_mapping") {
       setFullCards(null);
-      setMeaningfulColumns(analysis.columns);
+      const columns = buildMeaningfulColumns(sheetData.headers);
+      setMeaningfulColumns(columns);
       setNeedsMapping(true);
       setSheetInfo({
         spreadsheetTitle: meta.spreadsheetTitle,
@@ -171,8 +179,8 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
         blank: 0,
         partial: 0,
         duplicate: 0,
-        frontColumn: analysis.columns[0]?.index ?? 0,
-        backColumn: analysis.columns[1]?.index ?? 1,
+        frontColumn: columns[0]?.index ?? 0,
+        backColumn: columns[1]?.index ?? 1,
       });
       setMode("loaded");
       return;
@@ -275,9 +283,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
     sheetTitleRef.current = sheetTitle;
     const detection = detectColumns(headers);
 
-    const meaningful = headers
-      .map((name, index) => ({ index, name: name.trim() }))
-      .filter((c) => c.name.length > 0);
+    const meaningful = buildMeaningfulColumns(headers);
     setMeaningfulColumns(meaningful);
 
     if (detection.kind === "mapped") {

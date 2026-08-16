@@ -81,6 +81,31 @@ describe("ImportWizard", () => {
     expect(screen.queryByRole("button", { name: /thêm thẻ/i })).not.toBeInTheDocument();
   });
 
+  it("labels columns without headers using A1 notation", async () => {
+    mocks.parseWorkbook.mockResolvedValue([
+      {
+        name: "Sheet 1",
+        rows: [
+          ["", "", "Fruit"],
+          ["x", "y", "Mango"],
+          ["a", "b", "Apple"],
+        ],
+      },
+    ]);
+    render(<ImportWizard mascotLevel={1} />);
+    await upload("no-header.csv");
+    await screen.findByLabelText(/^1\./);
+    const front = screen.getByLabelText(/^2\./);
+    const back = screen.getByLabelText(/^3\./);
+    const optionTexts = (select: HTMLElement) =>
+      Array.from(select.querySelectorAll("option")).map((o) => o.textContent);
+    expect(optionTexts(front)).toEqual(["A", "B", "Fruit"]);
+    expect(optionTexts(back)).toEqual(["A", "B", "Fruit"]);
+    await userEvent.selectOptions(front, "2");
+    await userEvent.selectOptions(back, "1");
+    expect(screen.getByText(/2 thẻ hợp lệ/)).toBeInTheDocument();
+  });
+
   it("announces same-column mapping", async () => {
     render(<ImportWizard mascotLevel={1} />);
     const user = await upload("cards.csv");

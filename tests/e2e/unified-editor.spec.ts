@@ -5,6 +5,7 @@ import { signUpAndConfirm, uniqueEmail } from "./support/auth-helpers";
 import { supabaseRest } from "./support/supabase-api";
 
 const IMPORT_CSV = path.join(__dirname, "..", "fixtures", "set-management.csv");
+const COLUMN_MAPPING_CSV = path.join(__dirname, "..", "fixtures", "column-mapping.csv");
 
 test.describe("Quick-create import (3G)", () => {
   test("Excel: file selection leads to the quick-create summary and creates the set", async ({
@@ -30,6 +31,35 @@ test.describe("Quick-create import (3G)", () => {
     // Navigate to the created set
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bộ đã sửa thẻ");
+  });
+
+  test("Excel: picking a non-header column for front/back updates the card count", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await signUpAndConfirm(page, uniqueEmail("editor_colmap"));
+
+    await page.goto("/sets/create?source=file");
+
+    const fileInput = page.locator('input[type="file"]');
+    await fileInput.setInputFiles(COLUMN_MAPPING_CSV);
+
+    await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Default mapping (front=0, back=1) yields 3 valid cards.
+    await expect(page.getByText("3 thẻ hợp lệ")).toBeVisible();
+
+    // Column 2 (index 1) has no header → labelled "B" via A1 notation.
+    await expect(page.getByLabel("2. Mặt trước")).toContainText("B");
+
+    // Pick column 3 (index 2) as front and column 2 (index 1) as back.
+    await page.getByLabel("2. Mặt trước").selectOption("2");
+    await page.getByLabel("3. Mặt sau").selectOption("1");
+
+    // The third data row has an empty front cell under this mapping → 2 valid cards.
+    await expect(page.getByText("2 thẻ hợp lệ")).toBeVisible();
   });
 
   test("Paste: summary appears after analysis and creates a set, zero Gemini", async ({ page }) => {

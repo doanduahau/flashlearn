@@ -11,6 +11,7 @@ import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { columnIndexToLetters } from "@/features/imports/utils/sheets-a1";
 import type { ParsedSheet } from "@/features/imports/types/import-types";
 
 export function ImportWizard({
@@ -86,7 +87,7 @@ export function ImportWizard({
   }
   const options = headers.map((header, index) => (
     <option key={index} value={index}>
-      {header.trim() || "Cột trống"} ({index + 1})
+      {header.trim() || columnIndexToLetters(index)}
     </option>
   ));
   return (

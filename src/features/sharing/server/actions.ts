@@ -87,7 +87,7 @@ export async function setClassroomEnabled(
 
 export async function cloneSharedSet(
   token: string,
-): Promise<{ setId: string } | { error: string }> {
+): Promise<{ setId: string; alreadyExists: boolean } | { error: string }> {
   const parsed = cloneSharedSetSchema.safeParse({ token });
   if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
 
@@ -108,5 +108,5 @@ export async function cloneSharedSet(
   revalidatePath("/sets");
   revalidatePath("/sets/library");
 
-  return { setId: data[0].new_set_id };
+  return { setId: data[0].new_set_id, alreadyExists: data[0].already_exists ?? false };
 }

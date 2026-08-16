@@ -88,6 +88,19 @@ test.describe("Shared set cloning", () => {
     expect(membership).toHaveLength(1);
     expect((membership[0] as { clone_set_id: string }).clone_set_id).toBe(cloneId);
 
+    // Joining again lands on the same clone instead of creating a second copy.
+    await page.goto(`/share/${classroomToken}`);
+    await page.getByRole("button", { name: "Tham gia lớp học" }).click();
+    await expect(page).toHaveURL(new RegExp(`/sets/${cloneId}$`));
+
+    const membershipAfter = await (
+      await localSupabaseAdminRest(
+        `shared_set_memberships?select=set_id,clone_set_id&set_id=eq.${sourceSetId}`,
+      )
+    ).json();
+    expect(membershipAfter).toHaveLength(1);
+    expect((membershipAfter[0] as { clone_set_id: string }).clone_set_id).toBe(cloneId);
+
     await context.close();
   });
 
@@ -102,6 +115,7 @@ test.describe("Shared set cloning", () => {
 
     await page.getByRole("button", { name: "Lưu vào bộ của tôi" }).click();
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
+    const cloneId = new URL(page.url()).pathname.split("/").pop() ?? "";
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(PLAIN_SET_NAME);
     await expect(page.getByText("Xin chào")).toBeVisible();
@@ -118,6 +132,13 @@ test.describe("Shared set cloning", () => {
       )
     ).json();
     expect(membership).toHaveLength(0);
+
+    // Saving again shows an already-saved notice with a link to the first copy.
+    await page.goto(`/share/${plainToken}`);
+    await page.getByRole("button", { name: "Lưu vào bộ của tôi" }).click();
+    await expect(page.getByText("Bạn đã lưu bộ này.")).toBeVisible();
+    await page.getByRole("link", { name: "Mở bộ flashcard của bạn" }).click();
+    await expect(page).toHaveURL(new RegExp(`/sets/${cloneId}$`));
 
     await context.close();
   });

@@ -21,7 +21,7 @@ describe("CloneSetButton", () => {
   beforeEach(() => {
     mocks.cloneSharedSet.mockReset();
     mocks.push.mockReset();
-    mocks.cloneSharedSet.mockResolvedValue({ setId: SET_ID });
+    mocks.cloneSharedSet.mockResolvedValue({ setId: SET_ID, alreadyExists: false });
   });
 
   it("links to sign-in with a next param for anonymous visitors", () => {
@@ -52,7 +52,7 @@ describe("CloneSetButton", () => {
 
   it("disables the button while saving", async () => {
     const user = userEvent.setup();
-    let resolve: (value: { setId: string }) => void = () => {};
+    let resolve: (value: { setId: string; alreadyExists: boolean }) => void = () => {};
     mocks.cloneSharedSet.mockReturnValue(
       new Promise((res) => {
         resolve = res;
@@ -63,8 +63,30 @@ describe("CloneSetButton", () => {
     await user.click(screen.getByRole("button", { name: "Tham gia lớp học" }));
     expect(screen.getByRole("button", { name: "Đang lưu…" })).toBeDisabled();
 
-    resolve({ setId: SET_ID });
+    resolve({ setId: SET_ID, alreadyExists: false });
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(`/sets/${SET_ID}`));
+  });
+
+  it("navigates straight to the existing clone when already in the classroom", async () => {
+    mocks.cloneSharedSet.mockResolvedValue({ setId: SET_ID, alreadyExists: true });
+    const user = userEvent.setup();
+    render(<CloneSetButton token={TOKEN} isAuthenticated={true} isClassroom={true} />);
+
+    await user.click(screen.getByRole("button", { name: "Tham gia lớp học" }));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(`/sets/${SET_ID}`));
+    expect(screen.queryByText("Bạn đã lưu bộ này.")).not.toBeInTheDocument();
+  });
+
+  it("shows an already-saved notice with a link for a plain link instead of cloning again", async () => {
+    mocks.cloneSharedSet.mockResolvedValue({ setId: SET_ID, alreadyExists: true });
+    const user = userEvent.setup();
+    render(<CloneSetButton token={TOKEN} isAuthenticated={true} isClassroom={false} />);
+
+    await user.click(screen.getByRole("button", { name: "Lưu vào bộ của tôi" }));
+    await waitFor(() => expect(screen.getByText("Bạn đã lưu bộ này.")).toBeInTheDocument());
+    const link = screen.getByRole("link", { name: "Mở bộ flashcard của bạn" });
+    expect(link).toHaveAttribute("href", `/sets/${SET_ID}`);
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 
   it("shows an inline error and does not navigate when cloning fails", async () => {

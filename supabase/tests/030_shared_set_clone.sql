@@ -1,5 +1,5 @@
 begin;
-select plan(26);
+select plan(34);
 
 -- ---------------------------------------------------------------------------
 -- Setup: users A (owner) and B (clone recipient); a shared set with 3 cards
@@ -171,6 +171,33 @@ select is(
   'cloning does not alter the source set'
 );
 
+-- Dedupe (plain link): the clone records its source, and a second save
+-- returns the existing clone instead of creating a copy.
+select is(
+  (select source_share_token from public.flashcard_sets where id = current_setting('share.clone_id')::uuid),
+  current_setting('share.token_a'),
+  'clone records the source share token'
+);
+select set_config('share.reclone_plain', (
+  select new_set_id::text
+  from public.clone_shared_set(current_setting('share.token_a'), 'bbbbbbbb-4444-4444-4444-444444444444')
+), false);
+select is(
+  current_setting('share.reclone_plain'),
+  current_setting('share.clone_id'),
+  'plain re-save returns the existing clone'
+);
+select is(
+  (select already_exists from public.clone_shared_set(current_setting('share.token_a'), 'bbbbbbbb-4444-4444-4444-444444444444')),
+  true,
+  'plain re-save reports already_exists'
+);
+select is(
+  (select count(*)::integer from public.flashcard_sets where user_id = 'bbbbbbbb-4444-4444-4444-444444444444'),
+  1,
+  'plain re-save creates no second copy'
+);
+
 -- Isolation: B reads through the token but still cannot touch A's tables.
 set local role authenticated; set local request.jwt.claim.sub = 'bbbbbbbb-4444-4444-4444-444444444444';
 select is(
@@ -207,22 +234,44 @@ select is(
   'membership points at the newest clone'
 );
 
--- Re-clone: still one row, clone_set_id refreshed.
-select set_config('share.clone_id_3', (
+select is(
+  (select source_share_token from public.flashcard_sets where id = current_setting('share.clone_id_2')::uuid),
+  current_setting('share.token_a'),
+  'classroom clone records the source share token'
+);
+
+-- Re-clone (classroom): the student already joined → the same clone is
+-- returned, no new copy is created and the membership is not re-pointed.
+select set_config('share.reclone', (
   select new_set_id::text
   from public.clone_shared_set(current_setting('share.token_a'), 'bbbbbbbb-4444-4444-4444-444444444444')
 ), false);
 select is(
+  current_setting('share.reclone'),
+  current_setting('share.clone_id_2'),
+  're-join returns the existing classroom clone'
+);
+select is(
+  (select already_exists from public.clone_shared_set(current_setting('share.token_a'), 'bbbbbbbb-4444-4444-4444-444444444444')),
+  true,
+  're-join reports already_exists'
+);
+select is(
   (select count(*)::integer from public.shared_set_memberships
    where member_user_id = 'bbbbbbbb-4444-4444-4444-444444444444'),
   1,
-  're-clone upserts instead of duplicating the membership'
+  're-join keeps a single membership'
 );
 select is(
   (select clone_set_id::text from public.shared_set_memberships
    where set_id = 'a1a1a1a1-5555-5555-5555-555555555555' and member_user_id = 'bbbbbbbb-4444-4444-4444-444444444444'),
-  current_setting('share.clone_id_3'),
-  're-clone refreshes clone_set_id to the latest snapshot'
+  current_setting('share.clone_id_2'),
+  're-join does not re-point the membership'
+);
+select is(
+  (select count(*)::integer from public.flashcard_sets where user_id = 'bbbbbbbb-4444-4444-4444-444444444444'),
+  2,
+  're-join creates no second set copy'
 );
 
 -- The original set is still untouched after classroom clones.

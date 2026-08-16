@@ -711,6 +711,7 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: {
           new_set_id: string
+          already_exists: boolean
         }[]
       }
       complete_learning_coverage_session: {

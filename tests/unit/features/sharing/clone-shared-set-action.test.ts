@@ -52,18 +52,34 @@ describe("cloneSharedSet", () => {
   it("clones through the admin RPC and revalidates the set lists on success", async () => {
     setupAuthenticated();
     const admin = {
-      rpc: vi.fn().mockResolvedValue({ data: [{ new_set_id: SET_ID }], error: null }),
+      rpc: vi
+        .fn()
+        .mockResolvedValue({ data: [{ new_set_id: SET_ID, already_exists: false }], error: null }),
     };
     mocks.createAdminClient.mockReturnValue(admin);
 
     const result = await cloneSharedSet(TOKEN);
-    expect(result).toEqual({ setId: SET_ID });
+    expect(result).toEqual({ setId: SET_ID, alreadyExists: false });
     expect(admin.rpc).toHaveBeenCalledWith("clone_shared_set", {
       p_token: TOKEN,
       p_user_id: "user-a",
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/sets");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/sets/library");
+  });
+
+  it("surfaces alreadyExists when the RPC returns an existing clone", async () => {
+    setupAuthenticated();
+    const admin = {
+      rpc: vi
+        .fn()
+        .mockResolvedValue({ data: [{ new_set_id: SET_ID, already_exists: true }], error: null }),
+    };
+    mocks.createAdminClient.mockReturnValue(admin);
+
+    const result = await cloneSharedSet(TOKEN);
+    expect(result).toEqual({ setId: SET_ID, alreadyExists: true });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/sets");
   });
 
   it("returns a generic error when the RPC fails", async () => {

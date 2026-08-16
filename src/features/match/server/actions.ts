@@ -2,7 +2,7 @@
 
 import { randomInt } from "node:crypto";
 
-import { matchStartSchema } from "@/features/match/schemas/match-schema";
+import { matchStartSchema, saveMatchAttemptSchema } from "@/features/match/schemas/match-schema";
 import type { MatchCard, StartedMatchSession } from "@/features/match/types/match-types";
 import {
   buildMatchSession,
@@ -118,6 +118,38 @@ export async function startMatchCoverageSession(
     };
   } catch {
     return { ok: false, error: "Không thể tạo phiên Match lúc này." };
+  }
+}
+
+export type SaveMatchAttemptResult = { ok: true } | { ok: false; error: string };
+
+export async function saveMatchAttempt(input: unknown): Promise<SaveMatchAttemptResult> {
+  const parsed = saveMatchAttemptSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ." };
+
+  const supabase = await createClient();
+  const userId = await authenticatedUserId(supabase);
+  if (!userId) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.rpc("save_match_attempt", {
+      p_user_id: userId,
+      p_source_set_ids: parsed.data.sourceSetIds,
+      p_source_collection_ids: parsed.data.sourceCollectionIds,
+      p_source_all: parsed.data.sourceAll,
+      p_total_pairs: parsed.data.totalPairs,
+      p_correct_pair_count: parsed.data.correctPairs,
+      p_incorrect_attempt_count: parsed.data.incorrectAttempts,
+      p_elapsed_ms: parsed.data.elapsedMs,
+    });
+    if (error || typeof data !== "string" || data.length === 0) {
+      return { ok: false, error: "Không thể lưu kết quả lúc này." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Không thể lưu kết quả lúc này." };
   }
 }
 

@@ -1,13 +1,15 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { startMatchCoverageSession, completeLearningCoverageSession, router } = vi.hoisted(() => ({
-  startMatchCoverageSession: vi.fn(),
-  completeLearningCoverageSession: vi.fn(),
-  router: { push: vi.fn(), back: vi.fn(), refresh: vi.fn() },
-}));
+const { startMatchCoverageSession, completeLearningCoverageSession, saveMatchAttempt, router } =
+  vi.hoisted(() => ({
+    startMatchCoverageSession: vi.fn(),
+    completeLearningCoverageSession: vi.fn(),
+    saveMatchAttempt: vi.fn(),
+    router: { push: vi.fn(), back: vi.fn(), refresh: vi.fn() },
+  }));
 
-vi.mock("@/features/match/server/actions", () => ({ startMatchCoverageSession }));
+vi.mock("@/features/match/server/actions", () => ({ startMatchCoverageSession, saveMatchAttempt }));
 vi.mock("@/features/practice-coverage/server/actions", () => ({ completeLearningCoverageSession }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
@@ -38,10 +40,12 @@ describe("MatchSession visibility pause", () => {
   beforeEach(() => {
     startMatchCoverageSession.mockReset();
     completeLearningCoverageSession.mockReset();
+    saveMatchAttempt.mockReset();
     router.push.mockReset();
     router.back.mockReset();
     startMatchCoverageSession.mockResolvedValue({ ok: true, session });
     completeLearningCoverageSession.mockResolvedValue({ ok: true });
+    saveMatchAttempt.mockResolvedValue({ ok: true });
   });
 
   afterEach(() => {

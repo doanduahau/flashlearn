@@ -351,6 +351,48 @@ export type Database = {
           },
         ]
       }
+      match_attempts: {
+        Row: {
+          completed_at: string | null
+          correct_pair_count: number
+          elapsed_ms: number
+          id: string
+          incorrect_attempt_count: number
+          source_all: boolean
+          source_collection_ids: string[]
+          source_set_ids: string[]
+          started_at: string
+          total_pairs: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          correct_pair_count: number
+          elapsed_ms: number
+          id?: string
+          incorrect_attempt_count: number
+          source_all?: boolean
+          source_collection_ids?: string[]
+          source_set_ids?: string[]
+          started_at?: string
+          total_pairs: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          correct_pair_count?: number
+          elapsed_ms?: number
+          id?: string
+          incorrect_attempt_count?: number
+          source_all?: boolean
+          source_collection_ids?: string[]
+          source_set_ids?: string[]
+          started_at?: string
+          total_pairs?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -804,6 +846,19 @@ export type Database = {
       revoke_set_share_token: {
         Args: { p_set_id: string; p_user_id: string }
         Returns: undefined
+      }
+      save_match_attempt: {
+        Args: {
+          p_correct_pair_count: number
+          p_elapsed_ms: number
+          p_incorrect_attempt_count: number
+          p_source_all: boolean
+          p_source_collection_ids: string[]
+          p_source_set_ids: string[]
+          p_total_pairs: number
+          p_user_id: string
+        }
+        Returns: string
       }
       set_card_collections: {
         Args: { p_card_id: string; p_collection_ids: string[] }

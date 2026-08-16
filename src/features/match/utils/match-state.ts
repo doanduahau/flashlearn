@@ -9,6 +9,7 @@ export type MatchState = {
   selectedBackId: string | null;
   lastResult: "none" | "correct" | "incorrect";
   completedPairCount: number;
+  incorrectAttemptCount: number;
   matchedFrontIds: Set<string>;
   matchedBackIds: Set<string>;
 };
@@ -23,6 +24,7 @@ export function createMatchState(batches: MatchBatch[]): MatchState {
     selectedBackId: null,
     lastResult: "none",
     completedPairCount: 0,
+    incorrectAttemptCount: 0,
     matchedFrontIds: new Set(),
     matchedBackIds: new Set(),
   };
@@ -34,6 +36,10 @@ export function currentBatch(state: MatchState): MatchBatch {
 
 export function completedCount(state: MatchState): number {
   return state.completedPairCount;
+}
+
+export function incorrectAttemptCountOf(state: MatchState): number {
+  return state.incorrectAttemptCount;
 }
 
 export function isPairMatched(state: MatchState, frontId: string, backId: string): boolean {
@@ -111,6 +117,8 @@ function resolvePair(state: MatchState, frontId: string, backId: string): MatchS
     if (state.matchedFrontIds.size === batch.fronts.length) {
       return advanceBatch(state);
     }
+  } else {
+    state.incorrectAttemptCount = state.incorrectAttemptCount + 1;
   }
 
   return state;

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { MatchBatch, MatchCard } from "@/features/match/types/match-types";
-import { createMatchState, phaseOf, selectCard } from "@/features/match/utils/match-state";
+import {
+  createMatchState,
+  incorrectAttemptCountOf,
+  phaseOf,
+  selectCard,
+} from "@/features/match/utils/match-state";
 
 function card(id: string): MatchCard {
   return { id, front: `front-${id}`, back: `back-${id}` };
@@ -62,12 +67,47 @@ describe("match state machine", () => {
     const frontFirst = selectCard(selectCard(state, "front", "a"), "back", "b");
     expect(frontFirst.lastResult).toBe("incorrect");
     expect(frontFirst.matchedFrontIds.size).toBe(0);
+    expect(frontFirst.incorrectAttemptCount).toBe(1);
 
     const backFirst = selectCard(selectCard(state, "back", "b"), "front", "a");
     expect(backFirst.lastResult).toBe("incorrect");
     expect(backFirst.matchedFrontIds.size).toBe(0);
     expect(backFirst.selectedFrontId).toBeNull();
     expect(backFirst.selectedBackId).toBeNull();
+    expect(backFirst.incorrectAttemptCount).toBe(1);
+  });
+
+  it("counts each incorrect attempt across the whole session without resetting per batch", () => {
+    const batch1 = makeBatch(["a", "b", "c", "d", "e", "f"]);
+    const batch2 = makeBatch(["g", "h", "i", "j", "k", "l"]);
+    let state = createMatchState([batch1, batch2]);
+    expect(incorrectAttemptCountOf(state)).toBe(0);
+
+    state = selectCard(selectCard(state, "front", "a"), "back", "b");
+    state = selectCard(selectCard(state, "front", "c"), "back", "d");
+    expect(incorrectAttemptCountOf(state)).toBe(2);
+
+    // Completing the first batch advances but keeps the incorrect count.
+    for (const id of ["a", "b", "c", "d", "e", "f"]) {
+      state = selectCard(state, "front", id);
+      state = selectCard(state, "back", id);
+    }
+    expect(state.currentBatchIndex).toBe(1);
+    expect(incorrectAttemptCountOf(state)).toBe(2);
+
+    state = selectCard(selectCard(state, "front", "g"), "back", "g");
+    expect(incorrectAttemptCountOf(state)).toBe(2);
+  });
+
+  it("does not count correct pairs as incorrect attempts", () => {
+    const batch = makeBatch(["a", "b", "c", "d", "e", "f"]);
+    let state = createMatchState([batch]);
+    for (const id of ["a", "b", "c", "d", "e", "f"]) {
+      state = selectCard(state, "front", id);
+      state = selectCard(state, "back", id);
+    }
+    expect(incorrectAttemptCountOf(state)).toBe(0);
+    expect(state.completedPairCount).toBe(6);
   });
 
   it("toggles off when re-selecting a Front already selected with no Back pending", () => {

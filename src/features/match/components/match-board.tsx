@@ -14,11 +14,16 @@ import {
 import { getMatchLabelTextSize } from "@/features/match/utils/match-label-size";
 import { cn } from "@/lib/utils";
 
+export type MatchCompletionStats = {
+  correctPairs: number;
+  incorrectAttempts: number;
+};
+
 type MatchBoardProps = {
   batches: MatchBatch[];
   questionCount: number;
   isPaused?: boolean;
-  onComplete: () => Promise<void>;
+  onComplete: (stats: MatchCompletionStats) => Promise<void>;
 };
 
 export function MatchBoard({ batches, questionCount, isPaused, onComplete }: MatchBoardProps) {
@@ -30,9 +35,12 @@ export function MatchBoard({ batches, questionCount, isPaused, onComplete }: Mat
   useEffect(() => {
     if (phase === "completed" && !completionNotifiedRef.current) {
       completionNotifiedRef.current = true;
-      void onComplete();
+      void onComplete({
+        correctPairs: state.completedPairCount,
+        incorrectAttempts: state.incorrectAttemptCount,
+      });
     }
-  }, [phase, onComplete, batches]);
+  }, [phase, onComplete, state.completedPairCount, state.incorrectAttemptCount, batches]);
 
   if (phase === "completed") {
     return null;

@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
-import { MatchBoard } from "@/features/match/components/match-board";
-import { startMatchCoverageSession } from "@/features/match/server/actions";
+import { MatchBoard, type MatchCompletionStats } from "@/features/match/components/match-board";
+import { saveMatchAttempt, startMatchCoverageSession } from "@/features/match/server/actions";
 import type { MatchQuestionCount, StartedMatchSession } from "@/features/match/types/match-types";
 import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
 
@@ -41,18 +41,32 @@ export function MatchSession({
   const [session, setSession] = useState<StartedMatchSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completionError, setCompletionError] = useState<string | null>(null);
+  const [matchSaveError, setMatchSaveError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const completingRef = useRef(false);
+  const startedAtRef = useRef(0);
+  const lastSaveInputRef = useRef<{
+    sourceSetIds: string[];
+    sourceCollectionIds: string[];
+    sourceAll: boolean;
+    totalPairs: number;
+    correctPairs: number;
+    incorrectAttempts: number;
+    elapsedMs: number;
+  } | null>(null);
   const { isPaused, resume } = useVisibilityPause();
 
   const loadSession = useCallback(async () => {
     setSession(null);
     setError(null);
     setCompletionError(null);
+    setMatchSaveError(null);
     const result = await startMatchCoverageSession(sourceFromHref(sessionHref, questionCount));
     if (!result.ok) {
       setCompletionError(result.error);
       return;
     }
+    startedAtRef.current = Date.now();
     setSession(result.session);
   }, [questionCount, sessionHref]);
 
@@ -64,6 +78,7 @@ export function MatchSession({
         setError(result.error);
         return;
       }
+      startedAtRef.current = Date.now();
       setSession(result.session);
     });
     return () => {
@@ -71,14 +86,51 @@ export function MatchSession({
     };
   }, [questionCount, sessionHref]);
 
-  async function handleComplete(): Promise<void> {
-    if (!session) return;
-    const result = await completeLearningCoverageSession(session.coverageSessionId);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+  async function handleComplete(stats: MatchCompletionStats): Promise<void> {
+    if (!session || completingRef.current) return;
+    completingRef.current = true;
+    try {
+      const coverage = await completeLearningCoverageSession(session.coverageSessionId);
+      if (!coverage.ok) {
+        setError(coverage.error);
+        return;
+      }
+      const source = sourceFromHref(sessionHref, questionCount);
+      const input = {
+        sourceSetIds: source.setIds,
+        sourceCollectionIds: source.collectionIds,
+        sourceAll: source.all,
+        totalPairs: questionCount,
+        correctPairs: stats.correctPairs,
+        incorrectAttempts: stats.incorrectAttempts,
+        elapsedMs: Math.max(0, Date.now() - startedAtRef.current),
+      };
+      lastSaveInputRef.current = input;
+      const save = await saveMatchAttempt(input);
+      if (!save.ok) {
+        setMatchSaveError(save.error);
+      } else {
+        setMatchSaveError(null);
+      }
+      setDone(true);
+    } finally {
+      completingRef.current = false;
     }
-    setDone(true);
+  }
+
+  async function retrySaveMatch(): Promise<void> {
+    if (completingRef.current || !lastSaveInputRef.current) return;
+    completingRef.current = true;
+    try {
+      const save = await saveMatchAttempt(lastSaveInputRef.current);
+      if (!save.ok) {
+        setMatchSaveError(save.error);
+      } else {
+        setMatchSaveError(null);
+      }
+    } finally {
+      completingRef.current = false;
+    }
   }
 
   function replay(): void {
@@ -117,6 +169,17 @@ export function MatchSession({
         <h2 className="text-xl font-bold sm:text-2xl">
           Hoàn thành {questionCount}/{questionCount}
         </h2>
+        {matchSaveError ? (
+          <div
+            role="alert"
+            className="flex flex-col gap-2 rounded-2xl border border-border-soft bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="text-sm text-danger">{matchSaveError}</p>
+            <Button type="button" variant="outline" onClick={() => void retrySaveMatch()}>
+              Thử lại lưu kết quả
+            </Button>
+          </div>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Button type="button" onClick={replay}>
             Chơi lại
@@ -136,7 +199,7 @@ export function MatchSession({
           {completionError}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={() => void handleComplete()}>
+          <Button type="button" onClick={() => void loadSession()}>
             Thử lại
           </Button>
           <BackButton fallbackHref="/quiz/mode" />

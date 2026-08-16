@@ -277,7 +277,6 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
   async function loadValues(
     meta: SheetMetaLike,
     sheetTitle: string,
-    sheetId: number,
     columns: number[],
     preferredMapping?: { frontColumn: number; backColumn: number },
   ): Promise<void> {
@@ -291,19 +290,12 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
     try {
       let result;
       if (isPublicFlow) {
-        result = await fetchPublicSheetValues(
-          spreadsheetId,
-          sheetTitle,
-          config.apiKey,
-          columns,
-          sheetId,
-        );
+        result = await fetchPublicSheetValues(spreadsheetId, sheetTitle, config.apiKey, columns);
       } else {
         result = await loadPrivateSheetValues({
           spreadsheetId,
           accessToken,
           sheetTitle,
-          sheetId,
           columns,
         });
       }
@@ -371,7 +363,6 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
     await loadValues(
       meta,
       sheetTitleRef.current || sheetInfo.sheets[selectedSheetIndex]?.title || "",
-      sheetInfo.sheets[selectedSheetIndex]?.sheetId ?? -1,
       colsToFetch,
       preferredMapping,
     );
@@ -475,7 +466,6 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
         spreadsheetId,
         accessToken,
         sheetTitle: sheet.title,
-        sheetId: sheet.sheetId,
       });
       if (result.kind === "error" || result.kind === "auth_required") {
         setError(sheetErrorMessage(result));

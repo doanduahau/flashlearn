@@ -157,7 +157,6 @@ describe("fetchPublicSheetValues — adaptive column body", () => {
       "Sheet1",
       MOCK_API_KEY,
       [1, 2],
-      0,
     );
 
     expect(result.kind).toBe("success");
@@ -173,7 +172,6 @@ describe("fetchPublicSheetValues — adaptive column body", () => {
       "Sheet1",
       MOCK_API_KEY,
       [],
-      0,
     );
     expect(result.kind).toBe("error");
   });
@@ -184,7 +182,6 @@ describe("fetchPublicSheetValues — adaptive column body", () => {
       "Sheet1",
       MOCK_API_KEY,
       Array.from({ length: 27 }, (_, i) => i),
-      0,
     );
     expect(result.kind).toBe("error");
   });
@@ -199,61 +196,11 @@ describe("fetchPublicSheetValues — adaptive column body", () => {
       "Sheet1",
       MOCK_API_KEY,
       [0, 1],
-      0,
     );
     expect(result.kind).toBe("error");
     if (result.kind === "error") {
       expect(result.status).toBe(400);
       expect(result.detail).toContain("exceeds grid limits");
-    }
-  });
-
-  it("falls back to grid data for tab names Google cannot parse in ranges", async () => {
-    const calls: string[] = [];
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockImplementation(async (url: string) => {
-        calls.push(String(url));
-        if (String(url).includes("includeGridData")) {
-          return {
-            status: 200,
-            json: async () => ({
-              sheets: [
-                {
-                  properties: { sheetId: 7 },
-                  data: [
-                    {
-                      rowData: [
-                        { values: [{ userEnteredValue: { stringValue: "Câu hỏi" } }] },
-                        { values: [{ userEnteredValue: { stringValue: "A1" } }] },
-                        { values: [{ userEnteredValue: { stringValue: "A2" } }] },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            }),
-          };
-        }
-        return { status: 200, json: async () => ({ valueRanges: [] }) };
-      }),
-    );
-
-    const result = await fetchPublicSheetValues(
-      "abc123abc123abc123abc123abc123abc12",
-      "| [cite_start]ビル [cite_start]| building | Tòa nhà |",
-      MOCK_API_KEY,
-      [0],
-      7,
-    );
-
-    expect(result.kind).toBe("success");
-    expect(calls.some((u) => u.includes("includeGridData"))).toBe(true);
-    expect(calls.some((u) => u.includes(":batchGet"))).toBe(false);
-    if (result.kind === "success") {
-      // Mirrors parseColumnBodies: row 2 is the header row, data starts at row 3.
-      expect(result.sheetData.headers).toEqual(["A1"]);
-      expect(result.sheetData.rows).toEqual([["A2"]]);
     }
   });
 });

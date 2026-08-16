@@ -140,7 +140,6 @@ describe("loadPrivateSheetValues — adaptive column body", () => {
       spreadsheetId: "abc123abc123abc123abc123abc123abc12",
       accessToken: "token-123",
       sheetTitle: "Sheet1",
-      sheetId: 0,
       columns: [1, 2],
     });
 
@@ -160,7 +159,6 @@ describe("loadPrivateSheetValues — adaptive column body", () => {
       spreadsheetId: "abc123abc123abc123abc123abc123abc12",
       accessToken: "token-123",
       sheetTitle: "Sheet1",
-      sheetId: 0,
       columns: [1, 2],
     });
 
@@ -176,7 +174,6 @@ describe("loadPrivateSheetValues — adaptive column body", () => {
       spreadsheetId: "abc123abc123abc123abc123abc123abc12",
       accessToken: "token-123",
       sheetTitle: "Sheet1",
-      sheetId: 0,
       columns: [],
     });
     expect(result.kind).toBe("error");
@@ -188,7 +185,6 @@ describe("loadPrivateSheetValues — adaptive column body", () => {
       spreadsheetId: "abc123abc123abc123abc123abc123abc12",
       accessToken: "token-123",
       sheetTitle: "Sheet1",
-      sheetId: 0,
       columns: Array.from({ length: 27 }, (_, i) => i),
     });
     expect(result.kind).toBe("error");
@@ -207,63 +203,12 @@ describe("loadPrivateSheetValues — adaptive column body", () => {
       spreadsheetId: "abc123abc123abc123abc123abc123abc12",
       accessToken: "token-123",
       sheetTitle: "Sheet1",
-      sheetId: 0,
       columns: [1, 2],
     });
     expect(result.kind).toBe("error");
     if (result.kind === "error") {
       expect(result.status).toBe(429);
       expect(result.detail).toContain("Quota exceeded");
-    }
-  });
-
-  it("falls back to grid data for tab names Google cannot parse in ranges", async () => {
-    mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
-    const calls: string[] = [];
-    mocks.fetch.mockImplementation(async (url: string) => {
-      calls.push(String(url));
-      if (String(url).includes("includeGridData")) {
-        return {
-          status: 200,
-          ok: true,
-          json: async () => ({
-            sheets: [
-              {
-                properties: { sheetId: 9 },
-                data: [
-                  {
-                    rowData: [
-                      { values: [{ userEnteredValue: { stringValue: "Front" } }] },
-                      { values: [{ userEnteredValue: { stringValue: "x1" } }] },
-                      { values: [{ userEnteredValue: { stringValue: "x2" } }] },
-                      { values: [{ userEnteredValue: { stringValue: "x3" } }] },
-                    ],
-                  },
-                ],
-              },
-            ],
-          }),
-        };
-      }
-      return { status: 200, ok: true, json: async () => ({ valueRanges: [] }) };
-    });
-    vi.stubGlobal("fetch", mocks.fetch);
-
-    const result = await loadPrivateSheetValues({
-      spreadsheetId: "abc123abc123abc123abc123abc123abc12",
-      accessToken: "token-123",
-      sheetTitle: "| [cite_start]ビル [cite_start]| building | Tòa nhà |",
-      sheetId: 9,
-      columns: [0],
-    });
-
-    expect(result.kind).toBe("success");
-    expect(calls.some((u) => u.includes("includeGridData"))).toBe(true);
-    expect(calls.some((u) => u.includes(":batchGet"))).toBe(false);
-    if (result.kind === "success") {
-      // Mirrors parseColumnBodies: row 2 is the header row, data starts at row 3.
-      expect(result.sheetData.headers).toEqual(["x1"]);
-      expect(result.sheetData.rows).toEqual([["x2"], ["x3"]]);
     }
   });
 

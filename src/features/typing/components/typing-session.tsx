@@ -311,7 +311,6 @@ export function TypingSession({
       <div className="mb-4 flex items-center justify-start">
         <SessionExitButton fallbackHref={exitHref} />
       </div>
-
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-text-secondary">
           Câu {currentIndex + 1} / {session.cards.length}
@@ -325,14 +324,12 @@ export function TypingSession({
           />
         </div>
       </div>
-
       <div className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-border-soft bg-surface p-6 text-center shadow-soft">
         <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Câu hỏi</p>
         <p className="mt-3 whitespace-pre-wrap text-xl font-semibold leading-relaxed sm:text-2xl">
           {card.front}
         </p>
       </div>
-
       <label className="mt-6 block">
         <span className="text-sm font-medium text-text-secondary">Đáp án của bạn</span>
         <textarea
@@ -349,17 +346,15 @@ export function TypingSession({
           aria-label={`Đáp án cho câu ${currentIndex + 1}`}
           className="mt-2 w-full rounded-2xl border border-border-soft bg-surface p-4 text-base outline-none transition-colors placeholder:text-text-secondary/60 focus:border-primary"
         />
-      </label>
-
-      <div className="mt-6 flex items-center gap-3">
+      </label>{" "}
+      <div className="mt-6 grid grid-cols-2 gap-3">
         <Button type="button" variant="soft" onClick={goPrevious} disabled={isFirst}>
           Câu trước
         </Button>
-        <Button type="button" variant="soft" onClick={goNext} disabled={isLast} className="flex-1">
+        <Button type="button" variant="soft" onClick={goNext} disabled={isLast}>
           Câu sau
         </Button>
       </div>
-
       <div className="mt-4">
         <Button type="button" onClick={handleSubmitClick} disabled={pending} className="w-full">
           {pending ? "Đang chấm điểm…" : "Nộp bài"}
@@ -371,7 +366,6 @@ export function TypingSession({
           </p>
         ) : null}
       </div>
-
       {isPaused ? <PauseOverlay onResume={resume} /> : null}
     </>
   );

@@ -80,11 +80,19 @@ export function StudySession({
     (direction: "next" | "prev", steps: number) => {
       if (steps <= 0) return;
       const now = Date.now();
-      if (now - lastSwipeRef.current < 250) return;
+      if (now - lastSwipeRef.current < steps * 130 + 100) return;
       lastSwipeRef.current = now;
       setIsFlipped(false);
-      const delta = direction === "next" ? steps : -steps;
-      setCurrentIndex((index) => (index + delta + total * 1000) % total);
+
+      const stepDelay = 130;
+      for (let i = 0; i < steps; i++) {
+        setTimeout(() => {
+          setCurrentIndex((index) => {
+            const delta = direction === "next" ? 1 : -1;
+            return (index + delta + total * 1000) % total;
+          });
+        }, i * stepDelay);
+      }
     },
     [total],
   );

@@ -12,13 +12,15 @@ const CHARACTER_WIDTH = 100;
 const CHARACTER_HEIGHT = 120;
 const CHARACTER_POSITION_RATIO = 0.3;
 const BOTTOM_MARGIN = 24;
-const FOOD_SIZE = 28;
+const FOOD_SIZE = 32;
 const SKY_HEIGHT = 135;
 const JUMP_VELOCITY = 0.75;
 const GRAVITY = 0.0018;
 const MAX_DELTA_MS = 50;
 const BURST_MS = 300;
 const CHARACTER_STATE_MS = 600;
+
+const FRUIT_EMOJIS = ["🍌", "🍊", "🍎"] as const;
 
 type Burst = { kind: "correct" | "wrong"; x: number; y: number; until: number };
 
@@ -103,13 +105,14 @@ export function RunnerCanvas({
       context.lineTo(cssWidth, gy);
       context.stroke();
 
-      // Food in the sky.
+      // Food in the sky (Fruit: 🍌 Chuối, 🍊 Cam, 🍎 Táo).
       const foodY = gy - CHARACTER_HEIGHT - SKY_HEIGHT;
       if (foodX >= -FOOD_SIZE && state.status !== "ready") {
-        context.fillStyle = "#f3a66a";
-        context.beginPath();
-        context.arc(foodX + FOOD_SIZE / 2, foodY + FOOD_SIZE / 2, FOOD_SIZE / 2, 0, Math.PI * 2);
-        context.fill();
+        const fruitEmoji = FRUIT_EMOJIS[Math.abs(state.itemSeq) % FRUIT_EMOJIS.length];
+        context.font = "28px sans-serif";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(fruitEmoji, foodX + FOOD_SIZE / 2, foodY + FOOD_SIZE / 2);
       }
 
       // Character.
@@ -171,7 +174,7 @@ export function RunnerCanvas({
 
         if (rectsOverlap(characterHitbox, foodHitbox)) {
           dispatch({ type: "HIT_ACTIVE_ITEM", itemSeq: state.itemSeq });
-        } else if (foodX < -FOOD_SIZE) {
+        } else if (foodX + FOOD_SIZE < characterX()) {
           dispatch({ type: "PASS_ACTIVE_ITEM", itemSeq: state.itemSeq });
         }
 

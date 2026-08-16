@@ -14,9 +14,9 @@ describe("runner difficulty configuration", () => {
   });
 
   it("exposes the difficulty time-per-item values", () => {
-    expect(getRunnerDifficultyConfig("easy").timePerItemMs).toBe(3300);
-    expect(getRunnerDifficultyConfig("medium").timePerItemMs).toBe(2500);
-    expect(getRunnerDifficultyConfig("hard").timePerItemMs).toBe(2000);
+    expect(getRunnerDifficultyConfig("easy").timePerItemMs).toBe(2500);
+    expect(getRunnerDifficultyConfig("medium").timePerItemMs).toBe(1800);
+    expect(getRunnerDifficultyConfig("hard").timePerItemMs).toBe(1400);
   });
 
   it("rejects an unknown difficulty", () => {

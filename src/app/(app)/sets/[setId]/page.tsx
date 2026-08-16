@@ -18,6 +18,7 @@ import { EditCardForm } from "@/features/flashcard-sets/components/edit-card-for
 import { RenameSetForm } from "@/features/flashcard-sets/components/rename-set-form";
 import { sanitizeSearchQuery } from "@/features/flashcard-sets/utils/search";
 import { ShareDialog } from "@/features/sharing/components/share-dialog";
+import { StatsDialog, type MemberStats } from "@/features/sharing/components/stats-dialog";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
 import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
@@ -41,6 +42,10 @@ export default async function SetDetailPage({
   const requestedPage = parsePage(raw.page);
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const userId = user?.id;
   const mascotLevel = await loadMascotLevel(supabase);
   const { data: set } = await supabase
     .from("flashcard_sets")
@@ -48,6 +53,14 @@ export default async function SetDetailPage({
     .eq("id", setId)
     .maybeSingle();
   if (!set) notFound();
+
+  const { data: members } =
+    set.share_classroom_enabled && userId
+      ? await supabase.rpc("get_set_members_with_stats", {
+          p_user_id: userId,
+          p_set_id: setId,
+        })
+      : { data: [] };
 
   const searchFilter = query ? `front.ilike.%${query}%,back.ilike.%${query}%` : null;
   const [totalResult, visibleCountResult, setAggregateResult] = await Promise.all([
@@ -124,6 +137,9 @@ export default async function SetDetailPage({
             token={set.share_token ?? null}
             classroomEnabled={Boolean(set.share_classroom_enabled)}
           />
+          {set.share_classroom_enabled ? (
+            <StatsDialog members={(members ?? []) as MemberStats[]} mascotLevel={mascotLevel} />
+          ) : null}
           <DeleteSetButton setId={set.id} />
         </div>
       </div>

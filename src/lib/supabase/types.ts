@@ -779,6 +779,20 @@ export type Database = {
         Returns: string
       }
       get_learning_statistics: { Args: never; Returns: Json }
+      get_set_members_with_stats: {
+        Args: { p_set_id: string; p_user_id: string }
+        Returns: {
+          accuracy: number
+          avatar_url: string
+          correct_questions: number
+          display_name: string
+          joined_at: string
+          last_activity_at: string
+          member_user_id: string
+          rank: number
+          total_questions: number
+        }[]
+      }
       get_shared_set_by_token: {
         Args: { p_token: string }
         Returns: {

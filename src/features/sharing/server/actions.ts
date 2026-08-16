@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { ZodError } from "zod";
 
-import { shareActionSchema } from "@/features/sharing/schemas/share-schema";
+import { cloneSharedSetSchema, shareActionSchema } from "@/features/sharing/schemas/share-schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -83,4 +83,30 @@ export async function setClassroomEnabled(
 
   revalidatePath(`/sets/${parsed.data.setId}`);
   return { ok: true };
+}
+
+export async function cloneSharedSet(
+  token: string,
+): Promise<{ setId: string } | { error: string }> {
+  const parsed = cloneSharedSetSchema.safeParse({ token });
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const supabase = await createClient();
+  const userId = await authenticatedUserId(supabase);
+  if (!userId) return { error: "Bạn cần đăng nhập để lưu bộ flashcard này." };
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("clone_shared_set", {
+    p_token: parsed.data.token,
+    p_user_id: userId,
+  });
+
+  if (error || !data?.[0]?.new_set_id) {
+    return { error: "Không thể lưu bộ flashcard này lúc này. Vui lòng thử lại." };
+  }
+
+  revalidatePath("/sets");
+  revalidatePath("/sets/library");
+
+  return { setId: data[0].new_set_id };
 }

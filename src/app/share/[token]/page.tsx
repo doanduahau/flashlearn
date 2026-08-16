@@ -3,8 +3,10 @@ import type { Metadata } from "next";
 
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import { CloneSetButton } from "@/features/sharing/components/clone-set-button";
 import { SharedCardsList } from "@/features/sharing/components/shared-cards-list";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Bộ flashcard chia sẻ" };
 
@@ -14,6 +16,10 @@ export default async function SharedSetPreviewPage({
   params: Promise<{ token: string }>;
 }>) {
   const { token } = await params;
+
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const isAuthenticated = Boolean(authData.user);
 
   const admin = createAdminClient();
   const { data: sets, error } = await admin.rpc("get_shared_set_by_token", {
@@ -71,6 +77,14 @@ export default async function SharedSetPreviewPage({
           </p>
         </div>
       ) : null}
+
+      <div className="mt-6">
+        <CloneSetButton
+          token={token}
+          isAuthenticated={isAuthenticated}
+          isClassroom={Boolean(set.share_classroom_enabled)}
+        />
+      </div>
 
       {cardList.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-border-soft bg-surface-subtle p-8 text-center">

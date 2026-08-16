@@ -665,6 +665,12 @@ export type Database = {
           position: number
         }[]
       }
+      clone_shared_set: {
+        Args: { p_token: string; p_user_id: string }
+        Returns: {
+          new_set_id: string
+        }[]
+      }
       complete_learning_coverage_session: {
         Args: { p_session_id: string }
         Returns: {

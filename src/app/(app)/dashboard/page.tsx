@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -18,7 +19,9 @@ import {
   loadStreakSummary,
 } from "@/features/statistics/server/load-statistics";
 import {
+  addMonths,
   dateInTimezone,
+  isValidMonth,
   isValidTimezone,
   monthInTimezone,
 } from "@/features/statistics/utils/month-activity";
@@ -28,7 +31,11 @@ const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
 
 export default async function DashboardPage({
   searchParams,
-}: Readonly<{ searchParams: Promise<{ create?: string | string[] }> }>) {
+}: Readonly<{ searchParams: Promise<{ create?: string | string[]; month?: string | string[] }> }>) {
+  const raw = await searchParams;
+  if (raw.create === "import") redirect("/sets/create?source=file");
+  if (raw.create === "manual") redirect("/sets/create?source=manual");
+
   const supabase = await createClient();
   const profileResult = await supabase.from("profiles").select("timezone").maybeSingle();
   let timezone = profileResult.data?.timezone ?? DEFAULT_TIMEZONE;
@@ -36,13 +43,18 @@ export default async function DashboardPage({
 
   const today = dateInTimezone(new Date(), timezone);
   const currentMonth = monthInTimezone(new Date(), timezone);
+  const requestedMonth = typeof raw.month === "string" ? raw.month : "";
+  const month =
+    isValidMonth(requestedMonth) && requestedMonth <= currentMonth ? requestedMonth : currentMonth;
+  const previousMonth = addMonths(month, -1);
+  const nextMonth = addMonths(month, 1);
 
   const evaluationTime = new Date().toISOString();
   const [todayDetail, monthActivity, streakDates, claimsResult, mascotLevel, streakSummary] =
     await Promise.all([
       loadActivityDetail(supabase, today),
-      loadMonthlyActivity(supabase, currentMonth),
-      loadMonthlyStreakDates(supabase, timezone, currentMonth),
+      loadMonthlyActivity(supabase, month),
+      loadMonthlyStreakDates(supabase, timezone, month),
       supabase.auth.getClaims(),
       loadMascotLevel(supabase),
       loadStreakSummary(supabase),
@@ -73,10 +85,6 @@ export default async function DashboardPage({
     todayDetail && todayDetail.questions > 0
       ? accuracy(todayDetail.correct, todayDetail.questions)
       : null;
-
-  const raw = await searchParams;
-  if (raw.create === "import") redirect("/sets/create?source=file");
-  if (raw.create === "manual") redirect("/sets/create?source=manual");
 
   return (
     <main className="mx-auto w-full max-w-5xl p-3 sm:p-8">
@@ -135,9 +143,40 @@ export default async function DashboardPage({
 
       {monthActivity ? (
         <div className="mt-3 rounded-2xl border border-border-soft bg-surface p-3 sm:mt-4 sm:rounded-3xl sm:p-6">
-          <h2 className="text-base font-bold sm:text-lg">Hoạt động tháng này</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-bold sm:text-lg">Hoạt động tháng này</h2>
+            <div className="flex items-center gap-1">
+              <Link
+                href={`/dashboard?month=${previousMonth}`}
+                scroll={false}
+                aria-label="Tháng trước"
+                title="Tháng trước"
+                className="inline-flex size-8 items-center justify-center rounded-lg border border-border-soft bg-surface hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-ring sm:size-9"
+              >
+                <ChevronLeft className="size-4" aria-hidden="true" />
+              </Link>
+              {nextMonth > currentMonth ? (
+                <span
+                  aria-label="Tháng sau chưa khả dụng"
+                  className="inline-flex size-8 items-center justify-center rounded-lg border border-border-soft bg-surface-subtle text-text-secondary opacity-40 sm:size-9"
+                >
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </span>
+              ) : (
+                <Link
+                  href={`/dashboard?month=${nextMonth}`}
+                  scroll={false}
+                  aria-label="Tháng sau"
+                  title="Tháng sau"
+                  className="inline-flex size-8 items-center justify-center rounded-lg border border-border-soft bg-surface hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-ring sm:size-9"
+                >
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </Link>
+              )}
+            </div>
+          </div>
           <MonthActivityCalendar
-            month={currentMonth}
+            month={month}
             currentMonth={currentMonth}
             timezone={timezone}
             details={monthActivity}

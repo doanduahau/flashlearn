@@ -34,9 +34,9 @@ export type QuizModeSelectProps = {
 };
 
 const CARD_CLS =
-  "flex flex-col rounded-2xl border border-border-soft bg-surface p-4 shadow-soft sm:p-5";
+  "flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4 min-h-[120px]";
 const PRIMARY_BTN =
-  "min-h-12 w-full rounded-xl bg-primary px-6 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-opacity";
+  "min-h-10 w-full rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-opacity whitespace-nowrap flex items-center justify-center";
 
 function requirementMsg(min: number, count: number): string {
   return `Cần tối thiểu ${min} thẻ — phạm vi hiện có ${count} thẻ`;
@@ -124,194 +124,228 @@ export function QuizModeSelect({
       <div className="flex flex-col gap-3">
         {/* Trắc nghiệm card */}
         <article className={cn(CARD_CLS, !quizEnabled && "opacity-60")}>
-          <div className="flex items-center gap-3">
+          <div className="flex w-[30%] shrink-0 items-center justify-center">
             <MascotImage
               level={mascotLevel}
               state="normal"
               size={96}
-              className="size-24 shrink-0 object-contain"
+              className="size-24 object-contain"
             />
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold">Trắc nghiệm</h2>
-              <p className="text-sm text-text-secondary">Chọn đáp án đúng</p>
-            </div>
-            <p className="shrink-0 text-sm font-medium">{quizTotal} thẻ</p>
           </div>
+          <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base font-bold">Trắc nghiệm</h2>
+                <p className="text-sm text-text-secondary">Chọn đáp án đúng</p>
+              </div>
+              <span className="shrink-0 text-sm font-medium text-text-primary">
+                {quizTotal} thẻ
+              </span>
+            </div>
 
-          {quizEnabled ? (
-            quizExpanded ? (
-              <div className="mt-auto flex flex-col gap-2 pt-3">
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Chọn số câu">
-                  {quizOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      className={cn(
-                        "min-h-10 rounded-xl border border-border-soft px-4 text-sm",
-                        effectiveQuizCount === opt.value &&
-                          "border-primary bg-primary-soft font-semibold",
-                      )}
-                      aria-pressed={effectiveQuizCount === opt.value}
-                      onClick={() => setQuizCount(opt.value)}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+            {quizEnabled ? (
+              quizExpanded ? (
+                <div className="flex flex-col gap-2 pt-1 border-t border-border-soft/60">
+                  <div
+                    className="flex flex-wrap justify-center gap-2"
+                    role="group"
+                    aria-label="Chọn số câu"
+                  >
+                    {quizOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        className={cn(
+                          "min-h-10 rounded-xl border border-border-soft px-3 text-sm",
+                          effectiveQuizCount === opt.value &&
+                            "border-primary bg-primary-soft font-semibold",
+                        )}
+                        aria-pressed={effectiveQuizCount === opt.value}
+                        onClick={() => setQuizCount(opt.value)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className={PRIMARY_BTN}
+                    disabled={pending}
+                    onClick={handleStartQuiz}
+                  >
+                    {pending ? "Đang tạo…" : "Bắt đầu"}
+                  </button>
+                  {quizError ? (
+                    <p role="alert" className="text-center text-xs text-danger">
+                      {quizError}
+                    </p>
+                  ) : null}
                 </div>
-                <button
-                  type="button"
-                  className={PRIMARY_BTN}
-                  disabled={pending}
-                  onClick={handleStartQuiz}
-                >
-                  {pending ? "Đang tạo…" : "Bắt đầu"}
-                </button>
-                {quizError ? (
-                  <p role="alert" className="text-center text-sm text-danger">
-                    {quizError}
-                  </p>
-                ) : null}
-              </div>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    aria-label="Bắt đầu Trắc nghiệm"
+                    className={PRIMARY_BTN}
+                    onClick={() => setQuizExpanded(true)}
+                  >
+                    Bắt đầu
+                  </button>
+                </div>
+              )
             ) : (
-              <div className="mt-auto pt-3">
-                <button
-                  type="button"
-                  aria-label="Bắt đầu Trắc nghiệm"
-                  className={PRIMARY_BTN}
-                  onClick={() => setQuizExpanded(true)}
-                >
-                  Bắt đầu
-                </button>
-              </div>
-            )
-          ) : (
-            <p className="mt-auto pt-3 text-center text-sm text-danger">
-              {requirementMsg(QUIZ_MIN_QUESTIONS, quizTotal)}
-            </p>
-          )}
+              <p className="text-center text-xs text-danger">
+                {requirementMsg(QUIZ_MIN_QUESTIONS, quizTotal)}
+              </p>
+            )}
+          </div>
         </article>
 
         {/* Match card */}
         <article className={cn(CARD_CLS, !matchEnabled && "opacity-60")}>
-          <div className="flex items-center gap-3">
-            <MascotImage
-              level={mascotLevel}
-              state="thinking"
-              size={64}
-              className="size-16 shrink-0 object-contain"
-            />
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold">Match</h2>
-              <p className="text-sm text-text-secondary">ghép 2 thẻ phù hợp</p>
-            </div>
-            <p className="shrink-0 text-sm font-medium">{matchEligible} thẻ</p>
-          </div>
-
-          {matchEnabled ? (
-            matchExpanded ? (
-              <div className="mt-auto flex flex-col gap-2 pt-3">
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Chọn số câu">
-                  {matchAvailableCounts.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      className={cn(
-                        "min-h-10 rounded-xl border border-border-soft px-4 text-sm",
-                        matchCount === c && "border-primary bg-primary-soft font-semibold",
-                      )}
-                      aria-pressed={matchCount === c}
-                      onClick={() => setMatchCount(c as MatchCount)}
-                    >
-                      {c} câu
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  className={PRIMARY_BTN}
-                  onClick={() => startMatch(matchCount)}
-                >
-                  Bắt đầu
-                </button>
-              </div>
-            ) : (
-              <div className="mt-auto pt-3">
-                <button
-                  type="button"
-                  className={PRIMARY_BTN}
-                  onClick={() => setMatchExpanded(true)}
-                >
-                  Bắt đầu
-                </button>
-              </div>
-            )
-          ) : (
-            <p className="mt-auto pt-3 text-center text-sm text-danger">
-              {requirementMsg(MATCH_MIN, matchEligible)}
-            </p>
-          )}
-        </article>
-
-        {/* Nhập đáp án card */}
-        <article className={cn(CARD_CLS, !typingEnabled && "opacity-60")}>
-          <div className="flex items-center gap-3">
+          <div className="flex w-[30%] shrink-0 items-center justify-center">
             <MascotImage
               level={mascotLevel}
               state="thinking"
               size={96}
-              className="size-24 shrink-0 object-contain"
+              className="size-24 object-contain"
             />
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold">Nhập đáp án</h2>
-              <p className="text-sm text-text-secondary">Gõ đáp án theo cách của bạn</p>
-            </div>
-            <p className="shrink-0 text-sm font-medium">{typingEligible} thẻ</p>
           </div>
-
-          {typingEnabled ? (
-            typingExpanded ? (
-              <div className="mt-auto flex flex-col gap-2 pt-3">
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Chọn số câu">
-                  {typingAvailableCounts.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      className={cn(
-                        "min-h-10 rounded-xl border border-border-soft px-4 text-sm",
-                        effectiveTypingCount === c &&
-                          "border-primary bg-primary-soft font-semibold",
-                      )}
-                      aria-pressed={effectiveTypingCount === c}
-                      onClick={() => setTypingCount(c)}
-                    >
-                      {c} câu
-                    </button>
-                  ))}
+          <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base font-bold">Match</h2>
+                  <p className="text-sm text-text-secondary">ghép 2 thẻ phù hợp</p>
                 </div>
-                <button
-                  type="button"
-                  className={PRIMARY_BTN}
-                  onClick={() => startTyping(effectiveTypingCount)}
-                >
-                  Bắt đầu
-                </button>
               </div>
+              <span className="shrink-0 text-sm font-medium text-text-primary">
+                {matchEligible} thẻ
+              </span>
+            </div>
+
+            {matchEnabled ? (
+              matchExpanded ? (
+                <div className="flex flex-col gap-2 pt-1 border-t border-border-soft/60">
+                  <div
+                    className="flex flex-wrap justify-center gap-2"
+                    role="group"
+                    aria-label="Chọn số câu"
+                  >
+                    {matchAvailableCounts.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        className={cn(
+                          "min-h-10 rounded-xl border border-border-soft px-3 text-sm",
+                          matchCount === c && "border-primary bg-primary-soft font-semibold",
+                        )}
+                        aria-pressed={matchCount === c}
+                        onClick={() => setMatchCount(c as MatchCount)}
+                      >
+                        {c} câu
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className={PRIMARY_BTN}
+                    onClick={() => startMatch(matchCount)}
+                  >
+                    Bắt đầu
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    aria-label="Bắt đầu Match"
+                    className={PRIMARY_BTN}
+                    onClick={() => setMatchExpanded(true)}
+                  >
+                    Bắt đầu
+                  </button>
+                </div>
+              )
             ) : (
-              <div className="mt-auto pt-3">
-                <button
-                  type="button"
-                  className={PRIMARY_BTN}
-                  onClick={() => setTypingExpanded(true)}
-                >
-                  Bắt đầu
-                </button>
+              <p className="text-center text-xs text-danger">
+                {requirementMsg(MATCH_MIN, matchEligible)}
+              </p>
+            )}
+          </div>
+        </article>
+
+        {/* Nhập đáp án card */}
+        <article className={cn(CARD_CLS, !typingEnabled && "opacity-60")}>
+          <div className="flex w-[30%] shrink-0 items-center justify-center">
+            <MascotImage
+              level={mascotLevel}
+              state="thinking"
+              size={96}
+              className="size-24 object-contain"
+            />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base font-bold">Nhập đáp án</h2>
+                <p className="text-sm text-text-secondary">Gõ đáp án theo cách của bạn</p>
               </div>
-            )
-          ) : (
-            <p className="mt-auto pt-3 text-center text-sm text-danger">
-              {requirementMsg(QUIZ_MIN_QUESTIONS, typingEligible)}
-            </p>
-          )}
+              <span className="shrink-0 text-sm font-medium text-text-primary">
+                {typingEligible} thẻ
+              </span>
+            </div>
+
+            {typingEnabled ? (
+              typingExpanded ? (
+                <div className="flex flex-col gap-2 pt-1 border-t border-border-soft/60">
+                  <div
+                    className="flex flex-wrap justify-center gap-2"
+                    role="group"
+                    aria-label="Chọn số câu"
+                  >
+                    {typingAvailableCounts.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        className={cn(
+                          "min-h-10 rounded-xl border border-border-soft px-3 text-sm",
+                          effectiveTypingCount === c &&
+                            "border-primary bg-primary-soft font-semibold",
+                        )}
+                        aria-pressed={effectiveTypingCount === c}
+                        onClick={() => setTypingCount(c)}
+                      >
+                        {c} câu
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className={PRIMARY_BTN}
+                    onClick={() => startTyping(effectiveTypingCount)}
+                  >
+                    Bắt đầu
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    aria-label="Bắt đầu Nhập đáp án"
+                    className={PRIMARY_BTN}
+                    onClick={() => setTypingExpanded(true)}
+                  >
+                    Bắt đầu
+                  </button>
+                </div>
+              )
+            ) : (
+              <p className="text-center text-xs text-danger">
+                {requirementMsg(QUIZ_MIN_QUESTIONS, typingEligible)}
+              </p>
+            )}
+          </div>
         </article>
       </div>
     </section>

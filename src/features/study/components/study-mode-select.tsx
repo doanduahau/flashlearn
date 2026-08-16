@@ -26,7 +26,7 @@ export type StudyModeSource = {
 type Availability = { count: number; options: number[] };
 
 const PRIMARY_ACTION =
-  "min-h-12 w-full rounded-xl bg-primary px-6 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-opacity";
+  "min-h-10 w-full rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-opacity whitespace-nowrap flex items-center justify-center";
 
 function sourceQuery(source: StudyModeSource): string {
   const params = new URLSearchParams();
@@ -121,164 +121,184 @@ export function StudyModeSelect({
         <BackButton fallbackHref={`/study?${query}`} />
       </div>
 
-      <article className="flex flex-1 flex-col rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">
-        <div className="flex items-center gap-3">
+      {/* Lật thẻ Card */}
+      <article className="flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4 min-h-[120px]">
+        <div className="flex w-[30%] shrink-0 items-center justify-center">
           <MascotImage
             level={mascotLevel}
             state="normal"
             size={96}
-            className="size-24 shrink-0 object-contain"
+            className="size-24 object-contain"
           />
-          <div className="min-w-0 flex-1">
-            <h2 className="text-base font-bold">Lật thẻ</h2>
-            <p className="text-sm text-text-secondary">thẻ truyền thống</p>
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-bold">Lật thẻ</h2>
+              <p className="text-sm text-text-secondary">thẻ truyền thống</p>
+            </div>
+            <span className="shrink-0 text-sm font-medium text-text-primary">{totalCards} thẻ</span>
           </div>
-          <p className="shrink-0 text-sm font-medium">{totalCards} thẻ</p>
+          <div>
+            <button
+              type="button"
+              aria-label="Bắt đầu lật thẻ"
+              className={PRIMARY_ACTION}
+              disabled={totalCards < 1}
+              onClick={() => router.push(sessionHref("/study/session", source))}
+            >
+              Bắt đầu
+            </button>
+            {totalCards < 1 ? (
+              <p className="mt-1 text-center text-xs text-danger">{requirement(1, totalCards)}</p>
+            ) : null}
+          </div>
         </div>
-        <div className="mt-auto pt-3">
-          <button
-            type="button"
-            aria-label="Bắt đầu lật thẻ"
-            className={PRIMARY_ACTION}
-            disabled={totalCards < 1}
-            onClick={() => router.push(sessionHref("/study/session", source))}
-          >
-            Bắt đầu
-          </button>
-        </div>
-        {totalCards < 1 ? (
-          <p className="mt-2 text-center text-sm text-danger">{requirement(1, totalCards)}</p>
-        ) : null}
       </article>
 
-      <article className="flex flex-1 flex-col rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4">
-        <div className="flex items-center gap-3">
+      {/* Memory matching Card */}
+      <article className="flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4 min-h-[120px]">
+        <div className="flex w-[30%] shrink-0 items-center justify-center">
           <MascotImage
             level={mascotLevel}
             state="thinking"
             size={96}
-            className="size-24 shrink-0 object-contain"
+            className="size-24 object-contain"
           />
-          <div className="min-w-0 flex-1">
-            <h2 className="text-base font-bold">Memory matching</h2>
-            <p className="text-sm text-text-secondary">Ghi nhớ vị trí và nội dung thẻ</p>
-          </div>
-          <p className="shrink-0 text-sm font-medium">{memory?.count ?? 0} thẻ</p>
         </div>
-        {memory === null ? (
-          <p className="mt-auto pt-3 text-center text-sm text-text-secondary">Đang tính số thẻ…</p>
-        ) : memoryOptions.length && selectedMode === "memory" ? (
-          <div className="mt-auto flex flex-col gap-2 pt-3" aria-label="Số câu Memory">
-            <div className="flex flex-wrap justify-center gap-2">
-              {memoryOptions.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className="min-h-11 rounded-xl border border-border-soft px-4 aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft"
-                  aria-pressed={selectedMemoryCount === value}
-                  onClick={() => setMemoryCount(value as 12 | 18 | 24)}
-                >
-                  {value} câu
-                </button>
-              ))}
+        <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-bold">Memory matching</h2>
+              <p className="text-sm text-text-secondary">Ghi nhớ vị trí và nội dung thẻ</p>
             </div>
-            <button
-              type="button"
-              aria-label="Bắt đầu Memory"
-              className={PRIMARY_ACTION}
-              onClick={() =>
-                router.push(sessionHref("/memory/session", source, selectedMemoryCount))
-              }
-            >
-              Bắt đầu
-            </button>
+            <span className="shrink-0 text-sm font-medium text-text-primary">
+              {memory === null ? "Đang tính…" : `${memory.count} thẻ`}
+            </span>
           </div>
-        ) : memoryOptions.length ? (
-          <div className="mt-auto pt-3">
-            <button
-              type="button"
-              aria-label="Bắt đầu Memory"
-              className={PRIMARY_ACTION}
-              onClick={() => setSelectedMode("memory")}
+
+          {memory === null ? (
+            <p className="text-center text-xs text-text-secondary">Đang tính số thẻ…</p>
+          ) : selectedMode !== "memory" && memoryOptions.length ? (
+            <div>
+              <button
+                type="button"
+                aria-label="Bắt đầu Memory"
+                className={PRIMARY_ACTION}
+                onClick={() => setSelectedMode("memory")}
+              >
+                Bắt đầu
+              </button>
+            </div>
+          ) : memoryOptions.length && selectedMode === "memory" ? (
+            <div
+              className="flex flex-col gap-2 pt-1 border-t border-border-soft/60"
+              aria-label="Số câu Memory"
             >
-              Bắt đầu
-            </button>
-          </div>
-        ) : (
-          <p className="mt-auto pt-3 text-center text-sm text-danger">
-            {requirement(12, memory?.count ?? 0)}
-          </p>
-        )}
+              <div className="flex flex-wrap justify-center gap-2">
+                {memoryOptions.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="min-h-10 rounded-xl border border-border-soft px-3 text-sm aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft"
+                    aria-pressed={selectedMemoryCount === value}
+                    onClick={() => setMemoryCount(value as 12 | 18 | 24)}
+                  >
+                    {value} câu
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                aria-label="Bắt đầu Memory"
+                className={PRIMARY_ACTION}
+                onClick={() =>
+                  router.push(sessionHref("/memory/session", source, selectedMemoryCount))
+                }
+              >
+                Bắt đầu
+              </button>
+            </div>
+          ) : (
+            <p className="text-center text-xs text-danger">{requirement(12, memory.count)}</p>
+          )}
+        </div>
       </article>
 
+      {/* Capy runner Card */}
       <article
         className={cn(
-          "flex flex-1 flex-col rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4",
+          "flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4 min-h-[120px]",
           runner !== null && runnerOptions.length === 0 && "opacity-60",
         )}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex w-[30%] shrink-0 items-center justify-center">
           <MascotImage
             level={mascotLevel}
             state="run"
             size={96}
-            className="size-24 shrink-0 object-contain"
+            className="size-24 object-contain"
           />
-          <div className="min-w-0 flex-1">
-            <h2 className="text-base font-bold">Capy runner</h2>
-            <p className="text-sm text-text-secondary">Chướng ngại vật hay là đáp án</p>
-          </div>
-          <p className="shrink-0 text-sm font-medium">{runner?.count ?? 0} thẻ</p>
         </div>
-        {runner === null ? (
-          <p className="mt-auto pt-3 text-center text-sm text-text-secondary">Đang tính số thẻ…</p>
-        ) : runnerOptions.length && selectedMode === "runner" ? (
-          <div className="mt-auto flex flex-col gap-2 pt-3">
-            <DifficultySelector value={difficulty} onChange={setDifficulty} />
-            <div className="mt-1 flex flex-wrap justify-center gap-2" aria-label="Số câu Runner">
-              {runnerOptions.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className="min-h-11 rounded-xl border border-border-soft px-4 aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft"
-                  aria-pressed={selectedRunnerCount === value}
-                  onClick={() => setRunnerCount(value as RunnerQuestionCount)}
-                >
-                  {value} câu
-                </button>
-              ))}
+        <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-bold">Capy runner</h2>
+              <p className="text-sm text-text-secondary">Chướng ngại vật hay là đáp án</p>
             </div>
-            <button
-              type="button"
-              aria-label="Bắt đầu Runner"
-              disabled={runnerPending}
-              className={cn(PRIMARY_ACTION)}
-              onClick={() => void startRunner()}
-            >
-              {runnerPending ? "Đang mở…" : "Bắt đầu"}
-            </button>
+            <span className="shrink-0 text-sm font-medium text-text-primary">
+              {runner === null ? "Đang tính…" : `${runner.count} thẻ`}
+            </span>
           </div>
-        ) : runnerOptions.length ? (
-          <div className="mt-auto pt-3">
-            <button
-              type="button"
-              aria-label="Bắt đầu Runner"
-              className={PRIMARY_ACTION}
-              onClick={() => setSelectedMode("runner")}
-            >
-              Bắt đầu
-            </button>
-          </div>
-        ) : (
-          <p className="mt-auto pt-3 text-center text-sm text-danger">
-            {requirement(12, runner?.count ?? 0)}
-          </p>
-        )}
-        {runnerError ? (
-          <p role="alert" className="mt-2 text-center text-sm text-danger">
-            {runnerError}
-          </p>
-        ) : null}
+
+          {runner === null ? (
+            <p className="text-center text-xs text-text-secondary">Đang tính số thẻ…</p>
+          ) : selectedMode !== "runner" && runnerOptions.length ? (
+            <div>
+              <button
+                type="button"
+                aria-label="Bắt đầu Runner"
+                className={PRIMARY_ACTION}
+                onClick={() => setSelectedMode("runner")}
+              >
+                Bắt đầu
+              </button>
+            </div>
+          ) : runnerOptions.length && selectedMode === "runner" ? (
+            <div className="flex flex-col gap-2 pt-1 border-t border-border-soft/60">
+              <DifficultySelector value={difficulty} onChange={setDifficulty} />
+              <div className="mt-1 flex flex-wrap justify-center gap-2" aria-label="Số câu Runner">
+                {runnerOptions.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="min-h-10 rounded-xl border border-border-soft px-3 text-sm aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft"
+                    aria-pressed={selectedRunnerCount === value}
+                    onClick={() => setRunnerCount(value as RunnerQuestionCount)}
+                  >
+                    {value} câu
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                aria-label="Bắt đầu Runner"
+                disabled={runnerPending}
+                className={PRIMARY_ACTION}
+                onClick={() => void startRunner()}
+              >
+                {runnerPending ? "Đang mở…" : "Bắt đầu"}
+              </button>
+            </div>
+          ) : (
+            <p className="text-center text-xs text-danger">{requirement(12, runner.count)}</p>
+          )}
+          {runnerError ? (
+            <p role="alert" className="text-center text-xs text-danger">
+              {runnerError}
+            </p>
+          ) : null}
+        </div>
       </article>
     </section>
   );

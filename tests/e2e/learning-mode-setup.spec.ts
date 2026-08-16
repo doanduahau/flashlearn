@@ -8,6 +8,7 @@ const CSV = "tests/fixtures/smart-review-24-cards.csv";
 async function importSet(page: Page, name: string): Promise<void> {
   await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(CSV);
+  await page.getByRole("button", { name: "Phân tích" }).click();
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
@@ -129,7 +130,7 @@ test.describe("Shared learning-mode setup", () => {
     await page.goto("/quiz");
     await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
     await expect(page.getByRole("button", { name: "Bắt đầu Trắc nghiệm" })).toHaveCount(0);
-    await expect(page.getByText("Cần tối thiểu 10 thẻ")).toBeVisible();
+    await expect(page.getByText(/Cần tối thiểu 10 thẻ/).first()).toBeVisible();
   });
 
   test("match with 7 eligible cards has no count and disables Start", async ({ page }) => {

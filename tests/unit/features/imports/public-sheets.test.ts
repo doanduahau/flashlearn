@@ -121,6 +121,20 @@ describe("fetchPublicSpreadsheet — browser API key header discovery", () => {
     expect(result.kind).toBe("error");
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("surfaces the real Google status and message on failure", async () => {
+    mockFetchResponse(429, { error: { message: "Quota exceeded for quota metric" } });
+
+    const result = await fetchPublicSpreadsheet(
+      "https://docs.google.com/spreadsheets/d/abc123abc123abc123abc123abc123abc12/edit",
+      MOCK_API_KEY,
+    );
+    expect(result.kind).toBe("error");
+    if (result.kind === "error") {
+      expect(result.status).toBe(429);
+      expect(result.detail).toContain("Quota exceeded");
+    }
+  });
 });
 
 describe("fetchPublicSheetValues — adaptive column body", () => {
@@ -170,6 +184,24 @@ describe("fetchPublicSheetValues — adaptive column body", () => {
       Array.from({ length: 27 }, (_, i) => i),
     );
     expect(result.kind).toBe("error");
+  });
+
+  it("surfaces grid limit errors from batchGet with status and detail", async () => {
+    mockFetchResponse(400, {
+      error: { message: "Range ('Sheet1'!A2:A2001) exceeds grid limits. Max rows: 10" },
+    });
+
+    const result = await fetchPublicSheetValues(
+      "abc123abc123abc123abc123abc123abc12",
+      "Sheet1",
+      MOCK_API_KEY,
+      [0, 1],
+    );
+    expect(result.kind).toBe("error");
+    if (result.kind === "error") {
+      expect(result.status).toBe(400);
+      expect(result.detail).toContain("exceeds grid limits");
+    }
   });
 });
 

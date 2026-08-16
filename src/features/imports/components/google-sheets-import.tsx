@@ -28,6 +28,18 @@ import { Label } from "@/components/ui/label";
 
 const COLUMN_REANALYZE_DEBOUNCE_MS = 250;
 
+// Surfaces the real Google error (rate limit, grid limits, invalid range, …)
+// instead of a generic message. The detail comes from Google's own response.
+function sheetErrorMessage(result: { message: string; status?: number; detail?: string }): string {
+  if (result.status === 429) {
+    return "Đã vượt quá giới hạn yêu cầu Google Sheets. Vui lòng thử lại sau ít phút.";
+  }
+  if (result.detail) {
+    return `${result.message} (${result.status ? `Mã ${result.status} — ` : ""}${result.detail})`;
+  }
+  return result.message;
+}
+
 function buildMeaningfulColumns(headers: string[]): MeaningfulColumn[] {
   const result: MeaningfulColumn[] = [];
   for (let i = 0; i < headers.length; i += 1) {
@@ -288,13 +300,14 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
         });
       }
       if (result.kind === "error" || result.kind === "auth_required") {
-        setError(result.message);
+        setError(sheetErrorMessage(result));
         setMode("loaded");
         return;
       }
       applyAnalysis(meta, result.sheetData, preferredMapping);
-    } catch {
-      setError("Không thể đọc dữ liệu bảng tính.");
+    } catch (err) {
+      console.error("Google Sheets values fetch failed", err);
+      setError("Không thể đọc dữ liệu bảng tính. Vui lòng thử lại.");
       setMode("loaded");
     }
   }
@@ -429,12 +442,13 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
         sheetIndex: sheetIdx,
       });
       if (result.kind === "error" || result.kind === "auth_required") {
-        setError(result.message);
+        setError(sheetErrorMessage(result));
         setMode("init");
         return;
       }
       handleDiscovered(result.meta, result.headers, result.sheetTitle);
-    } catch {
+    } catch (err) {
+      console.error("Google Sheets open failed", err);
       setError("Không thể mở bảng tính.");
       setMode("init");
     }
@@ -454,12 +468,13 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
         sheetTitle: sheet.title,
       });
       if (result.kind === "error" || result.kind === "auth_required") {
-        setError(result.message);
+        setError(sheetErrorMessage(result));
         setMode("loaded");
         return;
       }
       handleDiscovered(result.meta, result.headers, result.sheetTitle);
-    } catch {
+    } catch (err) {
+      console.error("Google Sheets header discovery failed", err);
       setError("Không thể mở sheet.");
       setMode("loaded");
     }
@@ -479,12 +494,13 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
         newIndex,
       );
       if (result.kind === "error" || result.kind === "auth_required") {
-        setError(result.message);
+        setError(sheetErrorMessage(result));
         setMode("loaded");
         return;
       }
       handleDiscovered(result.meta, result.headers, result.sheetTitle);
-    } catch {
+    } catch (err) {
+      console.error("Google Sheets public open failed", err);
       setError("Không thể mở sheet.");
       setMode("loaded");
     }
@@ -519,20 +535,16 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
     setError("");
     try {
       const result = await fetchPublicSpreadsheet(urlInput, config.apiKey, 0);
-      if (result.kind === "error") {
-        setError(result.message);
-        setMode("init");
-        return;
-      }
-      if (result.kind === "auth_required") {
-        setError(result.message);
+      if (result.kind === "error" || result.kind === "auth_required") {
+        setError(sheetErrorMessage(result));
         setMode("init");
         return;
       }
       setSpreadsheetId(extractIdFromUrl(urlInput));
       setIsPublicFlow(true);
       handleDiscovered(result.meta, result.headers, result.sheetTitle);
-    } catch {
+    } catch (err) {
+      console.error("Google Sheets paste URL failed", err);
       setError("Không thể đọc bảng tính.");
       setMode("init");
     }

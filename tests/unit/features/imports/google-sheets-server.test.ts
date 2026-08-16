@@ -189,6 +189,51 @@ describe("loadPrivateSheetValues — adaptive column body", () => {
     });
     expect(result.kind).toBe("error");
   });
+
+  it("surfaces rate limit errors from batchGet with status and detail", async () => {
+    mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
+    mocks.fetch.mockResolvedValue({
+      status: 429,
+      ok: false,
+      json: async () => ({ error: { message: "Quota exceeded for quota metric" } }),
+    });
+    vi.stubGlobal("fetch", mocks.fetch);
+
+    const result = await loadPrivateSheetValues({
+      spreadsheetId: "abc123abc123abc123abc123abc123abc12",
+      accessToken: "token-123",
+      sheetTitle: "Sheet1",
+      columns: [1, 2],
+    });
+    expect(result.kind).toBe("error");
+    if (result.kind === "error") {
+      expect(result.status).toBe(429);
+      expect(result.detail).toContain("Quota exceeded");
+    }
+  });
+
+  it("surfaces grid limit errors from openGoogleSheet meta with status and detail", async () => {
+    mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
+    mocks.fetch.mockResolvedValue({
+      status: 400,
+      ok: false,
+      json: async () => ({
+        error: { message: "Range ('Sheet1'!A1:ZZ) exceeds grid limits. Max columns: 26" },
+      }),
+    });
+    vi.stubGlobal("fetch", mocks.fetch);
+
+    const result = await openGoogleSheet({
+      spreadsheetId: "abc123abc123abc123abc123abc123abc12",
+      accessToken: "token-123",
+      sheetIndex: 0,
+    });
+    expect(result.kind).toBe("error");
+    if (result.kind === "error") {
+      expect(result.status).toBe(400);
+      expect(result.detail).toContain("exceeds grid limits");
+    }
+  });
 });
 
 function colLetters(index: number): string {

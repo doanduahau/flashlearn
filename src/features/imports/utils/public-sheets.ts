@@ -8,13 +8,20 @@ const SHEETS_API_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
 
 export type PublicSheetOpenResult =
   | { kind: "success"; meta: GoogleSheetMeta; headers: string[]; sheetTitle: string }
-  | { kind: "error"; message: string }
+  | { kind: "error"; message: string; status?: number; detail?: string }
   | { kind: "auth_required"; message: string };
 
 export type PublicSheetValuesResult =
   | { kind: "success"; sheetData: SheetData }
-  | { kind: "error"; message: string }
+  | { kind: "error"; message: string; status?: number; detail?: string }
   | { kind: "auth_required"; message: string };
+
+// Google error responses carry { error: { message } } — surface the real reason
+// (rate limit, grid limits, invalid range, …) instead of a generic message.
+function googleErrorDetail(json: unknown): string {
+  const err = (json as { error?: { message?: string } } | null)?.error;
+  return typeof err?.message === "string" ? err.message : "";
+}
 
 async function sheetsJson(url: string): Promise<{ json: unknown; status: number }> {
   const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -50,7 +57,14 @@ export async function fetchPublicSpreadsheet(
       message: "Bảng tính này cần quyền truy cập. Hãy chọn bảng tính từ Google Drive.",
     };
   }
-  if (metaResult.status !== 200) return { kind: "error", message: "Không thể đọc bảng tính." };
+  if (metaResult.status !== 200) {
+    return {
+      kind: "error",
+      message: "Không thể đọc bảng tính.",
+      status: metaResult.status,
+      detail: googleErrorDetail(metaResult.json),
+    };
+  }
 
   const meta = parseSpreadsheetMeta(metaResult.json);
   const sheet = meta.sheets[sheetIndex];
@@ -66,7 +80,14 @@ export async function fetchPublicSpreadsheet(
       message: "Bảng tính này cần quyền truy cập. Hãy chọn bảng tính từ Google Drive.",
     };
   }
-  if (headerResult.status !== 200) return { kind: "error", message: "Không thể đọc bảng tính." };
+  if (headerResult.status !== 200) {
+    return {
+      kind: "error",
+      message: "Không thể đọc bảng tính.",
+      status: headerResult.status,
+      detail: googleErrorDetail(headerResult.json),
+    };
+  }
 
   const headers = parseHeaderScan(headerResult.json);
   return { kind: "success", meta, headers, sheetTitle: sheet.title };
@@ -94,7 +115,12 @@ export async function fetchPublicSheetValues(
     };
   }
   if (valuesResult.status !== 200) {
-    return { kind: "error", message: "Không thể đọc dữ liệu bảng tính." };
+    return {
+      kind: "error",
+      message: "Không thể đọc dữ liệu bảng tính.",
+      status: valuesResult.status,
+      detail: googleErrorDetail(valuesResult.json),
+    };
   }
 
   const result = parseColumnBodies(valuesResult.json, columns);

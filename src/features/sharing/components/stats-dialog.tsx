@@ -44,7 +44,7 @@ export function StatsDialog({
         <DialogOverlay
           title="Thống kê lớp học"
           onClose={() => setIsOpen(false)}
-          className="max-w-xl sm:max-w-2xl"
+          className="max-w-xl px-3 py-4 sm:max-w-2xl sm:p-5"
         >
           <div className="flex items-start justify-between gap-3">
             <h2 className="text-xl font-bold text-text-primary">Thống kê lớp học</h2>
@@ -75,22 +75,25 @@ export function StatsDialog({
             </div>
           ) : (
             <div className="mt-4 overflow-x-auto rounded-xl border border-border-soft bg-surface">
-              <table className="w-full table-fixed border-collapse text-center text-xs sm:text-sm">
+              <table className="w-full border-collapse text-center text-xs whitespace-nowrap sm:text-sm">
                 <thead>
                   <tr className="border-b border-border-soft bg-surface-subtle font-semibold text-text-secondary">
-                    <th scope="col" className="w-[12%] px-1 py-2 text-center sm:px-2.5 sm:py-2.5">
+                    <th
+                      scope="col"
+                      className="w-9 px-1 py-2 text-center sm:w-12 sm:px-2.5 sm:py-2.5"
+                    >
                       STT
                     </th>
-                    <th scope="col" className="w-[30%] px-1.5 py-2 text-center sm:px-2.5 sm:py-2.5">
+                    <th scope="col" className="px-1.5 py-2 text-center sm:px-2.5 sm:py-2.5">
                       Tên
                     </th>
-                    <th scope="col" className="w-[18%] px-1 py-2 text-center sm:px-2 sm:py-2.5">
+                    <th scope="col" className="px-1.5 py-2 text-center sm:px-2 sm:py-2.5">
                       Đã làm
                     </th>
-                    <th scope="col" className="w-[18%] px-1 py-2 text-center sm:px-2 sm:py-2.5">
+                    <th scope="col" className="px-1.5 py-2 text-center sm:px-2 sm:py-2.5">
                       Chính xác
                     </th>
-                    <th scope="col" className="w-[22%] px-1 py-2 text-center sm:px-2 sm:py-2.5">
+                    <th scope="col" className="px-1.5 py-2 text-center sm:px-2 sm:py-2.5">
                       Gần nhất
                     </th>
                   </tr>
@@ -101,22 +104,22 @@ export function StatsDialog({
                       key={member.member_user_id}
                       className="transition-colors hover:bg-surface-subtle/50"
                     >
-                      <td className="px-1 py-2 font-semibold text-text-secondary sm:px-2.5 sm:py-2.5">
+                      <td className="w-9 px-1 py-2 font-semibold text-text-secondary sm:w-12 sm:px-2.5 sm:py-2.5">
                         {member.rank}
                       </td>
                       <td
-                        className="truncate px-1.5 py-2 font-medium text-text-primary sm:px-2.5 sm:py-2.5"
+                        className="max-w-[90px] truncate px-1.5 py-2 font-medium text-text-primary sm:max-w-none sm:px-2.5 sm:py-2.5"
                         title={member.display_name || "Học sinh"}
                       >
                         {member.display_name || "Học sinh"}
                       </td>
-                      <td className="px-1 py-2 text-text-primary sm:px-2 sm:py-2.5">
+                      <td className="px-1.5 py-2 text-text-primary sm:px-2 sm:py-2.5">
                         {member.total_questions}
                       </td>
-                      <td className="px-1 py-2 font-medium text-text-primary sm:px-2 sm:py-2.5">
+                      <td className="px-1.5 py-2 font-medium text-text-primary sm:px-2 sm:py-2.5">
                         {member.accuracy === null ? "—" : `${member.accuracy}%`}
                       </td>
-                      <td className="px-1 py-2 leading-tight text-text-secondary sm:px-2 sm:py-2.5">
+                      <td className="px-1.5 py-2 text-text-secondary sm:px-2 sm:py-2.5">
                         {member.last_activity_at === null
                           ? "—"
                           : formatDateTime(member.last_activity_at)}

@@ -59,30 +59,24 @@ describe("StatsDialog", () => {
     expect(screen.getByAltText("")).toBeInTheDocument();
   });
 
-  it("renders a row per member with all metric columns", async () => {
+  it("renders a row per member with all metric columns in an Excel-like table", async () => {
     const user = userEvent.setup();
     render(<StatsDialog members={MEMBERS} mascotLevel={MASCOT_LEVEL} />);
     await user.click(screen.getByRole("button", { name: /thống kê học sinh/i }));
+
+    expect(screen.getByRole("columnheader", { name: "STT" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Tên" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Đã làm" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Chính xác" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Gần nhất" })).toBeInTheDocument();
 
     expect(screen.getByText("Nguyễn Văn A")).toBeInTheDocument();
     expect(screen.getByText("Học sinh B")).toBeInTheDocument();
 
-    expect(screen.getAllByText("Tổng câu đã làm")).toHaveLength(2);
-    expect(screen.getAllByText("Số câu đúng")).toHaveLength(2);
-    expect(screen.getAllByText("Tỉ lệ chính xác")).toHaveLength(2);
-    expect(screen.getAllByText("Ngày tham gia")).toHaveLength(2);
-    expect(screen.getAllByText("Hoạt động gần nhất")).toHaveLength(2);
-
+    expect(screen.getByText("18")).toBeInTheDocument();
+    expect(screen.getByText("6")).toBeInTheDocument();
     expect(screen.getByText("72.2%")).toBeInTheDocument();
     expect(screen.getByText("66.7%")).toBeInTheDocument();
-  });
-
-  it("renders an initials avatar when the member has no avatar_url", async () => {
-    const user = userEvent.setup();
-    render(<StatsDialog members={MEMBERS} mascotLevel={MASCOT_LEVEL} />);
-    await user.click(screen.getByRole("button", { name: /thống kê học sinh/i }));
-
-    expect(screen.getByText("NV")).toBeInTheDocument();
   });
 
   it("falls back to Học sinh when display_name is missing", async () => {

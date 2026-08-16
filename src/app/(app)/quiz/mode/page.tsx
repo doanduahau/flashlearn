@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { QuizModeSelect } from "@/features/quiz/components/quiz-mode-select";
 import { getQuizEligibility } from "@/features/quiz/server/actions";
 import { getMatchAvailability } from "@/features/match/server/actions";
+import { getTypingAvailability } from "@/features/typing/server/actions";
 import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { createClient } from "@/lib/supabase/server";
 
@@ -52,15 +53,18 @@ export default async function QuizModePage({
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims) redirect("/sign-in");
 
-  const [quizResult, matchResult, mascotLevel] = await Promise.all([
+  const [quizResult, matchResult, typingResult, mascotLevel] = await Promise.all([
     getQuizEligibility(source),
     getMatchAvailability({ ...source, questionCount: 12 }),
+    getTypingAvailability(source),
     loadMascotLevel(supabase),
   ]);
 
   const quizTotal = quizResult.ok ? quizResult.total : 0;
   const matchEligible = matchResult.ok ? matchResult.eligibleCount : 0;
   const matchAvailableCounts = matchResult.ok ? matchResult.eligibility.availableCounts : [];
+  const typingEligible = typingResult.ok ? typingResult.availability.eligibleCount : 0;
+  const typingAvailableCounts = typingResult.ok ? typingResult.availability.availableCounts : [];
 
   return (
     <main className="mx-auto flex h-full w-full max-w-4xl flex-col p-3 sm:p-8">
@@ -69,6 +73,8 @@ export default async function QuizModePage({
         quizTotal={quizTotal}
         matchEligible={matchEligible}
         matchAvailableCounts={matchAvailableCounts}
+        typingEligible={typingEligible}
+        typingAvailableCounts={typingAvailableCounts}
         backHref={buildBackHref(source)}
         mascotLevel={mascotLevel}
       />

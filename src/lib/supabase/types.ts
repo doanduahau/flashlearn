@@ -393,6 +393,41 @@ export type Database = {
         }
         Relationships: []
       }
+      mode_answer_events: {
+        Row: {
+          answered_at: string
+          flashcard_id: string
+          id: string
+          is_correct: boolean
+          mode: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string
+          flashcard_id: string
+          id?: string
+          is_correct: boolean
+          mode: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string
+          flashcard_id?: string
+          id?: string
+          is_correct?: boolean
+          mode?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mode_answer_events_flashcard_id_fkey"
+            columns: ["flashcard_id"]
+            isOneToOne: false
+            referencedRelation: "flashcards"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -423,9 +458,49 @@ export type Database = {
         }
         Relationships: []
       }
+      typing_attempts: {
+        Row: {
+          completed_at: string | null
+          correct_questions: number
+          elapsed_ms: number
+          id: string
+          source_all: boolean
+          source_collection_ids: string[]
+          source_set_ids: string[]
+          started_at: string
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          correct_questions: number
+          elapsed_ms: number
+          id?: string
+          source_all?: boolean
+          source_collection_ids?: string[]
+          source_set_ids?: string[]
+          started_at?: string
+          total_questions: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          correct_questions?: number
+          elapsed_ms?: number
+          id?: string
+          source_all?: boolean
+          source_collection_ids?: string[]
+          source_set_ids?: string[]
+          started_at?: string
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       quiz_questions: {
         Row: {
           answered_at: string | null
+
           choices: Json
           correct_answer: string
           correct_choice_index: number
@@ -858,6 +933,10 @@ export type Database = {
         }
         Returns: string
       }
+      record_mode_answers: {
+        Args: { p_answers: unknown; p_mode: string; p_user_id: string }
+        Returns: undefined
+      }
       revoke_set_share_token: {
         Args: { p_set_id: string; p_user_id: string }
         Returns: undefined
@@ -871,6 +950,18 @@ export type Database = {
           p_source_collection_ids: string[]
           p_source_set_ids: string[]
           p_total_pairs: number
+          p_user_id: string
+        }
+        Returns: string
+      }
+      save_typing_attempt: {
+        Args: {
+          p_correct_questions: number
+          p_elapsed_ms: number
+          p_source_all: boolean
+          p_source_collection_ids: string[]
+          p_source_set_ids: string[]
+          p_total_questions: number
           p_user_id: string
         }
         Returns: string

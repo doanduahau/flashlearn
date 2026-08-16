@@ -41,6 +41,9 @@ const localEnv = {
   CAPYSTUDY_GENERATION_MOCK: "1",
   CAPYSTUDY_GENERATION_COUNT_FILE: "test-results/generation-count.txt",
   CAPYSTUDY_GENERATION_MOCK_FAIL_FILE: "test-results/generation-fail.txt",
+  // Use the test-only typing AI reviewer mock so E2E never calls real Gemini.
+  CAPYSTUDY_TYPING_AI_MOCK: "1",
+  CAPYSTUDY_TYPING_AI_COUNT_FILE: "test-results/typing-ai-count.txt",
 };
 await runNpm(["run", "build"], localEnv);
 const child = spawn(

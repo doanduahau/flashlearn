@@ -27,6 +27,8 @@ export type QuizModeSelectProps = {
   quizTotal: number;
   matchEligible: number;
   matchAvailableCounts: number[];
+  typingEligible: number;
+  typingAvailableCounts: number[];
   backHref: string;
   mascotLevel: MascotLevel;
 };
@@ -45,19 +47,28 @@ export function QuizModeSelect({
   quizTotal,
   matchEligible,
   matchAvailableCounts,
+  typingEligible,
+  typingAvailableCounts,
   backHref,
   mascotLevel,
 }: Readonly<QuizModeSelectProps>) {
   const router = useRouter();
   const [quizExpanded, setQuizExpanded] = useState(false);
   const [matchExpanded, setMatchExpanded] = useState(false);
+  const [typingExpanded, setTypingExpanded] = useState(false);
   const [quizCount, setQuizCount] = useState(QUIZ_MIN_QUESTIONS);
   const [matchCount, setMatchCount] = useState<MatchCount>(MATCH_COUNTS[0]);
+  const [typingCount, setTypingCount] = useState(QUIZ_MIN_QUESTIONS);
   const [quizError, setQuizError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const quizEnabled = quizTotal >= QUIZ_MIN_QUESTIONS;
   const matchEnabled = matchEligible >= MATCH_MIN && matchAvailableCounts.length > 0;
+  const typingEnabled = typingEligible >= QUIZ_MIN_QUESTIONS && typingAvailableCounts.length > 0;
+
+  const effectiveTypingCount = typingAvailableCounts.includes(typingCount)
+    ? typingCount
+    : (typingAvailableCounts[0] ?? QUIZ_MIN_QUESTIONS);
 
   // Build quiz count options
   const quizOptions = [
@@ -81,6 +92,10 @@ export function QuizModeSelect({
 
   function startMatch(count: number): void {
     router.push(`/match/session?${buildMatchQuery(count)}`);
+  }
+
+  function startTyping(count: number): void {
+    router.push(`/typing/session?${buildMatchQuery(count)}`);
   }
 
   function handleStartQuiz(): void {
@@ -233,6 +248,68 @@ export function QuizModeSelect({
           ) : (
             <p className="mt-auto pt-3 text-center text-sm text-danger">
               {requirementMsg(MATCH_MIN, matchEligible)}
+            </p>
+          )}
+        </article>
+
+        {/* Nhập đáp án card */}
+        <article className={cn(CARD_CLS, !typingEnabled && "opacity-60")}>
+          <div className="flex items-center gap-3">
+            <MascotImage
+              level={mascotLevel}
+              state="thinking"
+              size={96}
+              className="size-24 shrink-0 object-contain"
+            />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-bold">Nhập đáp án</h2>
+              <p className="text-sm text-text-secondary">Gõ đáp án theo cách của bạn</p>
+            </div>
+            <p className="shrink-0 text-sm font-medium">{typingEligible} thẻ</p>
+          </div>
+
+          {typingEnabled ? (
+            typingExpanded ? (
+              <div className="mt-auto flex flex-col gap-2 pt-3">
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Chọn số câu">
+                  {typingAvailableCounts.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={cn(
+                        "min-h-10 rounded-xl border border-border-soft px-4 text-sm",
+                        effectiveTypingCount === c &&
+                          "border-primary bg-primary-soft font-semibold",
+                      )}
+                      aria-pressed={effectiveTypingCount === c}
+                      onClick={() => setTypingCount(c)}
+                    >
+                      {c} câu
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className={PRIMARY_BTN}
+                  onClick={() => startTyping(effectiveTypingCount)}
+                >
+                  Bắt đầu
+                </button>
+              </div>
+            ) : (
+              <div className="mt-auto pt-3">
+                <button
+                  type="button"
+                  className={PRIMARY_BTN}
+                  onClick={() => setTypingExpanded(true)}
+                >
+                  Bắt đầu
+                </button>
+              </div>
+            )
+          ) : (
+            <p className="mt-auto pt-3 text-center text-sm text-danger">
+              {requirementMsg(QUIZ_MIN_QUESTIONS, typingEligible)}
             </p>
           )}
         </article>

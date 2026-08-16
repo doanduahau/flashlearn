@@ -1,11 +1,47 @@
 import "server-only";
 
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 import { GEMINI_RETRY_ATTEMPTS } from "@/features/imports/adapters/gemini-retry-policy";
 import { getGeminiApiKey } from "@/lib/env";
 
 const MODEL_ID = "gemini-flash-lite-latest";
+
+// Test-only mock boundary. When CAPYSTUDY_TYPING_AI_MOCK=1 the reviewer never
+// calls Gemini: it accepts any non-empty answer that matches the correct one
+// after normalization, and increments a file-backed counter so E2E tests can
+// assert AI-reviewer usage without hitting the real API. A file is used (not
+// module state) because Next.js bundles server actions into separate chunks.
+const MOCK_ENABLED = (process.env.CAPYSTUDY_TYPING_AI_MOCK ?? "").trim() === "1";
+
+function mockCountFile(): string | null {
+  const path = process.env.CAPYSTUDY_TYPING_AI_COUNT_FILE;
+  return typeof path === "string" && path.length > 0 ? path : null;
+}
+
+function readMockCount(): number {
+  const path = mockCountFile();
+  if (!path) return 0;
+  try {
+    const raw = existsSync(path) ? readFileSync(path, "utf8") : "";
+    return raw.split("\n").filter((line) => line.trim() !== "").length;
+  } catch {
+    return 0;
+  }
+}
+
+function incrementMockCount(): void {
+  const path = mockCountFile();
+  if (!path) return;
+  try {
+    const next = readMockCount() + 1;
+    writeFileSync(path, `${next}\n`, "utf8");
+  } catch {
+    // Best effort; test instrumentation only.
+  }
+}
 
 const ANSWER_CHECK_SCHEMA = {
   type: Type.OBJECT,
@@ -45,6 +81,16 @@ export async function checkAnswerWithAI(input: {
   userAnswer: string;
   correctAnswer: string;
 }): Promise<{ correct: boolean; reason: string | null }> {
+  if (MOCK_ENABLED) {
+    incrementMockCount();
+    const normalizedUser = input.userAnswer.trim().toLowerCase();
+    const normalizedCorrect = input.correctAnswer.trim().toLowerCase();
+    return {
+      correct: normalizedUser.length > 0 && normalizedUser === normalizedCorrect,
+      reason: null,
+    };
+  }
+
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured.");

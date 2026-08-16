@@ -74,7 +74,7 @@ export function QuizModeSelect({
   const quizOptions = [
     ...QUIZ_QUICK_COUNTS.filter((v) => v < quizTotal).map((v) => ({ value: v, label: String(v) })),
     ...(quizTotal >= 1 && quizTotal <= QUIZ_MAX_QUESTIONS
-      ? [{ value: quizTotal, label: `Tất cả ${quizTotal}` }]
+      ? [{ value: quizTotal, label: String(quizTotal) }]
       : []),
   ];
   const effectiveQuizCount = quizOptions.some((o) => o.value === quizCount)
@@ -147,7 +147,7 @@ export function QuizModeSelect({
               quizExpanded ? (
                 <div className="flex flex-col gap-2 pt-1 border-t border-border-soft/60">
                   <div
-                    className="flex flex-wrap justify-center gap-2"
+                    className="flex w-full items-center justify-between gap-1.5"
                     role="group"
                     aria-label="Chọn số câu"
                   >
@@ -156,9 +156,9 @@ export function QuizModeSelect({
                         key={opt.value}
                         type="button"
                         className={cn(
-                          "min-h-10 rounded-xl border border-border-soft px-3 text-sm",
+                          "min-h-8 flex-1 rounded-lg border border-border-soft px-1.5 py-1 text-xs font-medium whitespace-nowrap transition-colors sm:min-h-9 sm:text-sm",
                           effectiveQuizCount === opt.value &&
-                            "border-primary bg-primary-soft font-semibold",
+                            "border-primary bg-primary-soft font-semibold text-primary-foreground",
                         )}
                         aria-pressed={effectiveQuizCount === opt.value}
                         onClick={() => setQuizCount(opt.value)}
@@ -228,7 +228,7 @@ export function QuizModeSelect({
               matchExpanded ? (
                 <div className="flex flex-col gap-2 pt-1 border-t border-border-soft/60">
                   <div
-                    className="flex flex-wrap justify-center gap-2"
+                    className="flex w-full items-center justify-between gap-1.5"
                     role="group"
                     aria-label="Chọn số câu"
                   >
@@ -237,8 +237,9 @@ export function QuizModeSelect({
                         key={c}
                         type="button"
                         className={cn(
-                          "min-h-10 rounded-xl border border-border-soft px-3 text-sm",
-                          matchCount === c && "border-primary bg-primary-soft font-semibold",
+                          "min-h-8 flex-1 rounded-lg border border-border-soft px-1.5 py-1 text-xs font-medium transition-colors sm:min-h-9 sm:text-sm",
+                          matchCount === c &&
+                            "border-primary bg-primary-soft font-semibold text-primary-foreground",
                         )}
                         aria-pressed={matchCount === c}
                         onClick={() => setMatchCount(c as MatchCount)}
@@ -300,7 +301,7 @@ export function QuizModeSelect({
               typingExpanded ? (
                 <div className="flex flex-col gap-2 pt-1 border-t border-border-soft/60">
                   <div
-                    className="flex flex-wrap justify-center gap-2"
+                    className="flex w-full items-center justify-between gap-1.5"
                     role="group"
                     aria-label="Chọn số câu"
                   >
@@ -309,9 +310,9 @@ export function QuizModeSelect({
                         key={c}
                         type="button"
                         className={cn(
-                          "min-h-10 rounded-xl border border-border-soft px-3 text-sm",
+                          "min-h-8 flex-1 rounded-lg border border-border-soft px-1.5 py-1 text-xs font-medium transition-colors sm:min-h-9 sm:text-sm",
                           effectiveTypingCount === c &&
-                            "border-primary bg-primary-soft font-semibold",
+                            "border-primary bg-primary-soft font-semibold text-primary-foreground",
                         )}
                         aria-pressed={effectiveTypingCount === c}
                         onClick={() => setTypingCount(c)}

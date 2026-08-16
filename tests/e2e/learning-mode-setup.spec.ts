@@ -102,7 +102,7 @@ test.describe("Shared learning-mode setup", () => {
     // Fresh user, Chưa làm: N = 24 -> [10][20][Tất cả 24]; 30/50 hidden.
     await expect(page.getByRole("button", { name: "10" })).toBeVisible();
     await expect(page.getByRole("button", { name: "20" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Tất cả 24" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "24", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "30" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "50" })).toHaveCount(0);
   });

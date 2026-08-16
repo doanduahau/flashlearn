@@ -195,12 +195,12 @@ export function StudyModeSelect({
               className="flex flex-col gap-2 pt-1 border-t border-border-soft/60"
               aria-label="Số câu Memory"
             >
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex w-full items-center justify-between gap-1.5">
                 {memoryOptions.map((value) => (
                   <button
                     key={value}
                     type="button"
-                    className="min-h-10 rounded-xl border border-border-soft px-3 text-sm aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft"
+                    className="min-h-8 flex-1 rounded-lg border border-border-soft px-2 py-1 text-xs font-medium transition-colors aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft sm:min-h-9 sm:text-sm"
                     aria-pressed={selectedMemoryCount === value}
                     onClick={() => setMemoryCount(value as 12 | 18 | 24)}
                   >
@@ -267,12 +267,15 @@ export function StudyModeSelect({
           ) : runnerOptions.length && selectedMode === "runner" ? (
             <div className="flex flex-col gap-2 pt-1 border-t border-border-soft/60">
               <DifficultySelector value={difficulty} onChange={setDifficulty} />
-              <div className="mt-1 flex flex-wrap justify-center gap-2" aria-label="Số câu Runner">
+              <div
+                className="flex w-full items-center justify-between gap-1.5"
+                aria-label="Số câu Runner"
+              >
                 {runnerOptions.map((value) => (
                   <button
                     key={value}
                     type="button"
-                    className="min-h-10 rounded-xl border border-border-soft px-3 text-sm aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft"
+                    className="min-h-8 flex-1 rounded-lg border border-border-soft px-2 py-1 text-xs font-medium transition-colors aria-[pressed=true]:border-primary aria-[pressed=true]:bg-primary-soft sm:min-h-9 sm:text-sm"
                     aria-pressed={selectedRunnerCount === value}
                     onClick={() => setRunnerCount(value as RunnerQuestionCount)}
                   >

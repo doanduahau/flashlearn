@@ -30,7 +30,7 @@ export function QuestionCountSelector({
           {counting ? "Đang tính…" : `${eligible} thẻ hợp lệ`}
         </p>
       </div>
-      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Chọn số câu">
+      <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Chọn số câu">
         {options.map((option) => (
           <Button
             type="button"
@@ -40,6 +40,7 @@ export function QuestionCountSelector({
             disabled={counting}
             aria-pressed={value === option.value}
             onClick={() => onChange(option.value)}
+            className="flex-1 min-h-8 text-xs sm:min-h-9 sm:text-sm"
           >
             {option.label}
           </Button>

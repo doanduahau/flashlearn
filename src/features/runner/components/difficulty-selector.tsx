@@ -17,9 +17,9 @@ export function DifficultySelector({
   const seconds = Math.round(config.timePerItemMs / 1000);
 
   return (
-    <fieldset className="rounded-2xl border border-border-soft bg-surface p-4">
-      <legend className="px-1 text-sm font-semibold sm:text-base">Độ khó</legend>
-      <div className="flex gap-2" role="group" aria-label="Chọn độ khó">
+    <fieldset className="rounded-xl border border-border-soft bg-surface p-2.5 sm:p-3">
+      <legend className="px-1 text-xs font-semibold sm:text-sm">Độ khó</legend>
+      <div className="flex gap-1.5" role="group" aria-label="Chọn độ khó">
         {RUNNER_DIFFICULTY_OPTIONS.map((difficulty) => (
           <button
             key={difficulty}
@@ -27,7 +27,7 @@ export function DifficultySelector({
             aria-pressed={value === difficulty}
             onClick={() => onChange(difficulty)}
             className={cn(
-              "min-h-10 flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+              "min-h-8 flex-1 rounded-lg border px-2 py-1 text-xs font-medium transition-colors sm:min-h-9 sm:text-sm",
               value === difficulty
                 ? "border-primary bg-primary-soft text-primary-foreground"
                 : "border-border-soft bg-surface hover:bg-surface-subtle",
@@ -37,7 +37,7 @@ export function DifficultySelector({
           </button>
         ))}
       </div>
-      <p aria-live="polite" className="mt-2 text-xs text-text-secondary">
+      <p aria-live="polite" className="mt-1 text-[11px] text-text-secondary">
         {runnerDifficultyLabel(value)} — {config.lives} mạng · {seconds} giây/đáp án
       </p>
     </fieldset>

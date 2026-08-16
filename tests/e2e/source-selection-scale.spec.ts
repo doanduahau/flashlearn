@@ -56,7 +56,7 @@ test("Study and Quiz source selection scales across pages on mobile", async ({ p
   // (Chưa làm): 10 + Tất cả 13 offered, 20/30/50 not shown.
   await expect(page.getByText(/13 thẻ hợp lệ/)).toBeVisible();
   await expect(page.getByRole("button", { name: "10" })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "Tất cả 13" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "13", exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: "20" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "30" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "50" })).toHaveCount(0);

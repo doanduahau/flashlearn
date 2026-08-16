@@ -25,10 +25,9 @@ test("Study and Quiz source selection scales across pages on mobile", async ({ p
     "Trang 1 / 2",
   );
   await page.getByRole("checkbox", { name: /^Nguồn lớn 13,/ }).check();
-  await expect(page.getByLabel("Nguồn đã chọn")).toHaveText("Nguồn lớn 13");
+  await expect(page.getByRole("checkbox", { name: /^Nguồn lớn 13,/ })).toBeChecked();
   await page.getByRole("button", { name: "Sau" }).click();
   await expect(page).toHaveURL(/sourceType=regular.*page=2|page=2.*sourceType=regular/);
-  await expect(page.getByLabel("Nguồn đã chọn")).toHaveText("Nguồn lớn 13");
 
   await page.getByLabel("Tìm nguồn theo tên").fill("Nguồn lớn 2");
   await page.getByRole("button", { name: "Tìm" }).click();

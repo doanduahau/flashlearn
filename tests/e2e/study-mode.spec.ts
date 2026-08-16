@@ -72,8 +72,8 @@ test.describe("Study mode", () => {
     const regularB = page.getByRole("checkbox", { name: new RegExp(SET_B_NAME) });
     await regularA.check();
     await regularB.check();
-    await expect(page.getByLabel("Nguồn đã chọn")).toContainText(SET_A_NAME);
-    await expect(page.getByLabel("Nguồn đã chọn")).toContainText(SET_B_NAME);
+    await expect(regularA).toBeChecked();
+    await expect(regularB).toBeChecked();
     expect((await regularA.locator("xpath=..").boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
       40,
     );
@@ -81,12 +81,9 @@ test.describe("Study mode", () => {
     await page.getByRole("button", { name: "Bộ đặc biệt" }).click();
     const special = page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) });
     await special.check();
-    await expect(page.getByLabel("Nguồn đã chọn")).toContainText(COLLECTION_NAME);
-    await expect(page.getByLabel("Nguồn đã chọn")).not.toContainText(SET_A_NAME);
-    await expect(page.getByLabel("Nguồn đã chọn")).not.toContainText(SET_B_NAME);
+    await expect(special).toBeChecked();
 
     await allCards.check();
-    await expect(page.getByLabel("Nguồn đã chọn")).toHaveCount(0);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,

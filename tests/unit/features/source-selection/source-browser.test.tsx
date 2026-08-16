@@ -72,31 +72,35 @@ describe("SourceBrowser", () => {
     const user = userEvent.setup();
     const { rerender } = render(<SelectionHarness sourcePage={LARGE_PAGE_ONE} />);
     await user.click(screen.getByRole("checkbox", { name: /^Bộ lớn 1,/ }));
-    expect(screen.getByLabelText("Nguồn đã chọn")).toHaveTextContent("Bộ lớn 1");
+    expect(screen.getByRole("checkbox", { name: /^Bộ lớn 1,/ })).toBeChecked();
+    expect(screen.getByTestId("selected-count")).toHaveTextContent("1");
 
     rerender(<SelectionHarness sourcePage={{ ...LARGE_PAGE_ONE, sources: [SOURCE_B], page: 2 }} />);
-    expect(screen.getByLabelText("Nguồn đã chọn")).toHaveTextContent("Bộ lớn 1");
+    expect(screen.getByTestId("selected-count")).toHaveTextContent("1");
   });
 });
 
 function SelectionHarness({ sourcePage }: Readonly<{ sourcePage: SourcePage }>) {
   const [selected, setSelected] = useState<SourceOption[]>([]);
   return (
-    <SourceBrowser
-      path="/quiz"
-      sourcePage={sourcePage}
-      selected={selected}
-      onToggle={(source) =>
-        setSelected((current) =>
-          current.some((item) => item.id === source.id && item.kind === source.kind)
-            ? current.filter((item) => item.id !== source.id || item.kind !== source.kind)
-            : [...current, source],
-        )
-      }
-      allCount={0}
-      allSelected={false}
-      onSelectAll={() => setSelected([])}
-      mascotLevel={1}
-    />
+    <div>
+      <div data-testid="selected-count">{selected.length}</div>
+      <SourceBrowser
+        path="/quiz"
+        sourcePage={sourcePage}
+        selected={selected}
+        onToggle={(source) =>
+          setSelected((current) =>
+            current.some((item) => item.id === source.id && item.kind === source.kind)
+              ? current.filter((item) => item.id !== source.id || item.kind !== source.kind)
+              : [...current, source],
+          )
+        }
+        allCount={0}
+        allSelected={false}
+        onSelectAll={() => setSelected([])}
+        mascotLevel={1}
+      />
+    </div>
   );
 }

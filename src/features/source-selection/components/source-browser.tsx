@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -107,27 +107,7 @@ export function SourceBrowser({
           </Button>
         ))}
       </div>
-      {selected.length ? (
-        <div
-          aria-label="Nguồn đã chọn"
-          className="flex flex-wrap gap-2 rounded-2xl bg-primary-soft p-3"
-        >
-          {selected.map((source) => (
-            <Button
-              type="button"
-              key={`${source.kind}:${source.id}`}
-              size="sm"
-              variant="outline"
-              onClick={() => onToggle(source)}
-              title={`Bỏ chọn ${source.name}`}
-              aria-label={`Bỏ chọn ${source.name}`}
-            >
-              <span className="max-w-36 truncate">{source.name}</span>
-              <X aria-hidden="true" />
-            </Button>
-          ))}
-        </div>
-      ) : null}
+
       {isNavigating ? <SourceSkeleton /> : null}
       <ul className={cn("grid gap-2", isNavigating && "opacity-50")} aria-live="polite">
         <li>

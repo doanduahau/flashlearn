@@ -54,7 +54,7 @@ export default async function LibraryPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
-      <BackButton fallbackHref="/sets" />
+      <BackButton href="/sets" />
       <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Flash card của bạn</h1>
       <div className="mt-3 sm:mt-5">
         <SectionTabs

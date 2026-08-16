@@ -220,7 +220,7 @@ test.describe("Shared learning-mode setup", () => {
     await page.goto("/match");
     await page.getByRole("checkbox", { name: /Bộ IA A, Bộ thường/ }).check();
     await page.getByRole("checkbox", { name: /Bộ IA B, Bộ thường/ }).check();
-    await expect(page.getByLabel("Nguồn đã chọn")).toContainText("Bộ IA A");
-    await expect(page.getByLabel("Nguồn đã chọn")).toContainText("Bộ IA B");
+    await expect(page.getByRole("checkbox", { name: /Bộ IA A, Bộ thường/ })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: /Bộ IA B, Bộ thường/ })).toBeChecked();
   });
 });

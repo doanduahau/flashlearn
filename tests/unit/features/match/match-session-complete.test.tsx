@@ -96,7 +96,7 @@ describe("MatchSession completion persistence", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: "Hoàn thành 12/12" })).toBeInTheDocument(),
+      expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument(),
     );
 
     expect(completeLearningCoverageSession).toHaveBeenCalledTimes(1);
@@ -125,7 +125,7 @@ describe("MatchSession completion persistence", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: "Hoàn thành 12/12" })).toBeInTheDocument(),
+      expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument(),
     );
     expect(saveMatchAttempt).toHaveBeenCalledWith(
       expect.objectContaining({ correctPairs: 12, incorrectAttempts: 1 }),
@@ -141,7 +141,7 @@ describe("MatchSession completion persistence", () => {
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Không thể hoàn tất."));
     expect(saveMatchAttempt).not.toHaveBeenCalled();
-    expect(screen.queryByRole("heading", { name: "Hoàn thành 12/12" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Hoàn thành!" })).not.toBeInTheDocument();
   });
 
   it("shows the completion screen with a retry when match save fails", async () => {
@@ -152,7 +152,7 @@ describe("MatchSession completion persistence", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: "Hoàn thành 12/12" })).toBeInTheDocument(),
+      expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument(),
     );
     expect(screen.getByRole("alert")).toHaveTextContent("Không thể lưu kết quả lúc này.");
     const retryButton = screen.getByRole("button", { name: "Thử lại lưu kết quả" });
@@ -184,7 +184,7 @@ describe("MatchSession completion persistence", () => {
       resolveCoverage({ ok: true });
     });
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: "Hoàn thành 12/12" })).toBeInTheDocument(),
+      expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument(),
     );
     expect(completeLearningCoverageSession).toHaveBeenCalledTimes(1);
     expect(saveMatchAttempt).toHaveBeenCalledTimes(1);

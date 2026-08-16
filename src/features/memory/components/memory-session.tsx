@@ -120,19 +120,20 @@ export function MemorySession({
     );
   if (done) {
     return (
-      <div className="space-y-4">
+      <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
         <MascotImage
           level={mascotLevel}
           state="congrats"
-          size={80}
-          className="size-16 object-contain"
+          size={144}
+          className="size-36 object-contain"
+          aria-hidden
         />
-        <h2 className="text-xl font-bold sm:text-2xl">
-          Hoàn thành {questionCount}/{questionCount}
-        </h2>
-        <p className="text-sm text-text-secondary">Thời gian {formatTime(elapsedMs)}</p>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={replay}>
+        <h2 className="text-xl font-bold sm:text-2xl">Hoàn thành!</h2>
+        <p className="text-sm text-text-secondary">
+          Hoàn thành {questionCount}/{questionCount} thẻ · Thời gian {formatTime(elapsedMs)}
+        </p>
+        <div className="mt-2 flex flex-wrap justify-center gap-2">
+          <Button type="button" variant="soft" onClick={replay}>
             Chơi lại
           </Button>
           <BackButton fallbackHref={exitHref} />

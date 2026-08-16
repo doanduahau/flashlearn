@@ -167,7 +167,7 @@ describe("StudySession", () => {
     renderSession();
     await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
     await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
-    await user.click(screen.getByRole("button", { name: /Quay lại/ }));
+    await user.click(screen.getByRole("button", { name: /Thoát/ }));
     expect(mocks.back).toHaveBeenCalledTimes(1);
     expect(mocks.push).not.toHaveBeenCalled();
   });
@@ -178,7 +178,7 @@ describe("StudySession", () => {
     renderSession();
     await user.click(screen.getByRole("button", { name: /Thẻ tiếp theo/ }));
     await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
-    await user.click(screen.getByRole("button", { name: /Quay lại/ }));
+    await user.click(screen.getByRole("button", { name: /Thoát/ }));
     expect(mocks.back).not.toHaveBeenCalled();
     expect(mocks.push).toHaveBeenCalledWith(
       "/study/mode?sets=22222222-2222-4222-8222-222222222222",

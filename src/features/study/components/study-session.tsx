@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
 import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
@@ -163,25 +164,22 @@ export function StudySession({
   if (isCompleted) {
     return (
       <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
           <MascotImage
             level={mascotLevel}
             state="congrats"
-            size={80}
-            className="size-16 shrink-0 object-contain sm:size-20"
+            size={144}
+            className="size-36 object-contain"
+            aria-hidden
           />
-          <div>
-            <h1 className="text-3xl font-bold">Hoàn thành!</h1>
-            <p className="mt-3 text-xl">Đã xem {total} thẻ</p>
+          <h2 className="text-xl font-bold sm:text-2xl">Hoàn thành!</h2>
+          <p className="text-sm text-text-secondary">Đã xem {total} thẻ</p>
+          <div className="mt-2 flex flex-wrap justify-center gap-2">
+            <Button type="button" variant="soft" onClick={handleReplay}>
+              Chơi lại
+            </Button>
+            <BackButton fallbackHref={fallbackHref} />
           </div>
-        </div>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Button type="button" onClick={handleReplay}>
-            Chơi lại
-          </Button>
-          <Button type="button" variant="outline" onClick={goBack}>
-            Quay lại
-          </Button>
         </div>
       </main>
     );

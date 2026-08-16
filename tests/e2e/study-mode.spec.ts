@@ -141,7 +141,7 @@ test.describe("Study mode", () => {
     await expect(page.getByRole("button", { name: /Hoàn thành/ })).toBeVisible();
     await page.getByRole("button", { name: /Hoàn thành/ }).click();
     await expect(page.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
-    await page.getByRole("button", { name: /Quay lại/ }).click();
+    await page.getByRole("button", { name: /Thoát/ }).click();
     await expect(page).toHaveURL(/\/study\/mode\?sets=/);
 
     await context.close();

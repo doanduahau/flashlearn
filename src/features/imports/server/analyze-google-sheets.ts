@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { GeminiFlashcardGenerationProvider } from "@/features/imports/adapters/gemini-provider";
@@ -234,7 +234,7 @@ export async function loadPrivateSheetValues(rawInput: unknown): Promise<SheetVa
   if (!spreadsheetId || spreadsheetId.length < 30)
     return { kind: "error", message: "Liên kết Google Sheets không hợp lệ." };
   if (!sheetTitle) return { kind: "error", message: "Sheet không hợp lệ." };
-  if (columns.length === 0 || columns.length > 2)
+  if (columns.length === 0 || columns.length > 26)
     return { kind: "error", message: "Cột không hợp lệ." };
   if (!accessToken) {
     return {

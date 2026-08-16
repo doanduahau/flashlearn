@@ -23,10 +23,18 @@ export function parseSpreadsheetMeta(json: unknown): GoogleSheetMeta {
 
 export function parseHeaderScan(json: unknown): string[] {
   const values = (json as { values?: unknown }).values;
-  const row = Array.isArray(values) && Array.isArray(values[0]) ? (values[0] as unknown[]) : [];
-  return Array.from({ length: GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS }, (_, i) =>
-    String(row[i] ?? ""),
-  );
+  const rows = Array.isArray(values) ? (values as unknown[][]) : [];
+
+  return Array.from({ length: GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS }, (_, colIdx) => {
+    for (let r = 0; r < Math.min(rows.length, 20); r += 1) {
+      const row = rows[r];
+      if (Array.isArray(row)) {
+        const text = String(row[colIdx] ?? "").trim();
+        if (text.length > 0) return text;
+      }
+    }
+    return "";
+  });
 }
 
 export type ColumnBodiesResult = {

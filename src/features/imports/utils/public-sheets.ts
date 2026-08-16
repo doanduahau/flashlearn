@@ -78,7 +78,7 @@ export async function fetchPublicSheetValues(
   apiKey: string,
   columns: number[],
 ): Promise<PublicSheetValuesResult> {
-  if (columns.length === 0 || columns.length > 2) {
+  if (columns.length === 0 || columns.length > 26) {
     return { kind: "error", message: "Cột không hợp lệ." };
   }
 

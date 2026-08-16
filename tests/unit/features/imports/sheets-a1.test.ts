@@ -92,12 +92,13 @@ describe("lettersToColumnIndex", () => {
 });
 
 describe("buildHeaderScanRange", () => {
-  it("builds a one-row scan across the discovery width", () => {
-    expect(buildHeaderScanRange("Sheet1", 702)).toBe("'Sheet1'!A1:ZZ1");
+  it("builds a scan across the discovery width and top rows", () => {
+    expect(buildHeaderScanRange("Sheet1", 702)).toBe("'Sheet1'!A1:ZZ20");
+    expect(buildHeaderScanRange("Sheet1", 702, 1)).toBe("'Sheet1'!A1:ZZ1");
   });
 
   it("escapes the sheet title", () => {
-    expect(buildHeaderScanRange("O'Brien", 702)).toBe("'O''Brien'!A1:ZZ1");
+    expect(buildHeaderScanRange("O'Brien", 702)).toBe("'O''Brien'!A1:ZZ20");
   });
 });
 

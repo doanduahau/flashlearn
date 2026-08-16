@@ -50,10 +50,10 @@ describe("ImportWizard", () => {
     "selects a valid %s file and exposes mapping controls",
     async (name) => {
       render(<ImportWizard mascotLevel={1} />);
-      await upload(name);
-      expect(await screen.findByLabelText(/^1\./)).toBeInTheDocument();
-      expect(screen.getByLabelText(/^2\./)).toHaveValue("0");
-      expect(screen.getByLabelText(/^3\./)).toHaveValue("1");
+      const user = await upload(name);
+      await user.click(await screen.findByRole("button", { name: /Phân tích/i }));
+      expect(screen.getByLabelText("Mặt trước")).toHaveValue("0");
+      expect(screen.getByLabelText("Mặt sau")).toHaveValue("1");
       expect(mocks.parseWorkbook).toHaveBeenCalledWith(expect.objectContaining({ name }));
     },
   );
@@ -71,9 +71,10 @@ describe("ImportWizard", () => {
     ]);
     render(<ImportWizard mascotLevel={1} />);
     const user = await upload("multi.xlsx");
-    await user.selectOptions(screen.getByLabelText(/^1\./), "1");
-    await user.selectOptions(screen.getByLabelText(/^2\./), "1");
-    await user.selectOptions(screen.getByLabelText(/^3\./), "2");
+    await user.click(await screen.findByRole("button", { name: /Phân tích/i }));
+    await user.selectOptions(screen.getByLabelText("Đổi trang tính"), "1");
+    await user.selectOptions(screen.getByLabelText("Mặt trước"), "1");
+    await user.selectOptions(screen.getByLabelText("Mặt sau"), "2");
     // Quick-create summary appears with valid cards (no per-card editor)
     expect(await screen.findByText(/2 thẻ hợp lệ/)).toBeInTheDocument();
     expect(screen.getByLabelText("Tên bộ")).toBeInTheDocument();
@@ -81,7 +82,7 @@ describe("ImportWizard", () => {
     expect(screen.queryByRole("button", { name: /thêm thẻ/i })).not.toBeInTheDocument();
   });
 
-  it("labels columns without headers using A1 notation", async () => {
+  it("labels columns using first available non-empty row text", async () => {
     mocks.parseWorkbook.mockResolvedValue([
       {
         name: "Sheet 1",
@@ -93,16 +94,16 @@ describe("ImportWizard", () => {
       },
     ]);
     render(<ImportWizard mascotLevel={1} />);
-    await upload("no-header.csv");
-    await screen.findByLabelText(/^1\./);
-    const front = screen.getByLabelText(/^2\./);
-    const back = screen.getByLabelText(/^3\./);
+    const user = await upload("no-header.csv");
+    await user.click(await screen.findByRole("button", { name: /Phân tích/i }));
+    const front = screen.getByLabelText("Mặt trước");
+    const back = screen.getByLabelText("Mặt sau");
     const optionTexts = (select: HTMLElement) =>
       Array.from(select.querySelectorAll("option")).map((o) => o.textContent);
-    expect(optionTexts(front)).toEqual(["A", "B", "Fruit"]);
-    expect(optionTexts(back)).toEqual(["A", "B", "Fruit"]);
-    await userEvent.selectOptions(front, "2");
-    await userEvent.selectOptions(back, "1");
+    expect(optionTexts(front)).toEqual(["x", "y", "Fruit"]);
+    expect(optionTexts(back)).toEqual(["x", "y", "Fruit"]);
+    await user.selectOptions(front, "2");
+    await user.selectOptions(back, "1");
     expect(screen.getByText(/2 thẻ hợp lệ/)).toBeInTheDocument();
   });
 
@@ -118,9 +119,9 @@ describe("ImportWizard", () => {
       },
     ]);
     render(<ImportWizard mascotLevel={1} />);
-    await upload("empty-cols.csv");
-    await screen.findByLabelText(/^1\./);
-    const front = screen.getByLabelText(/^2\./);
+    const user = await upload("empty-cols.csv");
+    await user.click(await screen.findByRole("button", { name: /Phân tích/i }));
+    const front = screen.getByLabelText("Mặt trước");
     const optionTexts = Array.from(front.querySelectorAll("option")).map((o) => o.textContent);
     expect(optionTexts).toEqual(["Col1", "Col2"]);
   });
@@ -128,19 +129,19 @@ describe("ImportWizard", () => {
   it("announces same-column mapping", async () => {
     render(<ImportWizard mascotLevel={1} />);
     const user = await upload("cards.csv");
-    await user.selectOptions(screen.getByLabelText(/^3\./), "0");
+    await user.click(await screen.findByRole("button", { name: /Phân tích/i }));
+    await user.selectOptions(screen.getByLabelText("Mặt sau"), "0");
     expect(screen.getByRole("alert")).toHaveTextContent(/hai cột khác nhau/i);
   });
 
   it("reset clears parsed state", async () => {
     render(<ImportWizard mascotLevel={1} />);
     const user = await upload("cards.csv");
-    // After upload, the wizard shows mapping controls + editor
-    await screen.findByLabelText(/^1\./);
+    await screen.findByRole("button", { name: /Phân tích/i });
     await user.click(screen.getByRole("button", { name: /Thay/ }));
     // After reset, back to the file upload screen
     expect(screen.getByLabelText(/CSV\/XLSX/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/^1\./)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Phân tích/i })).not.toBeInTheDocument();
   });
 
   it("processes one file at a time and allows another file after parsing completes", async () => {
@@ -161,7 +162,7 @@ describe("ImportWizard", () => {
     expect(screen.getByText("\u0110ang \u0111\u1ecdc t\u1ec7p...")).toBeInTheDocument();
 
     resolveParse?.(workbook());
-    await screen.findByLabelText(/^1\./);
+    await screen.findByRole("button", { name: /Phân tích/i });
     expect(screen.queryByText("\u0110ang \u0111\u1ecdc t\u1ec7p...")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Thay/ }));
@@ -181,6 +182,6 @@ describe("ImportWizard", () => {
     expect(input).not.toBeDisabled();
     mocks.parseWorkbook.mockResolvedValueOnce(workbook());
     fireEvent.change(input, { target: { files: [new File(["replacement"], "replacement.csv")] } });
-    expect(await screen.findByLabelText(/^1\./)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Phân tích/i })).toBeInTheDocument();
   });
 });

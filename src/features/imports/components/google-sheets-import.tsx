@@ -14,7 +14,6 @@ import {
   fetchPublicSpreadsheet,
 } from "@/features/imports/utils/public-sheets";
 import { adaptSheetData } from "@/features/imports/adapters/google-sheets-adapter";
-import { detectColumns } from "@/features/imports/utils/detect-columns";
 import type { MeaningfulColumn } from "@/features/imports/utils/detect-columns";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
 import { columnIndexToLetters } from "@/features/imports/utils/sheets-a1";
@@ -30,23 +29,15 @@ import { Label } from "@/components/ui/label";
 const COLUMN_REANALYZE_DEBOUNCE_MS = 250;
 
 function buildMeaningfulColumns(headers: string[]): MeaningfulColumn[] {
-  let lastNonEmptyIndex = -1;
-  for (let i = headers.length - 1; i >= 0; i -= 1) {
-    if (headers[i]?.trim()) {
-      lastNonEmptyIndex = i;
-      break;
-    }
-  }
-
-  const maxIndex = Math.max(lastNonEmptyIndex, 1);
-
   const result: MeaningfulColumn[] = [];
-  for (let i = 0; i <= maxIndex; i += 1) {
-    const headerName = headers[i]?.trim();
-    result.push({
-      index: i,
-      name: headerName || columnIndexToLetters(i),
-    });
+  for (let i = 0; i < headers.length; i += 1) {
+    const text = headers[i]?.trim();
+    if (text && text.length > 0) {
+      result.push({
+        index: i,
+        name: text,
+      });
+    }
   }
   return result;
 }
@@ -296,28 +287,15 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
 
   function handleDiscovered(meta: SheetMetaLike, headers: string[], sheetTitle: string): void {
     sheetTitleRef.current = sheetTitle;
-    const detection = detectColumns(headers);
-
     const meaningful = buildMeaningfulColumns(headers);
     setMeaningfulColumns(meaningful);
 
-    if (detection.kind === "mapped") {
-      setNeedsMapping(false);
-      void loadValues(meta, sheetTitle, [
-        detection.mapping.frontColumn,
-        detection.mapping.backColumn,
-      ]);
-      return;
-    }
+    const fCol = meaningful[0]?.index ?? 0;
+    const bCol =
+      meaningful[1]?.index ?? (meaningful[0]?.index !== undefined ? meaningful[0].index : 1);
 
-    if (detection.kind === "single_column") {
-      setNeedsMapping(false);
-      void loadValues(meta, sheetTitle, [detection.columnIndex]);
-      return;
-    }
-
-    // ambiguous
-    setNeedsMapping(true);
+    setFrontColumn(fCol);
+    setBackColumn(bCol);
     setSheetInfo({
       spreadsheetTitle: meta.spreadsheetTitle,
       sheets: meta.sheets,
@@ -328,10 +306,32 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
       blank: 0,
       partial: 0,
       duplicate: 0,
-      frontColumn: detection.columns[0]?.index ?? 0,
-      backColumn: detection.columns[1]?.index ?? 1,
+      frontColumn: fCol,
+      backColumn: bCol,
     });
+    setFullCards(null);
     setMode("loaded");
+  }
+
+  async function analyzeWithMapping(explicitFront?: number, explicitBack?: number): Promise<void> {
+    if (!sheetInfo) return;
+    const front = explicitFront ?? frontColumn;
+    const back = explicitBack ?? backColumn;
+    setMode("analyzing");
+    setError("");
+    const meta = {
+      spreadsheetTitle: sheetInfo.spreadsheetTitle,
+      sheets: sheetInfo.sheets,
+    };
+
+    const allColIndices = meaningfulColumns.map((c) => c.index);
+    const colsToFetch = allColIndices.length >= 2 ? allColIndices : [front, back];
+
+    await loadValues(
+      meta,
+      sheetTitleRef.current || sheetInfo.sheets[selectedSheetIndex]?.title || "",
+      colsToFetch,
+    );
   }
 
   function requestToken(): void {
@@ -474,23 +474,6 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
     else await changePrivateSheet(newIndex);
   }
 
-  async function analyzeWithMapping(explicitFront?: number, explicitBack?: number): Promise<void> {
-    if (!sheetInfo) return;
-    const front = explicitFront ?? frontColumn;
-    const back = explicitBack ?? backColumn;
-    setMode("analyzing");
-    setError("");
-    const meta = {
-      spreadsheetTitle: sheetInfo.spreadsheetTitle,
-      sheets: sheetInfo.sheets,
-    };
-    await loadValues(
-      meta,
-      sheetTitleRef.current || sheetInfo.sheets[selectedSheetIndex]?.title || "",
-      [front, back],
-    );
-  }
-
   function scheduleReanalysis(front: number, back: number): void {
     if (front === back || isPending) return;
     if (reanalyzeTimerRef.current) {
@@ -610,111 +593,176 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
 
       {mode === "loaded" && sheetInfo && (
         <>
-          <div className="text-sm">
-            <span className="text-text-secondary">Bảng tính: </span>
-            <span className="font-medium">{sheetInfo.spreadsheetTitle}</span>
-          </div>
+          {!fullCards ? (
+            <div className="space-y-4 rounded-2xl border border-border-soft bg-surface p-5">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-text-secondary">Bảng tính</span>
+                <p className="font-bold text-text-primary">{sheetInfo.spreadsheetTitle}</p>
+              </div>
 
-          {sheetInfo.sheets.length > 1 && (
-            <div className="flex flex-col gap-1.5 rounded-2xl border border-border-soft bg-surface p-4 sm:p-5">
-              <Label htmlFor="gs-sheet-select" className="text-sm font-semibold text-text-primary">
-                Bảng
-              </Label>
-              <select
-                id="gs-sheet-select"
-                className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                value={selectedSheetIndex}
-                onChange={(e) => {
-                  void changeSheet(Number(e.target.value));
-                }}
-                disabled={isPending}
+              {sheetInfo.sheets.length > 1 && (
+                <div>
+                  <Label
+                    htmlFor="gs-sheet-select"
+                    className="text-sm font-semibold text-text-primary"
+                  >
+                    Chọn bảng
+                  </Label>
+                  <select
+                    id="gs-sheet-select"
+                    className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={selectedSheetIndex}
+                    onChange={(e) => {
+                      void changeSheet(Number(e.target.value));
+                    }}
+                    disabled={isPending}
+                  >
+                    {sheetInfo.sheets.map((s) => (
+                      <option key={s.sheetId} value={s.index}>
+                        {s.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button onClick={() => void analyzeWithMapping()} disabled={isPending}>
+                  Phân tích
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setMode("init");
+                    setSheetInfo(null);
+                    setFullCards(null);
+                    setUrlInput("");
+                  }}
+                >
+                  Đổi liên kết
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {meaningfulColumns.length > 0 && (
+                <div className="rounded-2xl border border-border-soft bg-surface p-4 sm:p-5">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label
+                        htmlFor="gs-front-col"
+                        className="text-sm font-semibold text-text-primary"
+                      >
+                        Mặt trước
+                      </Label>
+                      <select
+                        id="gs-front-col"
+                        className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        value={frontColumn}
+                        onChange={(e) => {
+                          const next = Number(e.target.value);
+                          setFrontColumn(next);
+                          scheduleReanalysis(next, backColumn);
+                        }}
+                        disabled={isPending}
+                      >
+                        {meaningfulColumns.map((col) => (
+                          <option key={col.index} value={col.index}>
+                            {col.name || columnIndexToLetters(col.index)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label
+                        htmlFor="gs-back-col"
+                        className="text-sm font-semibold text-text-primary"
+                      >
+                        Mặt sau
+                      </Label>
+                      <select
+                        id="gs-back-col"
+                        className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        value={backColumn}
+                        onChange={(e) => {
+                          const next = Number(e.target.value);
+                          setBackColumn(next);
+                          scheduleReanalysis(frontColumn, next);
+                        }}
+                        disabled={isPending}
+                      >
+                        {meaningfulColumns.map((col) => (
+                          <option key={col.index} value={col.index}>
+                            {col.name || columnIndexToLetters(col.index)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {sheetInfo.sheets.length > 1 && (
+                    <div className="mt-4 border-t border-border-soft pt-3">
+                      <Label
+                        htmlFor="gs-sheet-select-change"
+                        className="text-xs font-medium text-text-secondary"
+                      >
+                        Đổi bảng
+                      </Label>
+                      <select
+                        id="gs-sheet-select-change"
+                        className="mt-1 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm text-text-primary"
+                        value={selectedSheetIndex}
+                        onChange={(e) => {
+                          void changeSheet(Number(e.target.value));
+                        }}
+                        disabled={isPending}
+                      >
+                        {sheetInfo.sheets.map((s) => (
+                          <option key={s.sheetId} value={s.index}>
+                            {s.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {frontColumn === backColumn ? (
+                <p role="alert" className="text-danger font-medium">
+                  Mặt trước và mặt sau phải dùng hai cột khác nhau.
+                </p>
+              ) : null}
+
+              <CreateSummary
+                key={`sheets-${selectedSheetIndex}-${frontColumn}-${backColumn}`}
+                sourceCards={fullCards}
+                sourceMetadata={[
+                  { label: "Bảng tính", value: sheetInfo.spreadsheetTitle },
+                  ...(sheetInfo.sheets.length > 1
+                    ? [
+                        {
+                          label: "Tab",
+                          value: sheetInfo.sheets[selectedSheetIndex]?.title ?? "",
+                        },
+                      ]
+                    : []),
+                ]}
+                mascotLevel={mascotLevel}
               >
-                {sheetInfo.sheets.map((s) => (
-                  <option key={s.sheetId} value={s.index}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setFullCards(null);
+                  }}
+                >
+                  Đổi bảng tính
+                </Button>
+              </CreateSummary>
             </div>
           )}
-
-          {meaningfulColumns.length > 0 && (
-            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border-soft bg-surface p-4 sm:grid-cols-2 sm:p-5">
-              <div>
-                <Label htmlFor="gs-front-col" className="text-sm font-semibold text-text-primary">
-                  Mặt trước
-                </Label>
-                <select
-                  id="gs-front-col"
-                  className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  value={frontColumn}
-                  onChange={(e) => {
-                    const next = Number(e.target.value);
-                    setFrontColumn(next);
-                    scheduleReanalysis(next, backColumn);
-                  }}
-                  disabled={isPending}
-                >
-                  {meaningfulColumns.map((col) => (
-                    <option key={col.index} value={col.index}>
-                      {col.name || columnIndexToLetters(col.index)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="gs-back-col" className="text-sm font-semibold text-text-primary">
-                  Mặt sau
-                </Label>
-                <select
-                  id="gs-back-col"
-                  className="mt-1.5 w-full cursor-pointer rounded-xl border border-border-soft bg-surface px-3 py-2.5 text-sm font-medium text-text-primary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  value={backColumn}
-                  onChange={(e) => {
-                    const next = Number(e.target.value);
-                    setBackColumn(next);
-                    scheduleReanalysis(frontColumn, next);
-                  }}
-                  disabled={isPending}
-                >
-                  {meaningfulColumns.map((col) => (
-                    <option key={col.index} value={col.index}>
-                      {col.name || columnIndexToLetters(col.index)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-
-          <Button
-            onClick={() => void analyzeWithMapping()}
-            disabled={isPending || frontColumn === backColumn}
-          >
-            {(() => {
-              const m: string = mode;
-              return m === "analyzing" ? "Đang phân tích..." : "Phân tích";
-            })()}
-          </Button>
-
-          {fullCards && fullCards.length > 0 ? (
-            <CreateSummary
-              key={`sheets-${selectedSheetIndex}-${frontColumn}-${backColumn}`}
-              sourceCards={fullCards}
-              sourceMetadata={[
-                { label: "Bảng tính", value: sheetInfo.spreadsheetTitle },
-                ...(sheetInfo.sheets.length > 1
-                  ? [
-                      {
-                        label: "Tab",
-                        value: sheetInfo.sheets[selectedSheetIndex]?.title ?? "",
-                      },
-                    ]
-                  : []),
-              ]}
-              mascotLevel={mascotLevel}
-            />
-          ) : null}
         </>
       )}
 

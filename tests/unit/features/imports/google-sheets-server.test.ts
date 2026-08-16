@@ -105,7 +105,7 @@ describe("openGoogleSheet (private flow) — header discovery", () => {
     expect(headerCall).toBeTruthy();
     const url = String(headerCall?.[0]);
     const expected = encodeURIComponent(
-      `A1:${colLetters(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS - 1)}1`,
+      `A1:${colLetters(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS - 1)}20`,
     );
     expect(url).toContain(expected);
   });
@@ -179,13 +179,13 @@ describe("loadPrivateSheetValues — adaptive column body", () => {
     expect(result.kind).toBe("error");
   });
 
-  it("rejects more than two columns", async () => {
+  it("rejects more than 26 columns", async () => {
     mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
     const result = await loadPrivateSheetValues({
       spreadsheetId: "abc123abc123abc123abc123abc123abc12",
       accessToken: "token-123",
       sheetTitle: "Sheet1",
-      columns: [0, 1, 2],
+      columns: Array.from({ length: 27 }, (_, i) => i),
     });
     expect(result.kind).toBe("error");
   });

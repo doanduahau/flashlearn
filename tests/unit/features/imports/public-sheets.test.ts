@@ -98,7 +98,7 @@ describe("fetchPublicSpreadsheet — browser API key header discovery", () => {
     const headerUrl = calls.find((u) => u.includes("/values/"));
     expect(headerUrl).toBeTruthy();
     const expected = encodeURIComponent(
-      `A1:${colLetters(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS - 1)}1`,
+      `A1:${colLetters(GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS - 1)}20`,
     );
     expect(headerUrl).toContain(expected);
   });
@@ -162,12 +162,12 @@ describe("fetchPublicSheetValues — adaptive column body", () => {
     expect(result.kind).toBe("error");
   });
 
-  it("rejects more than two columns", async () => {
+  it("rejects more than 26 columns", async () => {
     const result = await fetchPublicSheetValues(
       "abc123abc123abc123abc123abc123abc12",
       "Sheet1",
       MOCK_API_KEY,
-      [0, 1, 2],
+      Array.from({ length: 27 }, (_, i) => i),
     );
     expect(result.kind).toBe("error");
   });

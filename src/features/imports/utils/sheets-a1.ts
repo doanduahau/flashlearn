@@ -23,10 +23,14 @@ export function escapeA1SheetName(title: string): string {
   return `'${title.replace(/'/g, "''")}'`;
 }
 
-export function buildHeaderScanRange(sheetTitle: string, columnCount: number): string {
+export function buildHeaderScanRange(
+  sheetTitle: string,
+  columnCount: number,
+  rowCount = 20,
+): string {
   const escaped = escapeA1SheetName(sheetTitle);
   const endCol = columnIndexToLetters(columnCount - 1);
-  return `${escaped}!A1:${endCol}1`;
+  return `${escaped}!A1:${endCol}${rowCount}`;
 }
 
 export function buildDataColumnRange(

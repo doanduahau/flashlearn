@@ -15,8 +15,6 @@ import type { StudyCard, StudyCollectionOption } from "@/features/study/types/st
 import { STUDY_MAX_CARDS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
-
 const SWIPE_THRESHOLD = 56;
 const SWIPE_RATIO = 1.2;
 const CLICK_SLOP = 8;
@@ -42,7 +40,6 @@ export function StudySession({
 }>) {
   const router = useRouter();
   const fallbackHref = studyModeHrefFromSession(sessionHref);
-  const goBack = useBackWithFallback(fallbackHref);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);

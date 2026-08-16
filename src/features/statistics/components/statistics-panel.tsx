@@ -2,14 +2,13 @@ import Link from "next/link";
 
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import { levelFromStreak } from "@/features/mascot/utils/mascot-level";
-import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
 import {
   accuracy,
   loadLearningStatistics,
+  loadMergedHistory,
   loadMonthlyActivity,
   loadMonthlyStreakDates,
-  modeLabel,
 } from "@/features/statistics/server/load-statistics";
 import {
   dateInTimezone,
@@ -20,8 +19,17 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function StatisticsPanel({
   month: requestedMonthValue,
-}: Readonly<{ month?: string | string[] }>) {
+  view: requestedViewValue,
+}: Readonly<{
+  month?: string | string[];
+  view?: string | string[];
+}>) {
   const supabase = await createClient();
+  const isHistoryView =
+    typeof requestedViewValue === "string"
+      ? requestedViewValue === "history"
+      : Array.isArray(requestedViewValue) && requestedViewValue.includes("history");
+
   const stats = await loadLearningStatistics(supabase);
 
   if (!stats) {
@@ -37,8 +45,63 @@ export async function StatisticsPanel({
     );
   }
 
-  const currentMonth = monthInTimezone(new Date(), stats.timezone);
   const mascotLevel = levelFromStreak(stats.current_streak);
+
+  if (isHistoryView) {
+    const history = await loadMergedHistory(supabase);
+    return (
+      <section className="mt-6" aria-labelledby="history-heading">
+        <div className="flex items-center justify-between gap-4">
+          <h2 id="history-heading" className="text-2xl font-bold">
+            Lịch sử
+          </h2>
+          <Link
+            href="/profile?tab=statistics"
+            className="text-sm font-medium text-text-secondary hover:underline"
+          >
+            &larr; Quay lại
+          </Link>
+        </div>
+        {history.length ? (
+          <ul className="mt-4 space-y-3">
+            {history.map((item) => (
+              <li
+                key={`${item.type}-${item.id}`}
+                className="flex items-center justify-between rounded-2xl border border-border-soft bg-surface p-4"
+              >
+                <div>
+                  {item.type === "quiz" ? (
+                    <Link className="font-semibold underline" href={`/quiz/${item.id}/result`}>
+                      {item.correct}/{item.total} đúng
+                    </Link>
+                  ) : (
+                    <span className="font-semibold">
+                      {item.correct}/{item.total} đúng
+                    </span>
+                  )}
+                  <p className="mt-0.5 text-xs text-text-secondary">
+                    {new Date(item.completedAt).toLocaleString("vi-VN")}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mt-6 flex flex-col items-center gap-3 py-8 text-center text-text-secondary">
+            <MascotImage
+              level={mascotLevel}
+              state="thinking"
+              size={64}
+              className="size-16 object-contain"
+            />
+            <p>Bạn chưa hoàn thành bài kiểm tra nào.</p>
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  const currentMonth = monthInTimezone(new Date(), stats.timezone);
   const requestedMonth = typeof requestedMonthValue === "string" ? requestedMonthValue : "";
   const month =
     isValidMonth(requestedMonth) && requestedMonth <= currentMonth ? requestedMonth : currentMonth;
@@ -72,11 +135,14 @@ export async function StatisticsPanel({
       <p className="mt-2 text-text-secondary">
         Theo múi giờ {stats.timezone}. Chỉ bài kiểm tra đã hoàn thành được tính.
       </p>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Tóm tắt thống kê">
+      <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-3" aria-label="Tóm tắt thống kê">
         {cards.map(([label, value]) => (
-          <article className="rounded-2xl border border-border-soft bg-surface p-4" key={label}>
-            <h3 className="text-sm text-text-secondary">{label}</h3>
-            <p className="mt-1 text-2xl font-bold">{value}</p>
+          <article
+            className="rounded-2xl border border-border-soft bg-surface p-3 sm:p-4"
+            key={label}
+          >
+            <h3 className="text-xs text-text-secondary sm:text-sm">{label}</h3>
+            <p className="mt-1 text-base font-bold sm:text-lg">{value}</p>
           </article>
         ))}
       </div>
@@ -96,97 +162,25 @@ export async function StatisticsPanel({
           Không thể tải hoạt động tháng này.
         </p>
       )}
-      <section className="mt-8">
-        <h3 className="text-xl font-bold">Theo chế độ</h3>
-        {stats.mode_breakdown.length ? (
-          <ul className="mt-2 space-y-2">
-            {stats.mode_breakdown.map((mode) => (
-              <li className="rounded-xl border border-border-soft p-3" key={mode.mode}>
-                {modeLabel(mode.mode)}: {mode.quiz_count} bài, {mode.correct}/{mode.questions} đúng
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="mt-2 flex flex-col items-start gap-2 text-text-secondary">
-            <MascotImage
-              level={mascotLevel}
-              state="thinking"
-              size={64}
-              className="size-16 object-contain"
-            />
-            <p>Chưa có bài hoàn thành.</p>
-          </div>
-        )}
-      </section>
-      <section className="mt-8">
-        <h3 className="text-xl font-bold">Bài gần đây</h3>
-        {stats.recent_quizzes.length ? (
-          <ul className="mt-2 space-y-2">
-            {stats.recent_quizzes.map((quiz) => (
-              <li key={quiz.id}>
-                <Link className="underline" href={`/quiz/${quiz.id}/result`}>
-                  {modeLabel(quiz.mode)} · {quiz.correct}/{quiz.questions} đúng
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-2 text-text-secondary">Chưa có lịch sử để hiển thị.</p>
-        )}
-      </section>
-      <QuizHistory supabase={supabase} mascotLevel={mascotLevel} />
-    </section>
-  );
-}
-
-async function QuizHistory({
-  supabase,
-  mascotLevel,
-}: Readonly<{
-  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>;
-  mascotLevel: MascotLevel;
-}>) {
-  const { data: sessions, error } = await supabase
-    .from("quiz_sessions")
-    .select("id, mode, actual_question_count, correct_answer_count, completed_at")
-    .not("completed_at", "is", null)
-    .order("completed_at", { ascending: false })
-    .limit(50);
-
-  return (
-    <section className="mt-8" aria-labelledby="quiz-history-heading">
-      <h3 id="quiz-history-heading" className="text-xl font-bold">
-        Lịch sử bài kiểm tra
-      </h3>
-      {error ? (
-        <p role="alert" className="mt-4 text-danger">
-          Không thể tải lịch sử.
-        </p>
-      ) : sessions?.length ? (
-        <ul className="mt-4 space-y-3">
-          {sessions.map((session) => (
-            <li key={session.id} className="rounded-2xl border border-border-soft bg-surface p-4">
-              <Link className="font-semibold underline" href={`/quiz/${session.id}/result`}>
-                {modeLabel(session.mode)} · {session.correct_answer_count}/
-                {session.actual_question_count} đúng
-              </Link>
-              <p className="text-sm text-text-secondary">
-                {session.completed_at ? new Date(session.completed_at).toLocaleString("vi-VN") : ""}
-              </p>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="mt-4 flex flex-col items-start gap-2 text-text-secondary">
-          <MascotImage
-            level={mascotLevel}
-            state="thinking"
-            size={64}
-            className="size-16 object-contain"
-          />
-          <p>Bạn chưa hoàn thành bài kiểm tra nào.</p>
+      <section
+        aria-labelledby="history-summary-heading"
+        className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-border-soft bg-surface p-4"
+      >
+        <div>
+          <h3 id="history-summary-heading" className="font-semibold text-text-primary">
+            Lịch sử
+          </h3>
+          <p className="mt-0.5 text-xs text-text-secondary">
+            Tất cả bài trắc nghiệm, ghép thẻ và gõ từ đã hoàn thành
+          </p>
         </div>
-      )}
+        <Link
+          href="/profile?tab=statistics&view=history"
+          className="shrink-0 text-sm font-semibold text-primary hover:underline"
+        >
+          Xem lịch sử &rarr;
+        </Link>
+      </section>
     </section>
   );
 }

@@ -199,3 +199,85 @@ export function modeLabel(mode: string): string {
     }[mode] ?? mode
   );
 }
+
+export type MergedHistoryItem = {
+  id: string;
+  type: "quiz" | "match" | "typing";
+  correct: number;
+  total: number;
+  completedAt: string;
+};
+
+export async function loadMergedHistory(
+  supabase: SupabaseClient<Database>,
+  limit = 50,
+): Promise<MergedHistoryItem[]> {
+  const [quizRes, matchRes, typingRes] = await Promise.all([
+    supabase
+      .from("quiz_sessions")
+      .select("id, actual_question_count, correct_answer_count, completed_at")
+      .not("completed_at", "is", null)
+      .order("completed_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("match_attempts")
+      .select("id, total_pairs, correct_pair_count, completed_at")
+      .not("completed_at", "is", null)
+      .order("completed_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("typing_attempts")
+      .select("id, total_questions, correct_questions, completed_at")
+      .not("completed_at", "is", null)
+      .order("completed_at", { ascending: false })
+      .limit(limit),
+  ]);
+
+  const items: MergedHistoryItem[] = [];
+
+  if (quizRes.data) {
+    for (const q of quizRes.data) {
+      if (q.completed_at) {
+        items.push({
+          id: q.id,
+          type: "quiz",
+          correct: q.correct_answer_count,
+          total: q.actual_question_count,
+          completedAt: q.completed_at,
+        });
+      }
+    }
+  }
+
+  if (matchRes.data) {
+    for (const m of matchRes.data) {
+      if (m.completed_at) {
+        items.push({
+          id: m.id,
+          type: "match",
+          correct: m.correct_pair_count,
+          total: m.total_pairs,
+          completedAt: m.completed_at,
+        });
+      }
+    }
+  }
+
+  if (typingRes.data) {
+    for (const t of typingRes.data) {
+      if (t.completed_at) {
+        items.push({
+          id: t.id,
+          type: "typing",
+          correct: t.correct_questions,
+          total: t.total_questions,
+          completedAt: t.completed_at,
+        });
+      }
+    }
+  }
+
+  items.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+
+  return items.slice(0, limit);
+}

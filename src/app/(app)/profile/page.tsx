@@ -53,7 +53,7 @@ export default async function ProfilePage({
       >
         <Suspense fallback={<ProfileTabLoading />}>
           {tab === "statistics" ? (
-            <StatisticsPanel month={raw.month} />
+            <StatisticsPanel month={raw.month} view={raw.view} />
           ) : (
             <ProfileDetails tab={tab} />
           )}

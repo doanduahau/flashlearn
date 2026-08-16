@@ -1,5 +1,5 @@
 begin;
-select plan(75);
+select plan(77);
 
 -- ---------------------------------------------------------------------------
 -- Setup: users A, B, C; sets A and B; clone sets for B and C; profiles.
@@ -291,6 +291,11 @@ select is(
   3,
   'valid token returns the card count'
 );
+select is(
+  (select share_classroom_enabled from public.get_shared_set_by_token(current_setting('share.token_active'))),
+  false,
+  'preview RPC reports classroom mode off when it is off'
+);
 select throws_ok(
   $$select user_id from public.get_shared_set_by_token(current_setting('share.token_active'))$$,
   '42703', NULL,
@@ -392,6 +397,11 @@ select is(
   (select share_classroom_enabled from public.flashcard_sets where id = 'a1a1a1a1-4444-4444-4444-444444444444'),
   true,
   'owner can enable classroom mode'
+);
+select is(
+  (select share_classroom_enabled from public.get_shared_set_by_token(current_setting('share.token_active'))),
+  true,
+  'preview RPC reports classroom mode on when it is on'
 );
 select public.set_set_classroom_enabled(
   'aaaaaaaa-4444-4444-4444-444444444444',

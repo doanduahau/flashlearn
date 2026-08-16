@@ -740,6 +740,7 @@ export type Database = {
           name: string
           owner_display_name: string
           set_id: string
+          share_classroom_enabled: boolean
         }[]
       }
       get_shared_set_cards: {

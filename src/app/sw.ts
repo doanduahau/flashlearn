@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/next/worker";
-import { NetworkFirst, Serwist } from "serwist";
+import { NetworkFirst, NetworkOnly, Serwist } from "serwist";
 import type { PrecacheEntry } from "serwist";
 
 declare global {
@@ -18,6 +18,28 @@ declare const self: ServiceWorkerGlobalScope & {
 // account's cached page when offline. Accepted for this personal-PWA MVP.
 const OFFLINE_PAGES = ["/dashboard", "/sets", "/sets/library"];
 
+// App routes that are fully dynamic (server-rendered per request). They must
+// NEVER be served from cache — always hit the network. This prevents the SW
+// from causing FetchEvent rejections (no-response) when there is no cached
+// entry for these routes.
+const DYNAMIC_APP_ROUTE_PREFIXES = [
+  "/quiz",
+  "/study",
+  "/runner",
+  "/match",
+  "/memory",
+  "/collections",
+  "/history",
+  "/statistics",
+  "/profile",
+  "/settings",
+  "/import",
+  "/share",
+  "/typing",
+  "/auth",
+  "/api",
+];
+
 const serwist = new Serwist({
   precacheEntries: [
     ...(self.__SW_MANIFEST ?? []),
@@ -29,10 +51,28 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    // Dynamic app routes: always go to network, never serve from cache.
+    // This rule must come BEFORE defaultCache so it takes priority.
+    {
+      matcher: ({ request, url }) =>
+        (request.mode === "navigate" || request.destination === "") &&
+        url.origin === self.location.origin &&
+        DYNAMIC_APP_ROUTE_PREFIXES.some((prefix) => url.pathname.startsWith(prefix)),
+      handler: new NetworkOnly(),
+    },
+    // Server Actions and RSC payloads: always network-only.
+    {
+      matcher: ({ request, url }) =>
+        url.origin === self.location.origin &&
+        (request.headers.get("next-action") !== null ||
+          url.pathname.startsWith("/_next/data/") ||
+          url.searchParams.has("_rsc")),
+      handler: new NetworkOnly(),
+    },
     ...defaultCache,
     {
-      // Cache the four main read pages with NetworkFirst: with a connection we
-      // fetch fresh and update the cache; without one we serve the last HTML.
+      // Cache the main read-mostly pages with NetworkFirst: fresh when online,
+      // last cached HTML when offline.
       // networkTimeoutSeconds keeps a flaky connection from hanging for long.
       matcher: ({ request, url }) =>
         request.mode === "navigate" &&
@@ -50,8 +90,8 @@ const serwist = new Serwist({
   fallbacks: {
     entries: [
       {
-        // Any offline navigation that is not covered by a cached page (e.g. a
-        // route never visited) falls back to the /offline shell from W1.
+        // Only use /offline fallback for navigation requests — dynamic routes
+        // use NetworkOnly above so they will not reach this handler while online.
         url: "/offline",
         matcher: ({ request }) => request.mode === "navigate",
       },

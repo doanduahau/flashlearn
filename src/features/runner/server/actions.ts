@@ -4,7 +4,7 @@ import { randomInt } from "node:crypto";
 
 import { selectCardsByPriority } from "@/features/learning-modes/types";
 import {
-  loadUncoveredIds,
+  loadAppearanceCounts,
   loadWrongAnswerCardIds,
 } from "@/features/practice-coverage/server/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -172,14 +172,14 @@ export async function startRunnerSession(input: unknown): Promise<StartRunnerSes
     const shuffled = buildRunnerSession(eligible, eligible.length, random);
     if (!shuffled) return { ok: false, error: poolMessage() };
     const eligibleById = new Map(eligible.map((card) => [card.id, card]));
-    const [uncovered, wrong] = await Promise.all([
-      loadUncoveredIds("runner", shuffled.sessionCardIds),
+    const [appearance, wrong] = await Promise.all([
+      loadAppearanceCounts("runner", shuffled.sessionCardIds),
       loadWrongAnswerCardIds(shuffled.sessionCardIds),
     ]);
     const selectedIds = selectCardsByPriority(
       shuffled.sessionCardIds,
       wrong,
-      new Set(uncovered),
+      appearance,
       parsed.data.questionCount,
     );
     const selectedCards = selectedIds.flatMap((id) => {

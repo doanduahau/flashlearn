@@ -40,6 +40,10 @@ const POOL = [
   uuid(12),
 ];
 
+function appearanceCounts(entries: [string, number][]): Record<string, number> {
+  return Object.fromEntries(entries);
+}
+
 describe("startQuiz prioritized selection", () => {
   beforeEach(() => {
     mocks.createClient.mockReset();
@@ -47,9 +51,9 @@ describe("startQuiz prioritized selection", () => {
     mocks.collectStudyCardIds.mockReset();
   });
 
-  function setup({ wrong, uncovered }: { wrong: string[]; uncovered: string[] }) {
+  function setup({ wrong, counts }: { wrong: string[]; counts: Record<string, number> }) {
     const rpc = vi.fn().mockResolvedValue({
-      data: [{ total: POOL.length, uncovered_ids: uncovered, wrong_ids: wrong }],
+      data: [{ total: POOL.length, appearance_counts: counts, wrong_ids: wrong }],
       error: null,
     });
     mocks.createClient.mockResolvedValue({
@@ -64,10 +68,21 @@ describe("startQuiz prioritized selection", () => {
     return { admin, rpc };
   }
 
-  it("calls the prioritized RPC with wrong-first, then unseen, then random ids", async () => {
+  it("picks wrong cards first, then least-appeared cards", async () => {
     const { admin } = setup({
       wrong: [POOL[2], POOL[5]],
-      uncovered: [POOL[3], POOL[6], POOL[9]],
+      counts: appearanceCounts([
+        [POOL[0], 5],
+        [POOL[1], 4],
+        [POOL[3], 1],
+        [POOL[4], 6],
+        [POOL[6], 2],
+        [POOL[7], 3],
+        [POOL[8], 7],
+        [POOL[9], 0],
+        [POOL[10], 8],
+        [POOL[11], 9],
+      ]),
     });
 
     const result = await startQuiz({
@@ -84,17 +99,35 @@ describe("startQuiz prioritized selection", () => {
     expect(args.p_scope_card_ids).toEqual(POOL);
     // Wrong cards first regardless of shuffle order.
     expect(args.p_card_ids.slice(0, 2).sort()).toEqual([POOL[2], POOL[5]].sort());
-    // Unseen cards next, excluding ones already picked as wrong.
-    const wrongAndUnseen = [POOL[2], POOL[5], POOL[3], POOL[6], POOL[9]];
-    expect(args.p_card_ids.slice(0, 5).sort()).toEqual(wrongAndUnseen.sort());
+    // The remainder follows ascending appearance count.
+    expect(args.p_card_ids.slice(2)).toEqual([
+      POOL[9],
+      POOL[3],
+      POOL[6],
+      POOL[7],
+      POOL[1],
+      POOL[0],
+      POOL[4],
+      POOL[8],
+    ]);
     expect(new Set(args.p_card_ids).size).toBe(10);
     expect(args.p_card_ids.every((id: string) => POOL.includes(id))).toBe(true);
   });
 
-  it("mixes 3 wrong + 7 unseen into a 10-question selection", async () => {
+  it("fills a 10-question selection with 3 wrong + 7 least-appeared cards", async () => {
     const wrong = POOL.slice(0, 3);
-    const uncovered = POOL.slice(3, 10);
-    const { admin } = setup({ wrong, uncovered });
+    const leastAppeared = POOL.slice(3, 10);
+    const { admin } = setup({
+      wrong,
+      counts: appearanceCounts(
+        leastAppeared
+          .map((id, index): [string, number] => [id, index])
+          .concat([
+            [POOL[10], 10],
+            [POOL[11], 11],
+          ]),
+      ),
+    });
 
     const result = await startQuiz({
       all: false,
@@ -106,11 +139,11 @@ describe("startQuiz prioritized selection", () => {
     expect(result).toEqual({ ok: true, sessionId: "session-1" });
     const [, args] = admin.rpc.mock.calls[0];
     expect(args.p_card_ids.slice(0, 3).sort()).toEqual(wrong.sort());
-    expect(args.p_card_ids.slice(3, 10).sort()).toEqual(uncovered.sort());
+    expect(args.p_card_ids.slice(3, 10)).toEqual(leastAppeared);
   });
 
   it("returns a clear error when the pool is smaller than the requested count", async () => {
-    setup({ wrong: [], uncovered: [] });
+    setup({ wrong: [], counts: {} });
     mocks.collectStudyCardIds.mockResolvedValue(POOL.slice(0, 5));
 
     const result = await startQuiz({
@@ -142,7 +175,7 @@ describe("startQuiz prioritized selection", () => {
   });
 
   it("fails closed with a generic message when the scope RPC errors", async () => {
-    const { admin } = setup({ wrong: [], uncovered: [] });
+    const { admin } = setup({ wrong: [], counts: {} });
     admin.rpc.mockResolvedValue({ data: null, error: new Error("boom") });
 
     const result = await startQuiz({

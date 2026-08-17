@@ -6,7 +6,7 @@ import { memoryStartSchema } from "@/features/memory/schemas/memory-schema";
 import type { MemoryCard, StartedMemorySession } from "@/features/memory/types/memory-types";
 import { buildMemorySession, getMemoryEligibility } from "@/features/memory/utils/memory-session";
 import {
-  loadUncoveredIds,
+  loadAppearanceCounts,
   loadWrongAnswerCardIds,
 } from "@/features/practice-coverage/server/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -51,18 +51,18 @@ export async function getMemoryAvailability(input: unknown): Promise<MemoryAvail
 
 /**
  * Reads the shared priority inputs without changing coverage. Session creation
- * chooses latest-wrong cards first, then uncovered cards, then the remainder.
+ * chooses latest-wrong cards first, then the least-appeared cards.
  */
 async function loadPriorityIds(cards: MemoryCard[]): Promise<{
   wrong: Set<string>;
-  uncovered: Set<string>;
+  appearance: Map<string, number>;
 }> {
   const allIds = cards.map((card) => card.id);
-  const [uncovered, wrong] = await Promise.all([
-    loadUncoveredIds("memory", allIds),
+  const [appearance, wrong] = await Promise.all([
+    loadAppearanceCounts("memory", allIds),
     loadWrongAnswerCardIds(allIds),
   ]);
-  return { wrong, uncovered: new Set(uncovered) };
+  return { wrong, appearance };
 }
 
 export async function startMemoryCoverageSession(
@@ -90,7 +90,7 @@ export async function startMemoryCoverageSession(
     const priorityRanks = new Map(
       cards.map((card) => [
         card.id,
-        priority.wrong.has(card.id) ? 0 : priority.uncovered.has(card.id) ? 1 : 2,
+        priority.wrong.has(card.id) ? -1 : (priority.appearance.get(card.id) ?? 0),
       ]),
     );
     const batches = buildMemorySession(

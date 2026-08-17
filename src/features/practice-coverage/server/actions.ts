@@ -10,12 +10,13 @@ const coverageSessionIdSchema = z.uuid();
 const COVERAGE_ID_BATCH_SIZE = 200;
 const WRONG_ANSWER_PAGE_SIZE = 1000;
 
-/** Reads only the authenticated user's current-cycle coverage. */
-export async function loadUncoveredIds(
+/** Reads the authenticated user's per-card appearance count for one mode. */
+export async function loadAppearanceCounts(
   mode: CoverageMode,
   eligibleIds: string[],
-): Promise<string[]> {
-  if (eligibleIds.length === 0) return [];
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  if (eligibleIds.length === 0) return counts;
   const supabase = await createClient();
   const chunks = Array.from(
     { length: Math.ceil(eligibleIds.length / COVERAGE_ID_BATCH_SIZE) },
@@ -26,16 +27,18 @@ export async function loadUncoveredIds(
     chunks.map((ids) =>
       supabase
         .from("flashcard_coverage")
-        .select("flashcard_id")
+        .select("flashcard_id, appearance_count")
         .eq("mode", mode)
         .in("flashcard_id", ids),
     ),
   );
   if (results.some((result) => result.error)) throw new Error("coverage query failed");
-  const covered = new Set(
-    results.flatMap((result) => result.data ?? []).map((row) => row.flashcard_id),
-  );
-  return eligibleIds.filter((id) => !covered.has(id));
+  for (const result of results) {
+    for (const row of result.data ?? []) {
+      if (row.flashcard_id) counts.set(row.flashcard_id, row.appearance_count);
+    }
+  }
+  return counts;
 }
 
 /**

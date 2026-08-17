@@ -31,7 +31,13 @@ describe("getQuizEligibility via get_quiz_scope_sets", () => {
       data: [
         {
           total: 25,
-          uncovered_ids: [uuid(1), uuid(2), uuid(3)],
+          appearance_counts: {
+            [uuid(1)]: 0,
+            [uuid(2)]: 0,
+            [uuid(3)]: 0,
+            [uuid(6)]: 2,
+            [uuid(7)]: 1,
+          },
           wrong_ids: [uuid(4), uuid(5)],
         },
       ],

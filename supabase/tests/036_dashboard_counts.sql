@@ -1,5 +1,5 @@
 begin;
-select plan(26);
+select plan(30);
 
 -- ---------------------------------------------------------------------------
 -- Setup: user A owns 8 flashcards (c1..c8). Answers exercise the latest-answer
@@ -193,14 +193,33 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- 5. get_quiz_scope_sets — uncovered (mode=quiz) and wrong (latest answer).
+-- 5. get_quiz_scope_sets — appearance counts (mode=quiz) and wrong (latest answer).
 -- ---------------------------------------------------------------------------
 
--- all scope: uncovered = c3..c8 (c1,c2 covered) = 6.
+-- all scope: c1,c2 covered once (appearance_count=1), the rest 0.
 select is(
-  (select cardinality(uncovered_ids) from public.get_quiz_scope_sets('{}'::uuid[], '{}'::uuid[], true)),
-  6,
-  'uncovered excludes covered (mode=quiz) cards'
+  (select (appearance_counts->>'ca000001-7777-4000-8000-000000000001')::integer
+   from public.get_quiz_scope_sets('{}'::uuid[], '{}'::uuid[], true)),
+  1,
+  'appearance_counts reports c1 covered once'
+);
+select is(
+  (select (appearance_counts->>'ca000002-7777-4000-8000-000000000001')::integer
+   from public.get_quiz_scope_sets('{}'::uuid[], '{}'::uuid[], true)),
+  1,
+  'appearance_counts reports c2 covered once'
+);
+select is(
+  (select (appearance_counts->>'ca000003-7777-4000-8000-000000000001')::integer
+   from public.get_quiz_scope_sets('{}'::uuid[], '{}'::uuid[], true)),
+  0,
+  'appearance_counts reports c3 never covered'
+);
+select is(
+  (select (appearance_counts->>'ca000004-7777-4000-8000-000000000001')::integer
+   from public.get_quiz_scope_sets('{}'::uuid[], '{}'::uuid[], true)),
+  0,
+  'appearance_counts reports c4 never covered'
 );
 select is(
   (select cardinality(wrong_ids) from public.get_quiz_scope_sets('{}'::uuid[], '{}'::uuid[], true)),
@@ -223,11 +242,18 @@ select ok(
   'wrong_ids exclude c1 whose latest answer is correct'
 );
 
--- Collection scope (c5,c6): uncovered = c5,c6 (no coverage) = 2, wrong = 0.
+-- Collection scope (c5,c6): both never covered (appearance 0), wrong = 0.
 select is(
-  (select cardinality(uncovered_ids) from public.get_quiz_scope_sets('{}'::uuid[], array['d0d0d0d0-7777-7777-7777-777777777777']::uuid[], false)),
-  2,
-  'collection scope uncovered = both members'
+  (select (appearance_counts->>'ca000005-7777-4000-8000-000000000001')::integer
+   from public.get_quiz_scope_sets('{}'::uuid[], array['d0d0d0d0-7777-7777-7777-777777777777']::uuid[], false)),
+  0,
+  'collection scope member c5 has zero appearance'
+);
+select is(
+  (select (appearance_counts->>'ca000006-7777-4000-8000-000000000001')::integer
+   from public.get_quiz_scope_sets('{}'::uuid[], array['d0d0d0d0-7777-7777-7777-777777777777']::uuid[], false)),
+  0,
+  'collection scope member c6 has zero appearance'
 );
 select is(
   (select cardinality(wrong_ids) from public.get_quiz_scope_sets('{}'::uuid[], array['d0d0d0d0-7777-7777-7777-777777777777']::uuid[], false)),

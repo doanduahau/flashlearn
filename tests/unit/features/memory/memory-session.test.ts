@@ -137,22 +137,22 @@ describe("getMemoryEligibility availability", () => {
 });
 
 describe("coverage priority", () => {
-  it("prioritizes uncovered cards while still producing valid batches", () => {
+  it("prioritizes never-appeared cards while still producing valid batches", () => {
     const cards = makeCards(24);
-    const priority = new Set(cards.slice(0, 6).map((card) => card.id));
+    const priority = new Map(cards.slice(0, 6).map((card) => [card.id, 0]));
     const result = buildMemorySession(cards, 12, fixedRandom(), priority);
     expect(result).not.toBeNull();
     expect(result).toHaveLength(2);
   });
 
-  it("selects all three compatible uncovered cards for the exact 15-card / 12-session case", () => {
+  it("selects all three least-appeared cards for the exact 15-card / 12-session case", () => {
     const cards = makeCards(15);
-    const uncoveredIds = new Set(cards.slice(12).map((card) => card.id));
-    const result = buildMemorySession(cards, 12, fixedRandom(), uncoveredIds);
+    const leastAppeared = new Map(cards.slice(12).map((card) => [card.id, 0]));
+    const result = buildMemorySession(cards, 12, fixedRandom(), leastAppeared);
     const selectedIds = new Set(result?.flatMap((batch) => batch.tiles.map((tile) => tile.cardId)));
 
     expect(selectedIds).toHaveLength(12);
-    expect([...uncoveredIds].every((id) => selectedIds.has(id))).toBe(true);
-    expect([...selectedIds].filter((id) => !uncoveredIds.has(id))).toHaveLength(9);
+    expect([...leastAppeared.keys()].every((id) => selectedIds.has(id))).toBe(true);
+    expect([...selectedIds].filter((id) => !leastAppeared.has(id))).toHaveLength(9);
   });
 });

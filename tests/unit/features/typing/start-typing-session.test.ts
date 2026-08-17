@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   createAdminClient: vi.fn(),
   fetchStudyCards: vi.fn(),
-  loadUncoveredIds: vi.fn(),
+  loadAppearanceCounts: vi.fn(),
   loadWrongAnswerCardIds: vi.fn(),
 }));
 
@@ -16,7 +16,7 @@ vi.mock("@/features/study/server/load-study-cards", () => ({
   fetchStudyCards: mocks.fetchStudyCards,
 }));
 vi.mock("@/features/practice-coverage/server/actions", () => ({
-  loadUncoveredIds: mocks.loadUncoveredIds,
+  loadAppearanceCounts: mocks.loadAppearanceCounts,
   loadWrongAnswerCardIds: mocks.loadWrongAnswerCardIds,
   completeLearningCoverageSession: vi.fn(),
 }));
@@ -45,7 +45,7 @@ beforeEach(() => {
   mocks.createClient.mockReset();
   mocks.createAdminClient.mockReset();
   mocks.fetchStudyCards.mockReset();
-  mocks.loadUncoveredIds.mockReset();
+  mocks.loadAppearanceCounts.mockReset();
   mocks.loadWrongAnswerCardIds.mockReset();
 });
 
@@ -86,7 +86,7 @@ describe("startTypingSession", () => {
   it("creates a typing coverage session with prioritized cards", async () => {
     mocks.createClient.mockResolvedValue(supabaseFor("user-1"));
     mocks.fetchStudyCards.mockResolvedValue({ cards: cards(15), truncated: false });
-    mocks.loadUncoveredIds.mockResolvedValue([]);
+    mocks.loadAppearanceCounts.mockResolvedValue(new Map());
     mocks.loadWrongAnswerCardIds.mockResolvedValue(new Set(["card-0", "card-1"]));
     mocks.createAdminClient.mockReturnValue({
       rpc: vi.fn().mockResolvedValue({ data: "coverage-1", error: null }),
@@ -102,7 +102,7 @@ describe("startTypingSession", () => {
       expect(selectedIds).toContain("card-0");
       expect(selectedIds).toContain("card-1");
     }
-    expect(mocks.loadUncoveredIds).toHaveBeenCalledWith("typing", expect.any(Array));
+    expect(mocks.loadAppearanceCounts).toHaveBeenCalledWith("typing", expect.any(Array));
     expect(mocks.createAdminClient().rpc).toHaveBeenCalledWith(
       "create_learning_coverage_session",
       expect.objectContaining({ p_mode: "typing", p_user_id: "user-1" }),

@@ -14,7 +14,7 @@ vi.mock("@/features/typing/server/answer-check", () => ({
 }));
 vi.mock("@/features/practice-coverage/server/actions", () => ({
   completeLearningCoverageSession: mocks.completeLearningCoverageSession,
-  loadUncoveredIds: vi.fn(),
+  loadAppearanceCounts: vi.fn(),
   loadWrongAnswerCardIds: vi.fn(),
 }));
 

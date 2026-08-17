@@ -22,11 +22,13 @@ function uniqueById(cards: readonly MemoryCard[]): MemoryCard[] {
 }
 
 type BatchState = { values: Set<string>; cards: MemoryCard[] };
-type Priority = ReadonlyMap<string, number> | ReadonlySet<string>;
+// Priority: cardId -> rank. Latest-wrong cards are -1 (always first); every
+// other card carries its appearance count (0 = never appeared). Lower wins.
+type Priority = ReadonlyMap<string, number>;
 
 function priorityRank(priority: Priority | undefined, cardId: string): number {
-  if (!priority) return 2;
-  return "get" in priority ? (priority.get(cardId) ?? 2) : priority.has(cardId) ? 1 : 2;
+  if (!priority) return 0;
+  return priority.get(cardId) ?? 0;
 }
 
 /**
@@ -42,10 +44,10 @@ export function isMemoryEligibleCard(card: MemoryCard): boolean {
  * Selects `batchCount * 6` cards and partitions them into six-card batches
  * whose combined twelve content values are all distinct after normalization.
  *
- * Latest-wrong cards are tried first, then uncovered cards, then the remaining
- * cards ordered by value rarity to help feasibility. Selection + partition share one
- * bounded backtracking pass, so availability is a property of the card set
- * rather than a lucky shuffle order.
+ * Latest-wrong cards are tried first, then the remaining cards ordered
+ * ascending by appearance count (rarity breaks ties to help feasibility).
+ * Selection + partition share one bounded backtracking pass, so availability
+ * is a property of the card set rather than a lucky shuffle order.
  */
 function selectAndPartition(
   eligible: readonly MemoryCard[],
@@ -56,9 +58,8 @@ function selectAndPartition(
   const target = batchCount * MEMORY_PAIR_COUNT;
   if (eligible.length < target) return null;
 
-  const latestWrong = eligible.filter((card) => priorityRank(priorityRanks, card.id) === 0);
-  const uncovered = eligible.filter((card) => priorityRank(priorityRanks, card.id) === 1);
-  const remaining = eligible.filter((card) => priorityRank(priorityRanks, card.id) >= 2);
+  const latestWrong = eligible.filter((card) => priorityRank(priorityRanks, card.id) < 0);
+  const rest = eligible.filter((card) => priorityRank(priorityRanks, card.id) >= 0);
 
   const valueFrequency = new Map<string, number>();
   for (const card of eligible) {
@@ -72,11 +73,14 @@ function selectAndPartition(
       valueFrequency.get(normalizeContentText(card.back)) ?? 0,
     );
 
-  const ordered = [
-    ...shuffle(latestWrong, random),
-    ...shuffle(uncovered, random),
-    ...shuffle(remaining, random).sort((a, b) => rarity(a) - rarity(b) || a.id.localeCompare(b.id)),
-  ];
+  rest.sort((a, b) => {
+    const rankDiff = priorityRank(priorityRanks, a.id) - priorityRank(priorityRanks, b.id);
+    if (rankDiff !== 0) return rankDiff;
+    const rarityDiff = rarity(a) - rarity(b);
+    return rarityDiff !== 0 ? rarityDiff : a.id.localeCompare(b.id);
+  });
+
+  const ordered = [...shuffle(latestWrong, random), ...rest];
 
   const batches: BatchState[] = Array.from({ length: batchCount }, () => ({
     values: new Set(),

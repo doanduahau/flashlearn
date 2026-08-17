@@ -43,6 +43,16 @@ function shadowFailureCategory(reason: unknown): string {
   return "unexpected";
 }
 
+function appearanceMapFrom(raw: unknown): Map<string, number> {
+  const map = new Map<string, number>();
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    for (const [id, count] of Object.entries(raw as Record<string, unknown>)) {
+      if (typeof count === "number") map.set(id, count);
+    }
+  }
+  return map;
+}
+
 export async function startQuiz(input: unknown): Promise<Result> {
   const parsed = quizStartSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? generic };
@@ -60,8 +70,8 @@ export async function startQuiz(input: unknown): Promise<Result> {
       return { ok: false, error: "Không đủ thẻ để tạo bài kiểm tra." };
     }
 
-    // Wrong-first, then unseen, then seeded-random fallback — the same policy
-    // Study modes use. The shuffled pool makes the random remainder non-flat.
+    // Wrong-first, then least-appeared — the shared policy. The shuffled pool
+    // makes equal-appearance ties deterministic but varied.
     const shuffled = seededShuffle(poolIds, randomInt(0, 2 ** 32));
     const { data: scope, error: scopeError } = await supabase.rpc("get_quiz_scope_sets", {
       p_set_ids: parsed.data.setIds,
@@ -73,7 +83,7 @@ export async function startQuiz(input: unknown): Promise<Result> {
     const selectedIds = selectCardsByPriority(
       shuffled,
       new Set(firstScope?.wrong_ids ?? []),
-      new Set(firstScope?.uncovered_ids ?? []),
+      appearanceMapFrom(firstScope?.appearance_counts),
       parsed.data.questionCount,
     );
 
@@ -113,10 +123,11 @@ export async function getQuizEligibility(
   });
   if (scopeError) return { ok: false, error: generic };
   const firstScope = Array.isArray(scope) ? scope[0] : scope;
+  const appearance = appearanceMapFrom(firstScope?.appearance_counts);
   return {
     ok: true,
     total: firstScope?.total ?? 0,
-    uncovered: firstScope?.uncovered_ids?.length ?? 0,
+    uncovered: Array.from(appearance.values()).filter((count) => count === 0).length,
     wrong: firstScope?.wrong_ids?.length ?? 0,
   };
 }

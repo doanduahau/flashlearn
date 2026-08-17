@@ -33,7 +33,7 @@ describe("buildRunnerSession", () => {
     expect(first?.sessionCardIds).toEqual(second?.sessionCardIds);
   });
 
-  it("places priority (uncovered) cards first for the random filter", () => {
+  it("places priority cards first", () => {
     const priority = new Set(["card-7", "card-9"]);
     const plan = buildRunnerSession(cards(24), 12, createSeededRunnerRandom(1), priority);
     expect(plan?.sessionCardIds.slice(0, 2).sort()).toEqual(["card-7", "card-9"]);

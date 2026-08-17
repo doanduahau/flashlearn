@@ -20,7 +20,7 @@ import { gradeTypingAnswer } from "@/features/typing/server/answer-check";
 import { selectCardsByPriority } from "@/features/learning-modes/types";
 import {
   completeLearningCoverageSession,
-  loadUncoveredIds,
+  loadAppearanceCounts,
   loadWrongAnswerCardIds,
 } from "@/features/practice-coverage/server/actions";
 import { fetchStudyCards } from "@/features/study/server/load-study-cards";
@@ -105,14 +105,14 @@ export async function startTypingSession(input: unknown): Promise<StartTypingRes
 
     const pool = cards.map((card) => card.id);
     const shuffled = seededShuffle(pool, randomInt(0, 2 ** 32));
-    const [uncovered, wrong] = await Promise.all([
-      loadUncoveredIds("typing", shuffled),
+    const [appearance, wrong] = await Promise.all([
+      loadAppearanceCounts("typing", shuffled),
       loadWrongAnswerCardIds(shuffled),
     ]);
     const selectedIds = selectCardsByPriority(
       shuffled,
       wrong,
-      new Set(uncovered),
+      appearance,
       parsed.data.questionCount,
     );
     const cardById = new Map(cards.map((card) => [card.id, card]));

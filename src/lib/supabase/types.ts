@@ -200,18 +200,21 @@ export type Database = {
       }
       flashcard_coverage: {
         Row: {
+          appearance_count: number
           covered_at: string
           flashcard_id: string
           mode: string
           user_id: string
         }
         Insert: {
+          appearance_count?: number
           covered_at?: string
           flashcard_id: string
           mode: string
           user_id: string
         }
         Update: {
+          appearance_count?: number
           covered_at?: string
           flashcard_id?: string
           mode?: string
@@ -962,8 +965,8 @@ export type Database = {
           p_set_ids: string[]
         }
         Returns: {
+          appearance_counts: Json
           total: number
-          uncovered_ids: string[]
           wrong_ids: string[]
         }[]
       }

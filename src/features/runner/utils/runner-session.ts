@@ -36,8 +36,8 @@ function uniqueCards(cards: readonly RunnerCard[]): RunnerCard[] {
 }
 
 /**
- * Selects exactly `count` cards for a Runner session. `priority` (uncovered ids,
- * used by the "random" filter) is placed first; the rest keep their seeded
+ * Selects exactly `count` cards for a Runner session. Cards named in the
+ * optional `priority` set are placed first; the rest keep their seeded
  * shuffle order. Returns null when there are not enough cards.
  */
 export function buildRunnerSession(

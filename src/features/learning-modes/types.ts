@@ -1,12 +1,14 @@
 /**
- * Produces a no-duplicate selection with the Study-mode policy: latest-wrong
- * cards first, then uncovered cards, then the remaining pool in caller order.
- * Callers may pre-shuffle `ids` to make the final fallback random.
+ * Produces a no-duplicate selection with the shared learning/quiz policy:
+ * latest-wrong cards first, then the remaining cards sorted ascending by
+ * appearance count in the mode (fewer appearances are picked first). Ties keep
+ * the caller's input order, so callers may pre-shuffle `ids` for a
+ * deterministic-but-varied remainder.
  */
 export function selectCardsByPriority(
   ids: readonly string[],
   wrongIds: ReadonlySet<string>,
-  uncoveredIds: ReadonlySet<string>,
+  appearanceCounts: ReadonlyMap<string, number>,
   count: number,
 ): string[] {
   if (count <= 0) return [];
@@ -22,7 +24,17 @@ export function selectCardsByPriority(
     }
   };
   add((id) => wrongIds.has(id));
-  add((id) => uncoveredIds.has(id));
-  add(() => true);
+  // Remaining cards: ascending by appearance count (default 0 = never appeared).
+  const remaining = ids.filter((id) => !seen.has(id));
+  remaining.sort((a, b) => {
+    const countA = appearanceCounts.get(a) ?? 0;
+    const countB = appearanceCounts.get(b) ?? 0;
+    return countA - countB;
+  });
+  for (const id of remaining) {
+    if (selected.length === count) break;
+    seen.add(id);
+    selected.push(id);
+  }
   return selected;
 }

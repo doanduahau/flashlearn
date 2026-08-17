@@ -12,7 +12,7 @@ import {
 } from "@/features/match/utils/match-session";
 import { selectCardsByPriority } from "@/features/learning-modes/types";
 import {
-  loadUncoveredIds,
+  loadAppearanceCounts,
   loadWrongAnswerCardIds,
 } from "@/features/practice-coverage/server/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -79,14 +79,14 @@ export async function startMatchCoverageSession(
     const random = createSeededMatchRandom(randomInt(0, 2 ** 32));
     const shuffled = shuffle(cards, random);
     const poolIds = shuffled.map((card) => card.id);
-    const [uncovered, wrong] = await Promise.all([
-      loadUncoveredIds("match", poolIds),
+    const [appearance, wrong] = await Promise.all([
+      loadAppearanceCounts("match", poolIds),
       loadWrongAnswerCardIds(poolIds),
     ]);
     const selectedIds = selectCardsByPriority(
       poolIds,
       wrong,
-      new Set(uncovered),
+      appearance,
       parsed.data.questionCount,
     );
     const cardById = new Map(cards.map((card) => [card.id, card]));

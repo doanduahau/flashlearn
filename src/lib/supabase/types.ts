@@ -943,11 +943,30 @@ export type Database = {
         Args: { p_color?: string; p_icon?: string; p_name: string }
         Returns: string
       }
+      get_dashboard_counts: {
+        Args: never
+        Returns: {
+          due_count: number
+          untouched_count: number
+        }[]
+      }
       get_due_review_card_count: {
         Args: { p_user_id: string }
         Returns: number
       }
       get_learning_statistics: { Args: never; Returns: Json }
+      get_quiz_scope_sets: {
+        Args: {
+          p_all: boolean
+          p_collection_ids: string[]
+          p_set_ids: string[]
+        }
+        Returns: {
+          total: number
+          uncovered_ids: string[]
+          wrong_ids: string[]
+        }[]
+      }
       get_set_members_with_stats: {
         Args: { p_set_id: string; p_user_id: string }
         Returns: {

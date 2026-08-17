@@ -7,6 +7,10 @@ import {
   type DailyActivityDetail,
 } from "@/features/statistics/utils/month-activity";
 import { computeStreakRun, computeStreaks } from "@/features/statistics/utils/streak";
+import {
+  loadCachedDailyRecords,
+  loadCachedProfileTimezone,
+} from "@/features/statistics/server/load-cached-statistics";
 
 export type { DailyActivityDetail } from "@/features/statistics/utils/month-activity";
 
@@ -159,11 +163,11 @@ export async function loadMonthlyStreakDates(
   timezone: string,
   month: string,
 ): Promise<string[]> {
-  const datesResult = await supabase.from("daily_learning_records").select("local_date");
-  if (datesResult.error || !datesResult.data) return [];
+  const datesResult = await loadCachedDailyRecords(supabase);
+  if (!datesResult) return [];
   const today = dateInTimezone(new Date(), timezone);
   const run = computeStreakRun(
-    datesResult.data.map((record) => record.local_date),
+    datesResult.map((record) => record.local_date),
     today,
   );
   return run.filter((date) => date.startsWith(`${month}-`));
@@ -172,19 +176,19 @@ export async function loadMonthlyStreakDates(
 export async function loadStreakSummary(
   supabase: SupabaseClient<Database>,
 ): Promise<StreakSummary | null> {
-  const [profileResult, datesResult] = await Promise.all([
-    supabase.from("profiles").select("timezone").maybeSingle(),
-    supabase.from("daily_learning_records").select("local_date, completed_quiz_count"),
+  const [timezoneValue, datesResult] = await Promise.all([
+    loadCachedProfileTimezone(supabase),
+    loadCachedDailyRecords(supabase),
   ]);
-  if (datesResult.error) return null;
+  if (!datesResult) return null;
 
-  let timezone = profileResult.data?.timezone ?? DEFAULT_TIMEZONE;
+  let timezone = timezoneValue ?? DEFAULT_TIMEZONE;
   if (!isValidTimezone(timezone)) timezone = DEFAULT_TIMEZONE;
   const today = dateInTimezone(new Date(), timezone);
-  const todayRecord = (datesResult.data ?? []).find((record) => record.local_date === today);
+  const todayRecord = datesResult.find((record) => record.local_date === today);
   const todayQuizCount = todayRecord?.completed_quiz_count ?? 0;
   const streaks = computeStreaks(
-    (datesResult.data ?? []).map((record) => record.local_date),
+    datesResult.map((record) => record.local_date),
     today,
     todayQuizCount,
   );

@@ -6,20 +6,17 @@ import { OfflineBanner } from "@/components/shared/offline-banner";
 import { DashboardMotivationBar } from "@/features/dashboard/components/dashboard-motivation-bar";
 import { DashboardLearningStatus } from "@/features/dashboard/components/dashboard-learning-status";
 import { StreakMilestoneBanner } from "@/features/dashboard/components/streak-milestone-banner";
-import { loadUntouchedCardCount } from "@/features/dashboard/server/load-learning-counts";
 import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { StartSmartReviewButton } from "@/features/smart-review/components/start-smart-review-button";
 import { StartNewCardsButton } from "@/features/spaced-repetition/components/start-new-cards-button";
-import { loadWrongAnswerCardIds } from "@/features/practice-coverage/server/actions";
-import { collectStudyCardIds } from "@/features/study/server/load-study-cards";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
 import {
   accuracy,
   loadActivityDetail,
   loadMonthlyActivity,
   loadMonthlyStreakDates,
-  loadStreakSummary,
 } from "@/features/statistics/server/load-statistics";
+import { loadCachedStreakSummary } from "@/features/statistics/server/load-cached-statistics";
 import {
   addMonths,
   dateInTimezone,
@@ -58,7 +55,7 @@ export default async function DashboardPage({
       loadMonthlyStreakDates(supabase, timezone, month),
       supabase.auth.getClaims(),
       loadMascotLevel(supabase),
-      loadStreakSummary(supabase),
+      loadCachedStreakSummary(supabase),
     ]);
 
   const userId =
@@ -69,21 +66,15 @@ export default async function DashboardPage({
   let learningError = false;
   if (userId) {
     try {
-      const allCardIds = await collectStudyCardIds(supabase, {
-        all: true,
-        setIds: [],
-        collectionIds: [],
-      });
-      const [wrongIds, untouchedCount] = await Promise.all([
-        loadWrongAnswerCardIds(allCardIds),
-        loadUntouchedCardCount(supabase, allCardIds),
-      ]);
+      const { data: counts, error: countsError } = await supabase.rpc("get_dashboard_counts");
+      if (countsError) throw countsError;
+      const first = Array.isArray(counts) ? counts[0] : counts;
       // "Cần ôn" = cards whose latest answer is wrong in any quiz mode;
       // "Chưa học" = cards never seen in any mode. The smart-review/new-cards
       // buttons keep their existing behavior but only render with a matching
       // count so the numbers and actions stay consistent.
-      dueCount = wrongIds.size;
-      newCardsCount = untouchedCount;
+      dueCount = first?.due_count ?? 0;
+      newCardsCount = first?.untouched_count ?? 0;
     } catch (error) {
       console.error("[dashboard] unable to load learning counts", {
         name: error instanceof Error ? error.name : "unknown",

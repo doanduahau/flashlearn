@@ -7,11 +7,7 @@ import {
   quizEligibilitySchema,
   quizStartSchema,
 } from "@/features/quiz/schemas/quiz-schema";
-import {
-  completeLearningCoverageSession,
-  loadUncoveredIds,
-  loadWrongAnswerCardIds,
-} from "@/features/practice-coverage/server/actions";
+import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
 import { selectCardsByPriority } from "@/features/learning-modes/types";
 import { collectStudyCardIds } from "@/features/study/server/load-study-cards";
 import { seededShuffle } from "@/features/study/utils/shuffle";
@@ -67,14 +63,17 @@ export async function startQuiz(input: unknown): Promise<Result> {
     // Wrong-first, then unseen, then seeded-random fallback — the same policy
     // Study modes use. The shuffled pool makes the random remainder non-flat.
     const shuffled = seededShuffle(poolIds, randomInt(0, 2 ** 32));
-    const [uncovered, wrong] = await Promise.all([
-      loadUncoveredIds("quiz", shuffled),
-      loadWrongAnswerCardIds(shuffled),
-    ]);
+    const { data: scope, error: scopeError } = await supabase.rpc("get_quiz_scope_sets", {
+      p_set_ids: parsed.data.setIds,
+      p_collection_ids: parsed.data.collectionIds,
+      p_all: parsed.data.all,
+    });
+    if (scopeError) throw scopeError;
+    const firstScope = Array.isArray(scope) ? scope[0] : scope;
     const selectedIds = selectCardsByPriority(
       shuffled,
-      wrong,
-      new Set(uncovered),
+      new Set(firstScope?.wrong_ids ?? []),
+      new Set(firstScope?.uncovered_ids ?? []),
       parsed.data.questionCount,
     );
 
@@ -107,14 +106,19 @@ export async function getQuizEligibility(
   const supabase = await createClient();
   if (!(await signedIn(supabase))) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
 
-  const ids = await collectStudyCardIds(supabase, {
-    all: parsed.data.all,
-    setIds: parsed.data.setIds,
-    collectionIds: parsed.data.collectionIds,
+  const { data: scope, error: scopeError } = await supabase.rpc("get_quiz_scope_sets", {
+    p_set_ids: parsed.data.setIds,
+    p_collection_ids: parsed.data.collectionIds,
+    p_all: parsed.data.all,
   });
-  const uncovered = await loadUncoveredIds("quiz", ids);
-  const wrong = await loadWrongAnswerCardIds(ids);
-  return { ok: true, total: ids.length, uncovered: uncovered.length, wrong: wrong.size };
+  if (scopeError) return { ok: false, error: generic };
+  const firstScope = Array.isArray(scope) ? scope[0] : scope;
+  return {
+    ok: true,
+    total: firstScope?.total ?? 0,
+    uncovered: firstScope?.uncovered_ids?.length ?? 0,
+    wrong: firstScope?.wrong_ids?.length ?? 0,
+  };
 }
 
 export async function submitQuizAnswer(input: unknown): Promise<Result> {

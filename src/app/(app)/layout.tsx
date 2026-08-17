@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { loadStreakSummary } from "@/features/statistics/server/load-statistics";
+import { loadCachedStreakSummary } from "@/features/statistics/server/load-cached-statistics";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
     redirect("/sign-in");
   }
 
-  const streak = await loadStreakSummary(supabase);
+  const streak = await loadCachedStreakSummary(supabase);
 
   return (
     <AppShell streak={streak?.currentStreak ?? 0} completedToday={streak?.completedToday ?? false}>

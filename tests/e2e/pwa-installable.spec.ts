@@ -19,7 +19,7 @@ test.describe("PWA installable", () => {
     expect(manifest.short_name).toBe("CapyStudy");
     expect(manifest.start_url).toBe("/");
     expect(manifest.display).toBe("standalone");
-    expect(manifest.theme_color).toBe("#7bcfa6");
+    expect(manifest.theme_color).toBe("#ffffff");
     expect(manifest.background_color).toBe("#f8fbf7");
     expect(
       manifest.icons.some((icon) => icon.sizes === "192x192" && icon.type === "image/png"),

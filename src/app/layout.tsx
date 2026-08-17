@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro, Nunito } from "next/font/google";
 
 import { RegisterSw } from "@/components/shared/register-sw";
@@ -16,6 +16,10 @@ const fontHeading = Nunito({
   subsets: ["latin", "vietnamese"],
   weight: ["600", "700", "800"],
 });
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+};
 
 export const metadata: Metadata = {
   title: {

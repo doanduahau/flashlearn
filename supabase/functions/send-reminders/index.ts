@@ -109,16 +109,16 @@ async function markSent(
   kind: "streak" | "review",
   localDate: string,
 ): Promise<void> {
-  // on conflict do nothing keeps the dedupe safe even if two runs overlap.
-  await supabase
+  // Upsert with ignoreDuplicates keeps the dedupe safe even if two runs overlap.
+  const { error } = await supabase
     .from("push_notifications_log")
-    .insert({
-      user_id: userId,
-      kind,
-      local_date: localDate,
-    })
-    .onConflict("user_id,kind,local_date")
-    .ignore();
+    .upsert(
+      { user_id: userId, kind, local_date: localDate },
+      { onConflict: "user_id,kind,local_date", ignoreDuplicates: true },
+    );
+  if (error) {
+    console.error("markSent failed", { userId, kind, message: error.message });
+  }
 }
 
 async function sendToSubscriptions(

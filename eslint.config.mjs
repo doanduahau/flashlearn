@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "src/lib/supabase/types.ts",
+    // Deno edge functions use npm: specifiers + Deno globals — not part of
+    // the Next.js runtime, so they are excluded from lint/typecheck.
+    "supabase/functions/**",
     "supabase/.branches/**",
     "supabase/.temp/**",
   ]),

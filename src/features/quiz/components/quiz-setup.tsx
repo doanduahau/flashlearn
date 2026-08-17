@@ -67,6 +67,11 @@ export function QuizSetup({
         if (cancelled) return;
         if (result.ok) {
           setEligibility({ total: result.total, computedFor: currentSources, all });
+        } else {
+          // RPC unavailable (e.g. migration not yet applied to production).
+          // Fall back to the totalCards prop so the UI never gets stuck
+          // in "Đang tính thẻ..." indefinitely.
+          setEligibility({ total: totalCards, computedFor: currentSources, all });
         }
       })();
     }, COUNT_DEBOUNCE_MS);
@@ -74,7 +79,7 @@ export function QuizSetup({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [all, currentSources]);
+  }, [all, currentSources, totalCards]);
 
   const counting =
     eligibility === null ||

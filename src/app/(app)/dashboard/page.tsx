@@ -90,7 +90,12 @@ export default async function DashboardPage({
     <main className="mx-auto w-full max-w-5xl p-3 sm:p-8">
       <h1 className="text-2xl font-bold sm:text-3xl">Tổng quan</h1>
 
-      <DashboardMotivationBar completedToday={completedToday} mascotLevel={mascotLevel} />
+      <DashboardMotivationBar
+        completedToday={completedToday}
+        recoverable={streakSummary?.recoverable ?? false}
+        needsRecoveryQuizzes={streakSummary?.needsRecoveryQuizzes ?? 0}
+        mascotLevel={mascotLevel}
+      />
       <StreakMilestoneBanner streak={streakSummary?.currentStreak ?? 0} />
 
       <section

@@ -26,4 +26,27 @@ describe("DashboardMotivationBar", () => {
       "/mascot/level-4/point-right.png",
     );
   });
+
+  it("shows the recovery message with the remaining quiz count", () => {
+    const { container } = render(
+      <DashboardMotivationBar
+        completedToday={false}
+        recoverable
+        needsRecoveryQuizzes={2}
+        mascotLevel={3}
+      />,
+    );
+
+    expect(container.querySelector("#daily-motivation-heading")).toHaveTextContent(
+      "Làm 2 bài chế độ kiểm tra để khôi phục streak",
+    );
+    expect(container.querySelector("img")).toHaveAttribute("src", "/mascot/level-3/happy.png");
+  });
+
+  it("keeps the default message when no recovery state is provided", () => {
+    const { container } = render(<DashboardMotivationBar completedToday={false} mascotLevel={1} />);
+    expect(container.querySelector("#daily-motivation-heading")).toHaveTextContent(
+      "Chưa làm bài hôm nay",
+    );
+  });
 });

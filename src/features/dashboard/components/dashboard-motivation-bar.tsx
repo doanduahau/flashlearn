@@ -7,8 +7,20 @@ import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 
 export function DashboardMotivationBar({
   completedToday,
+  recoverable = false,
+  needsRecoveryQuizzes = 0,
   mascotLevel,
-}: Readonly<{ completedToday: boolean; mascotLevel: MascotLevel }>) {
+}: Readonly<{
+  completedToday: boolean;
+  recoverable?: boolean;
+  needsRecoveryQuizzes?: number;
+  mascotLevel: MascotLevel;
+}>) {
+  const recoveryMessage = recoverable
+    ? `Làm ${needsRecoveryQuizzes} bài chế độ kiểm tra để khôi phục streak`
+    : null;
+  const heading =
+    recoveryMessage ?? (completedToday ? "Đã nối chuỗi hôm nay! 🎉" : "Chưa làm bài hôm nay");
   return (
     <section
       aria-label="Động lực hằng ngày"
@@ -17,13 +29,13 @@ export function DashboardMotivationBar({
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <MascotImage
           level={mascotLevel}
-          state={completedToday ? "happy" : "point-right"}
+          state={completedToday || recoverable ? "happy" : "point-right"}
           size={64}
           loading="eager"
           className="size-16 shrink-0 object-contain"
         />
         <h2 id="daily-motivation-heading" className="text-sm font-semibold sm:text-base">
-          {completedToday ? "Đã nối chuỗi hôm nay! 🎉" : "Chưa làm bài hôm nay"}
+          {heading}
         </h2>
       </div>
       <Button asChild size="sm" className="shrink-0">

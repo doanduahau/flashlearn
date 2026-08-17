@@ -16,6 +16,10 @@ export type StreakSummary = {
   currentStreak: number;
   longestStreak: number;
   completedToday: boolean;
+  /** True when a one-day gap can still be recovered with quiz completions today. */
+  recoverable: boolean;
+  /** Quiz-mode completions still needed today to restore the streak. */
+  needsRecoveryQuizzes: number;
 };
 export type ModeBreakdown = {
   mode: string;
@@ -170,20 +174,28 @@ export async function loadStreakSummary(
 ): Promise<StreakSummary | null> {
   const [profileResult, datesResult] = await Promise.all([
     supabase.from("profiles").select("timezone").maybeSingle(),
-    supabase.from("daily_learning_records").select("local_date"),
+    supabase.from("daily_learning_records").select("local_date, completed_quiz_count"),
   ]);
   if (datesResult.error) return null;
 
   let timezone = profileResult.data?.timezone ?? DEFAULT_TIMEZONE;
   if (!isValidTimezone(timezone)) timezone = DEFAULT_TIMEZONE;
   const today = dateInTimezone(new Date(), timezone);
-  const streaks = computeStreaks(datesResult.data?.map((record) => record.local_date) ?? [], today);
+  const todayRecord = (datesResult.data ?? []).find((record) => record.local_date === today);
+  const todayQuizCount = todayRecord?.completed_quiz_count ?? 0;
+  const streaks = computeStreaks(
+    (datesResult.data ?? []).map((record) => record.local_date),
+    today,
+    todayQuizCount,
+  );
 
   return {
     timezone,
     currentStreak: streaks.current,
     longestStreak: streaks.longest,
     completedToday: streaks.completedToday,
+    recoverable: streaks.recoverable,
+    needsRecoveryQuizzes: streaks.needsRecoveryQuizzes,
   };
 }
 export function accuracy(correct: number, answers: number): number {

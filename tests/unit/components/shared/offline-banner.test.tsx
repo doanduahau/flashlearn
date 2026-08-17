@@ -11,6 +11,7 @@ function setOnline(online: boolean): void {
 }
 
 function fireOnlineEvent(online: boolean): void {
+  setOnline(online);
   window.dispatchEvent(new Event(online ? "online" : "offline"));
 }
 

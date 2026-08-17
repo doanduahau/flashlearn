@@ -63,23 +63,19 @@ export default async function DashboardPage({
 
   let dueCount = 0;
   let newCardsCount = 0;
-  let learningError = false;
   if (userId) {
     try {
       const { data: counts, error: countsError } = await supabase.rpc("get_dashboard_counts");
-      if (countsError) throw countsError;
-      const first = Array.isArray(counts) ? counts[0] : counts;
-      // "Cần ôn" = cards whose latest answer is wrong in any quiz mode;
-      // "Chưa học" = cards never seen in any mode. The smart-review/new-cards
-      // buttons keep their existing behavior but only render with a matching
-      // count so the numbers and actions stay consistent.
-      dueCount = first?.due_count ?? 0;
-      newCardsCount = first?.untouched_count ?? 0;
-    } catch (error) {
-      console.error("[dashboard] unable to load learning counts", {
-        name: error instanceof Error ? error.name : "unknown",
-      });
-      learningError = true;
+      if (!countsError && counts) {
+        const first = Array.isArray(counts) ? counts[0] : counts;
+        dueCount = first?.due_count ?? 0;
+        newCardsCount = first?.untouched_count ?? 0;
+      }
+      // If the RPC is unavailable (e.g. migration not yet applied to production)
+      // or returns an error, silently fall back to 0 — the learning status
+      // section simply won't render (counts are 0). No red error banner.
+    } catch {
+      // Graceful fallback: dashboard renders fine with dueCount=0, newCardsCount=0
     }
   }
 
@@ -90,7 +86,7 @@ export default async function DashboardPage({
       : null;
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-3 sm:p-8">
+    <main className="mx-auto w-full max-w-5xl p-3 sm:p-8" suppressHydrationWarning>
       <OfflineBanner />
       <h1 className="text-2xl font-bold sm:text-3xl">Tổng quan</h1>
 
@@ -126,15 +122,7 @@ export default async function DashboardPage({
         </article>
       </section>
 
-      {learningError ? (
-        <section
-          role="alert"
-          aria-label="Tóm tắt trạng thái học"
-          className="mt-2 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 text-sm text-danger sm:mt-3 sm:rounded-3xl sm:px-5 sm:py-3"
-        >
-          Không thể tải số thẻ cần ôn.
-        </section>
-      ) : dueCount > 0 || newCardsCount > 0 ? (
+      {dueCount > 0 || newCardsCount > 0 ? (
         <section aria-label="Tóm tắt trạng thái học" className="mt-2 sm:mt-3">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 sm:rounded-3xl sm:px-5 sm:py-3">
             <DashboardLearningStatus

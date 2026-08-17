@@ -1,23 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { WifiOff } from "lucide-react";
 
-export function OfflineBanner() {
-  const [isOffline, setIsOffline] = useState(
-    () => typeof navigator !== "undefined" && !navigator.onLine,
-  );
+function subscribe(callback: () => void): () => void {
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
+  return () => {
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
+  };
+}
 
-  useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
+function getSnapshot(): boolean {
+  return !navigator.onLine;
+}
+
+// The server snapshot is always "online" so the server-rendered markup matches
+// the client's initial (pre-hydration) render, avoiding a hydration mismatch.
+// useSyncExternalStore then applies the real value after hydration.
+function getServerSnapshot(): boolean {
+  return false;
+}
+
+export function OfflineBanner() {
+  const isOffline = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   if (!isOffline) return null;
 

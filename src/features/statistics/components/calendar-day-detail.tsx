@@ -12,7 +12,7 @@ function dayAccuracy(detail: CalendarDay["detail"]): number | null {
 }
 
 const TOOLTIP_WIDTH = 208; // w-52 = 13rem = 208px
-const TOOLTIP_GAP = 8; // gap between cell bottom and tooltip top
+const TOOLTIP_GAP = 8; // gap between cell top and tooltip bottom
 
 interface TooltipPosition {
   top: number;
@@ -20,12 +20,14 @@ interface TooltipPosition {
 }
 
 function computePosition(anchorRect: DOMRect): TooltipPosition {
-  // Default: below the cell, horizontally centred on the cell
-  let top = anchorRect.bottom + TOOLTIP_GAP;
+  // Estimate tooltip height as ~88px (3 lines of content + padding).
+  const estimatedHeight = 88;
+
+  // Default: ABOVE the cell, horizontally centred on the cell
+  let top = anchorRect.top - estimatedHeight - TOOLTIP_GAP;
   let left = anchorRect.left + anchorRect.width / 2 - TOOLTIP_WIDTH / 2;
 
   const vw = window.innerWidth;
-  const vh = window.innerHeight;
 
   // Clamp horizontal: keep within viewport with 8px margin
   if (left + TOOLTIP_WIDTH > vw - 8) {
@@ -35,11 +37,9 @@ function computePosition(anchorRect: DOMRect): TooltipPosition {
     left = 8;
   }
 
-  // Estimate tooltip height as ~88px (3 lines of content + padding).
-  // If overflowing the bottom, flip to show above the cell.
-  const estimatedHeight = 88;
-  if (top + estimatedHeight > vh - 8) {
-    top = anchorRect.top - estimatedHeight - TOOLTIP_GAP;
+  // If overflowing the top (e.g. first row of calendar), flip to show below.
+  if (top < 8) {
+    top = anchorRect.bottom + TOOLTIP_GAP;
   }
 
   return { top, left };

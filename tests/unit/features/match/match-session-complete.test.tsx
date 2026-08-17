@@ -169,18 +169,19 @@ describe("MatchSession completion persistence", () => {
     });
   });
 
-  it("does not save a match attempt when coverage completion fails", async () => {
+  it("shows the completion screen immediately and does not save when coverage fails", async () => {
     completeLearningCoverageSession.mockResolvedValue({ ok: false, error: "Không thể hoàn tất." });
     await renderSession();
     await act(async () => {
       await completeAllPairs();
     });
 
+    // The completion screen renders right away; the save error appears inline.
+    expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Không thể hoàn tất."));
     expect(saveMatchAttempt).not.toHaveBeenCalled();
     expect(recordModeAnswers).not.toHaveBeenCalled();
     expect(recordDailyActivity).not.toHaveBeenCalled();
-    expect(screen.queryByRole("heading", { name: "Hoàn thành!" })).not.toBeInTheDocument();
   });
 
   it("shows the completion screen with a retry when match save fails", async () => {

@@ -52,6 +52,7 @@ export function MemorySession({
   const [session, setSession] = useState<StartedMemorySession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completionError, setCompletionError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const { isPaused, resume } = useVisibilityPause();
@@ -60,6 +61,7 @@ export function MemorySession({
     setSession(null);
     setError(null);
     setCompletionError(null);
+    setSaveError(null);
     setDone(false);
     const result = await startMemoryCoverageSession(sourceFromHref(sessionHref, questionCount));
     if (!result.ok) {
@@ -88,9 +90,14 @@ export function MemorySession({
     async (ms: number): Promise<void> => {
       if (!session) return;
       setElapsedMs(ms);
+      // Show the completion screen immediately; the coverage + daily activity
+      // recording runs in the background. Failures surface inline with a
+      // retry button so the player is never blocked by the server calls.
+      setSaveError(null);
+      setDone(true);
       const result = await completeLearningCoverageSession(session.coverageSessionId);
       if (!result.ok) {
-        setCompletionError(result.error);
+        setSaveError(result.error);
         return;
       }
       const record = await recordDailyActivity({
@@ -99,11 +106,10 @@ export function MemorySession({
         correctAnswers: 0,
       });
       if (!record.ok) {
-        setCompletionError(record.error);
+        setSaveError(record.error);
         return;
       }
       router.refresh();
-      setDone(true);
     },
     [router, session],
   );
@@ -145,6 +151,17 @@ export function MemorySession({
         <p className="text-sm text-text-secondary">
           Hoàn thành {questionCount}/{questionCount} thẻ · Thời gian {formatTime(elapsedMs)}
         </p>
+        {saveError ? (
+          <div
+            role="alert"
+            className="flex flex-col gap-2 rounded-2xl border border-border-soft bg-surface p-4 text-left sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="text-sm text-danger">{saveError}</p>
+            <Button type="button" variant="outline" onClick={() => void handleComplete(elapsedMs)}>
+              Thử lại lưu kết quả
+            </Button>
+          </div>
+        ) : null}
         <div className="mt-2 flex flex-wrap justify-center gap-2">
           <Button type="button" variant="soft" onClick={replay}>
             Chơi lại

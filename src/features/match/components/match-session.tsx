@@ -120,10 +120,15 @@ export function MatchSession({
   async function handleComplete(stats: MatchCompletionStats): Promise<void> {
     if (!session || completingRef.current) return;
     completingRef.current = true;
+    // Show the completion screen immediately; persistence runs in the
+    // background so the player is not blocked by the server calls. Any save
+    // failure surfaces inline with a retry button on the completion screen.
+    setMatchSaveError(null);
+    setDone(true);
     try {
       const coverage = await completeLearningCoverageSession(session.coverageSessionId);
       if (!coverage.ok) {
-        setError(coverage.error);
+        setMatchSaveError(coverage.error);
         return;
       }
       const source = sourceFromHref(sessionHref, questionCount);
@@ -137,33 +142,33 @@ export function MatchSession({
         elapsedMs: Math.max(0, Date.now() - startedAtRef.current),
       };
       lastSaveInputRef.current = input;
+      lastStatsRef.current = {
+        correctCardIds: stats.correctCardIds,
+        wrongCardIds: stats.wrongCardIds,
+      };
       const save = await saveMatchAttempt(input);
       if (!save.ok) {
         setMatchSaveError(save.error);
-      } else {
-        setMatchSaveError(null);
-        lastStatsRef.current = {
-          correctCardIds: stats.correctCardIds,
-          wrongCardIds: stats.wrongCardIds,
-        };
-        const events = await recordModeAnswers({
-          mode: "match",
-          answers: buildCardAnswers(stats.correctCardIds, stats.wrongCardIds),
-        });
-        if (!events.ok) {
-          setMatchSaveError(events.error);
-        }
-        const record = await recordDailyActivity({
-          mode: "match",
-          questionsAnswered: stats.correctPairs + stats.incorrectAttempts,
-          correctAnswers: stats.correctPairs,
-        });
-        if (!record.ok) {
-          setMatchSaveError(record.error);
-        }
-        router.refresh();
+        return;
       }
-      setDone(true);
+      const events = await recordModeAnswers({
+        mode: "match",
+        answers: buildCardAnswers(stats.correctCardIds, stats.wrongCardIds),
+      });
+      if (!events.ok) {
+        setMatchSaveError(events.error);
+        return;
+      }
+      const record = await recordDailyActivity({
+        mode: "match",
+        questionsAnswered: stats.correctPairs + stats.incorrectAttempts,
+        correctAnswers: stats.correctPairs,
+      });
+      if (!record.ok) {
+        setMatchSaveError(record.error);
+        return;
+      }
+      router.refresh();
     } finally {
       completingRef.current = false;
     }

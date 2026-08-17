@@ -164,13 +164,15 @@ describe("StudySession", () => {
     renderSession();
     fireEvent.keyDown(window, { key: "ArrowDown" });
     await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
+    // The completion screen renders immediately; the background save runs
+    // after it, then refreshes so the streak updates without a reload.
     expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument();
     expect(mocks.completeStudySession).toHaveBeenCalledTimes(1);
-    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("shows a retry prompt when recording the study completion fails", async () => {
+  it("shows the completion screen immediately and a retry prompt when recording fails", async () => {
     const user = userEvent.setup();
     mocks.completeStudySession.mockResolvedValue({
       ok: false,
@@ -180,14 +182,16 @@ describe("StudySession", () => {
     fireEvent.keyDown(window, { key: "ArrowDown" });
     await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
     expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("Không thể cập nhật hoạt động hôm nay.");
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("Không thể cập nhật hoạt động hôm nay."),
+    );
     expect(mocks.refresh).not.toHaveBeenCalled();
 
     mocks.completeStudySession.mockResolvedValue({ ok: true });
     await user.click(screen.getByRole("button", { name: /Thử lại/ }));
     await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
     expect(mocks.completeStudySession).toHaveBeenCalledTimes(2);
-    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
   });
 
   it("goes back to the previous path when history is available after completing", async () => {

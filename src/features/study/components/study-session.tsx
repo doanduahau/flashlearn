@@ -169,17 +169,19 @@ export function StudySession({
   async function handleComplete(): Promise<void> {
     if (completingRef.current) return;
     completingRef.current = true;
+    // Show the completion screen immediately; the daily-activity recording
+    // runs in the background. Failures surface inline with a retry button.
+    setCompletionError(null);
+    setIsCompleted(true);
     try {
       const outcome = await completeStudySession();
       if (!outcome.ok) {
         setCompletionError(outcome.error);
       } else {
-        setCompletionError(null);
         router.refresh();
       }
     } finally {
       completingRef.current = false;
-      setIsCompleted(true);
     }
   }
 

@@ -6,6 +6,20 @@ import type { ReactNode } from "react";
 
 import { AppNavigation } from "@/components/layout/app-navigation";
 
+function isFullScreenPath(pathname: string): boolean {
+  if (
+    pathname.startsWith("/runner/session") ||
+    pathname.startsWith("/study/session") ||
+    pathname.startsWith("/memory/session") ||
+    pathname.startsWith("/match/session") ||
+    pathname.startsWith("/typing/session")
+  ) {
+    return true;
+  }
+  // Quiz session: /quiz/<uuid> only (not /quiz, /quiz/mode, or the result page).
+  return /^\/quiz\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(pathname);
+}
+
 export function AppChrome({
   children,
   sidebarFooter,
@@ -17,7 +31,7 @@ export function AppChrome({
 }>) {
   const pathname = usePathname();
 
-  if (pathname.startsWith("/runner/session") || pathname.startsWith("/study/session")) {
+  if (isFullScreenPath(pathname)) {
     return <div className="min-h-dvh">{children}</div>;
   }
 

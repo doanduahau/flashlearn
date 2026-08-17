@@ -10,6 +10,7 @@ const MATCH_CSV = "tests/fixtures/smart-review-24-cards.csv";
 async function importSet(page: Page, name: string, csv = MATCH_CSV): Promise<string> {
   await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(csv);
+  await page.getByRole("button", { name: "Phân tích" }).click();
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
@@ -123,7 +124,8 @@ test.describe("Match learning mode", () => {
 
     // Complete the final batch.
     await completeBatch(page, 6);
-    await expect(page.getByRole("heading", { name: "Hoàn thành 12/12" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
+    await expect(page.getByText("Hoàn thành 12/12 thẻ")).toBeVisible();
     await expect(page.getByRole("button", { name: "Chơi lại" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Thoát", exact: true })).toBeVisible();
 
@@ -200,8 +202,6 @@ test.describe("Match learning mode", () => {
     const front = page.locator(`[data-match-side="front"][data-match-card-id="${scrollTargetId}"]`);
     const back = page.locator(`[data-match-side="back"][data-match-card-id="${scrollTargetId}"]`);
     await front.click();
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
     await back.scrollIntoViewIfNeeded();
     await expect(back).toBeVisible();
     await back.click();

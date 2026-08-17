@@ -11,6 +11,7 @@ const MEMORY_CSV = "tests/fixtures/smart-review-24-cards.csv";
 async function importSet(page: Page, name: string, csv = MEMORY_CSV): Promise<string> {
   await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(csv);
+  await page.getByRole("button", { name: "Phân tích" }).click();
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
@@ -134,7 +135,8 @@ test.describe("Memory Matching", () => {
     await matchPair(page);
 
     // Completion screen.
-    await expect(page.getByRole("heading", { name: "Hoàn thành 12/12" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
+    await expect(page.getByText("Hoàn thành 12/12 thẻ")).toBeVisible();
     await expect(page.getByText(/Thời gian \d{2}:\d{2}/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Chơi lại" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Thoát", exact: true })).toBeVisible();

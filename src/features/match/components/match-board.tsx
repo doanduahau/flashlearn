@@ -57,7 +57,7 @@ export function MatchBoard({ batches, questionCount, isPaused, onComplete }: Mat
   }
 
   return (
-    <div className="flex h-[calc(100dvh-140px)] flex-col gap-4 sm:h-[calc(100dvh-160px)]">
+    <div className="flex h-[calc(100dvh-96px)] flex-col gap-4 sm:h-[calc(100dvh-112px)]">
       <div className="flex shrink-0 items-center justify-between gap-2">
         <p className="text-sm text-text-secondary">
           Bộ {state.currentBatchIndex + 1} / {batches.length}

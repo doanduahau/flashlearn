@@ -36,9 +36,9 @@ type MemoryBoardProps = {
 // Hard floor so tiles can never collapse to near-zero height even if the
 // viewport measurement is delayed or fails.
 const MEMORY_GRID_MIN_HEIGHT_PX = 240;
-// Space reserved below the grid for the mobile bottom navigation, the app
-// shell bottom padding, and breathing room so the page never scrolls.
-const MEMORY_GRID_BOTTOM_RESERVE_PX = 120;
+// Breathing room below the grid (session pages render full-screen with no
+// bottom navigation, so only a small margin is needed).
+const MEMORY_GRID_BOTTOM_RESERVE_PX = 24;
 
 function formatTime(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);

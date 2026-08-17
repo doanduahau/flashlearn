@@ -12,6 +12,10 @@ export type MatchState = {
   incorrectAttemptCount: number;
   matchedFrontIds: Set<string>;
   matchedBackIds: Set<string>;
+  /** Card ids matched correctly at any point in the whole session. */
+  correctCardIds: string[];
+  /** Card ids that were part of a wrong pair at any point in the session. */
+  wrongCardIds: string[];
 };
 
 export type MatchPhase = "playing" | "completed";
@@ -27,6 +31,8 @@ export function createMatchState(batches: MatchBatch[]): MatchState {
     incorrectAttemptCount: 0,
     matchedFrontIds: new Set(),
     matchedBackIds: new Set(),
+    correctCardIds: [],
+    wrongCardIds: [],
   };
 }
 
@@ -73,6 +79,8 @@ export function selectCard(state: MatchState, side: MatchSide, cardId: string): 
     lastResult: "none",
     matchedFrontIds: new Set(state.matchedFrontIds),
     matchedBackIds: new Set(state.matchedBackIds),
+    correctCardIds: [...state.correctCardIds],
+    wrongCardIds: [...state.wrongCardIds],
   };
 
   if (side === "front") {
@@ -112,6 +120,8 @@ function resolvePair(state: MatchState, frontId: string, backId: string): MatchS
     state.matchedFrontIds.add(frontCard.id);
     state.matchedBackIds.add(backCard.id);
     state.completedPairCount = state.completedPairCount + 1;
+    pushUnique(state.correctCardIds, frontCard.id);
+    pushUnique(state.correctCardIds, backCard.id);
 
     // Automatically advance to the next batch once all six pairs are matched.
     if (state.matchedFrontIds.size === batch.fronts.length) {
@@ -119,9 +129,15 @@ function resolvePair(state: MatchState, frontId: string, backId: string): MatchS
     }
   } else {
     state.incorrectAttemptCount = state.incorrectAttemptCount + 1;
+    pushUnique(state.wrongCardIds, frontId);
+    pushUnique(state.wrongCardIds, backId);
   }
 
   return state;
+}
+
+function pushUnique(ids: string[], id: string): void {
+  if (!ids.includes(id)) ids.push(id);
 }
 
 /**
@@ -137,6 +153,8 @@ export function advanceBatch(state: MatchState): MatchState {
     lastResult: "none",
     matchedFrontIds: new Set(),
     matchedBackIds: new Set(),
+    // correctCardIds / wrongCardIds intentionally persist across batches so
+    // the completion payload covers the whole session.
   };
 }
 

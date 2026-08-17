@@ -16,6 +16,7 @@ import { SessionExitButton } from "@/features/learning-modes/components/session-
 import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
 import { useVisibilityPause } from "@/features/learning-modes/hooks/use-visibility-pause";
 import { recordDailyActivity } from "@/features/learning-modes/server/record-activity";
+import { recordModeAnswers } from "@/features/learning-modes/server/record-mode-answers";
 
 type MatchSessionProps = {
   sessionHref: string;
@@ -32,6 +33,29 @@ function sourceFromHref(sessionHref: string, questionCount: MatchQuestionCount) 
     collectionIds: (url.searchParams.get("collections") ?? "").split(",").filter(Boolean),
     questionCount,
   };
+}
+
+/**
+ * Collapses the session's card outcome into one event per card. A card that
+ * was ever matched correctly wins (the latest-answer rule resolves per card,
+ * and correct matching happens after any earlier wrong attempt).
+ */
+function buildCardAnswers(
+  correctCardIds: string[],
+  wrongCardIds: string[],
+): Array<{
+  flashcardId: string;
+  isCorrect: boolean;
+}> {
+  const byId = new Map<string, boolean>();
+  for (const id of correctCardIds) byId.set(id, true);
+  for (const id of wrongCardIds) {
+    if (!byId.has(id)) byId.set(id, false);
+  }
+  return Array.from(byId.entries()).map(([flashcardId, isCorrect]) => ({
+    flashcardId,
+    isCorrect,
+  }));
 }
 
 export function MatchSession({
@@ -56,6 +80,10 @@ export function MatchSession({
     correctPairs: number;
     incorrectAttempts: number;
     elapsedMs: number;
+  } | null>(null);
+  const lastStatsRef = useRef<{
+    correctCardIds: string[];
+    wrongCardIds: string[];
   } | null>(null);
   const { isPaused, resume } = useVisibilityPause();
 
@@ -114,6 +142,17 @@ export function MatchSession({
         setMatchSaveError(save.error);
       } else {
         setMatchSaveError(null);
+        lastStatsRef.current = {
+          correctCardIds: stats.correctCardIds,
+          wrongCardIds: stats.wrongCardIds,
+        };
+        const events = await recordModeAnswers({
+          mode: "match",
+          answers: buildCardAnswers(stats.correctCardIds, stats.wrongCardIds),
+        });
+        if (!events.ok) {
+          setMatchSaveError(events.error);
+        }
         const record = await recordDailyActivity({
           mode: "match",
           questionsAnswered: stats.correctPairs + stats.incorrectAttempts,
@@ -139,6 +178,16 @@ export function MatchSession({
         setMatchSaveError(save.error);
       } else {
         setMatchSaveError(null);
+        const stats = lastStatsRef.current;
+        if (stats) {
+          const events = await recordModeAnswers({
+            mode: "match",
+            answers: buildCardAnswers(stats.correctCardIds, stats.wrongCardIds),
+          });
+          if (!events.ok) {
+            setMatchSaveError(events.error);
+          }
+        }
         const record = await recordDailyActivity({
           mode: "match",
           questionsAnswered:

@@ -7,17 +7,20 @@ const {
   saveMatchAttempt,
   router,
   recordDailyActivity,
+  recordModeAnswers,
 } = vi.hoisted(() => ({
   startMatchCoverageSession: vi.fn(),
   completeLearningCoverageSession: vi.fn(),
   saveMatchAttempt: vi.fn(),
   recordDailyActivity: vi.fn(),
+  recordModeAnswers: vi.fn(),
   router: { push: vi.fn(), back: vi.fn(), refresh: vi.fn() },
 }));
 
 vi.mock("@/features/match/server/actions", () => ({ startMatchCoverageSession, saveMatchAttempt }));
 vi.mock("@/features/practice-coverage/server/actions", () => ({ completeLearningCoverageSession }));
 vi.mock("@/features/learning-modes/server/record-activity", () => ({ recordDailyActivity }));
+vi.mock("@/features/learning-modes/server/record-mode-answers", () => ({ recordModeAnswers }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 import { MatchSession } from "@/features/match/components/match-session";
@@ -90,12 +93,14 @@ describe("MatchSession completion persistence", () => {
     completeLearningCoverageSession.mockReset();
     saveMatchAttempt.mockReset();
     recordDailyActivity.mockReset();
+    recordModeAnswers.mockReset();
     router.push.mockReset();
     router.back.mockReset();
     startMatchCoverageSession.mockResolvedValue({ ok: true, session });
     completeLearningCoverageSession.mockResolvedValue({ ok: true });
     saveMatchAttempt.mockResolvedValue({ ok: true });
     recordDailyActivity.mockResolvedValue({ ok: true });
+    recordModeAnswers.mockResolvedValue({ ok: true });
   });
 
   it("completes coverage first then saves the match attempt with stats", async () => {
@@ -122,6 +127,19 @@ describe("MatchSession completion persistence", () => {
         elapsedMs: expect.any(Number),
       }),
     );
+    expect(recordModeAnswers).toHaveBeenCalledTimes(1);
+    expect(recordModeAnswers).toHaveBeenCalledWith({
+      mode: "match",
+      answers: expect.arrayContaining([
+        { flashcardId: "a", isCorrect: true },
+        { flashcardId: "l", isCorrect: true },
+      ]),
+    });
+    expect(recordDailyActivity).toHaveBeenCalledWith({
+      mode: "match",
+      questionsAnswered: 12,
+      correctAnswers: 12,
+    });
   });
 
   it("passes incorrect attempt count when pairs are matched wrongly", async () => {
@@ -139,6 +157,16 @@ describe("MatchSession completion persistence", () => {
     expect(saveMatchAttempt).toHaveBeenCalledWith(
       expect.objectContaining({ correctPairs: 12, incorrectAttempts: 1 }),
     );
+    // The wrong pair (front-a + back-b) is counted as an incorrect attempt,
+    // but every card is later matched correctly, so the per-card event for a
+    // card that ended correct wins (latest answer per card is correct).
+    expect(recordModeAnswers).toHaveBeenCalledWith({
+      mode: "match",
+      answers: expect.arrayContaining([
+        { flashcardId: "a", isCorrect: true },
+        { flashcardId: "b", isCorrect: true },
+      ]),
+    });
   });
 
   it("does not save a match attempt when coverage completion fails", async () => {
@@ -150,6 +178,8 @@ describe("MatchSession completion persistence", () => {
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Không thể hoàn tất."));
     expect(saveMatchAttempt).not.toHaveBeenCalled();
+    expect(recordModeAnswers).not.toHaveBeenCalled();
+    expect(recordDailyActivity).not.toHaveBeenCalled();
     expect(screen.queryByRole("heading", { name: "Hoàn thành!" })).not.toBeInTheDocument();
   });
 

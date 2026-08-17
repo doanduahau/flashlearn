@@ -99,6 +99,55 @@ describe("match state machine", () => {
     expect(incorrectAttemptCountOf(state)).toBe(2);
   });
 
+  it("records correct and wrong card ids across the whole session", () => {
+    const batch1 = makeBatch(["a", "b", "c", "d", "e", "f"]);
+    const batch2 = makeBatch(["g", "h", "i", "j", "k", "l"]);
+    let state = createMatchState([batch1, batch2]);
+
+    // Wrong attempt first: a/b are recorded as wrong.
+    state = selectCard(selectCard(state, "front", "a"), "back", "b");
+    expect(state.wrongCardIds).toContain("a");
+    expect(state.wrongCardIds).toContain("b");
+    expect(state.correctCardIds).toEqual([]);
+
+    // Correct matching of a later pair adds it to correct ids without
+    // removing the earlier wrong entries.
+    state = selectCard(selectCard(state, "front", "c"), "back", "c");
+    expect(state.correctCardIds).toContain("c");
+    expect(state.wrongCardIds).toContain("a");
+
+    // A card wrong earlier then correctly matched ends up in both lists (the
+    // completion payload lets correct win).
+    state = selectCard(selectCard(state, "front", "a"), "back", "a");
+    expect(state.correctCardIds).toContain("a");
+    expect(state.wrongCardIds).toContain("a");
+
+    // No duplicate entries when a correct pair is selected once.
+    state = selectCard(selectCard(state, "front", "d"), "back", "d");
+    state = selectCard(selectCard(state, "front", "d"), "back", "d");
+    expect(state.correctCardIds.filter((id) => id === "d")).toHaveLength(1);
+
+    // b was wrong earlier, then correctly matched — it lands in both lists
+    // (the completion payload lets correct win per card).
+    state = selectCard(selectCard(state, "front", "b"), "back", "b");
+    expect(state.correctCardIds).toContain("b");
+    expect(state.wrongCardIds).toContain("b");
+
+    // Completing batch 1 keeps per-card ids (they must persist to the end).
+    for (const id of ["e", "f"]) {
+      state = selectCard(state, "front", id);
+      state = selectCard(state, "back", id);
+    }
+    expect(state.currentBatchIndex).toBe(1);
+    expect(state.correctCardIds).toContain("a");
+    expect(state.correctCardIds).toContain("c");
+
+    // Batch 2 wrong pairing still appends to the same wrong list.
+    state = selectCard(selectCard(state, "front", "g"), "back", "h");
+    expect(state.wrongCardIds).toContain("g");
+    expect(state.wrongCardIds).toContain("h");
+  });
+
   it("does not count correct pairs as incorrect attempts", () => {
     const batch = makeBatch(["a", "b", "c", "d", "e", "f"]);
     let state = createMatchState([batch]);

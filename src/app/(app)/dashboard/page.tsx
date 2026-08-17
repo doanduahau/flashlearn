@@ -5,11 +5,12 @@ import { redirect } from "next/navigation";
 import { DashboardMotivationBar } from "@/features/dashboard/components/dashboard-motivation-bar";
 import { DashboardLearningStatus } from "@/features/dashboard/components/dashboard-learning-status";
 import { StreakMilestoneBanner } from "@/features/dashboard/components/streak-milestone-banner";
+import { loadUntouchedCardCount } from "@/features/dashboard/server/load-learning-counts";
 import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
-import { countDueCards } from "@/features/spaced-repetition/server/due-repository";
-import { countNewCards } from "@/features/spaced-repetition/server/new-cards-repository";
 import { StartSmartReviewButton } from "@/features/smart-review/components/start-smart-review-button";
 import { StartNewCardsButton } from "@/features/spaced-repetition/components/start-new-cards-button";
+import { loadWrongAnswerCardIds } from "@/features/practice-coverage/server/actions";
+import { collectStudyCardIds } from "@/features/study/server/load-study-cards";
 import { MonthActivityCalendar } from "@/features/statistics/components/month-activity-calendar";
 import {
   accuracy,
@@ -49,7 +50,6 @@ export default async function DashboardPage({
   const previousMonth = addMonths(month, -1);
   const nextMonth = addMonths(month, 1);
 
-  const evaluationTime = new Date().toISOString();
   const [todayDetail, monthActivity, streakDates, claimsResult, mascotLevel, streakSummary] =
     await Promise.all([
       loadActivityDetail(supabase, today),
@@ -68,10 +68,21 @@ export default async function DashboardPage({
   let learningError = false;
   if (userId) {
     try {
-      [dueCount, newCardsCount] = await Promise.all([
-        countDueCards(supabase, userId, { type: "library" }, evaluationTime),
-        countNewCards(supabase),
+      const allCardIds = await collectStudyCardIds(supabase, {
+        all: true,
+        setIds: [],
+        collectionIds: [],
+      });
+      const [wrongIds, untouchedCount] = await Promise.all([
+        loadWrongAnswerCardIds(allCardIds),
+        loadUntouchedCardCount(supabase, allCardIds),
       ]);
+      // "Cần ôn" = cards whose latest answer is wrong in any quiz mode;
+      // "Chưa học" = cards never seen in any mode. The smart-review/new-cards
+      // buttons keep their existing behavior but only render with a matching
+      // count so the numbers and actions stay consistent.
+      dueCount = wrongIds.size;
+      newCardsCount = untouchedCount;
     } catch (error) {
       console.error("[dashboard] unable to load learning counts", {
         name: error instanceof Error ? error.name : "unknown",

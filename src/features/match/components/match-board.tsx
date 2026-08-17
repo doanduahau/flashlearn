@@ -17,6 +17,10 @@ import { cn } from "@/lib/utils";
 export type MatchCompletionStats = {
   correctPairs: number;
   incorrectAttempts: number;
+  /** Card ids matched correctly at any point in the session (no duplicates). */
+  correctCardIds: string[];
+  /** Card ids involved in any wrong pair (no duplicates). */
+  wrongCardIds: string[];
 };
 
 type MatchBoardProps = {
@@ -38,6 +42,8 @@ export function MatchBoard({ batches, questionCount, isPaused, onComplete }: Mat
       void onComplete({
         correctPairs: state.completedPairCount,
         incorrectAttempts: state.incorrectAttemptCount,
+        correctCardIds: state.correctCardIds,
+        wrongCardIds: state.wrongCardIds,
       });
     }
   }, [phase, onComplete, state.completedPairCount, state.incorrectAttemptCount, batches]);

@@ -35,9 +35,13 @@ function supabaseFor(
       }),
     },
     from: vi.fn((table: string) => ({
-      select: vi.fn(() => ({
-        in: vi.fn().mockResolvedValue({ data: cards ?? [], error: null }),
-      })),
+      select: vi.fn(() => {
+        const builder = {
+          in: vi.fn().mockResolvedValue({ data: cards ?? [], error: null }),
+          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        };
+        return builder;
+      }),
     })),
   };
 }

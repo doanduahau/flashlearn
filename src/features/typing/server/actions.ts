@@ -164,7 +164,7 @@ export async function submitTypingAttempt(input: unknown): Promise<SubmitTypingR
     const cardIds = parsed.data.answers.map((answer) => answer.flashcardId);
     const { data: cards, error: cardsError } = await supabase
       .from("flashcards")
-      .select("id, front, back")
+      .select("id, front, back, set_id")
       .in("id", cardIds);
     if (cardsError || (cards ?? []).length !== cardIds.length) {
       return { ok: false, error: "Một số thẻ không còn tồn tại." };
@@ -180,9 +180,11 @@ export async function submitTypingAttempt(input: unknown): Promise<SubmitTypingR
       const back = backById.get(answer.flashcardId) ?? "";
       const isCorrect = await gradeTypingAnswer(answer.answer, back);
       if (isCorrect) correctCount += 1;
+      const card = (cards ?? []).find((item) => item.id === answer.flashcardId);
       questions.push({
         flashcardId: answer.flashcardId,
-        front: (cards ?? []).find((card) => card.id === answer.flashcardId)?.front ?? "",
+        setId: card?.set_id ?? "",
+        front: card?.front ?? "",
         back,
         userAnswer: answer.answer,
         isCorrect,
@@ -207,9 +209,39 @@ export async function submitTypingAttempt(input: unknown): Promise<SubmitTypingR
       })),
     });
 
+    const wrongCardIds = questions
+      .filter((question) => !question.isCorrect)
+      .map((question) => question.flashcardId);
+
+    let collections: Array<{ id: string; name: string }> = [];
+    let membershipsByCard: Record<string, string[]> = {};
+    if (wrongCardIds.length > 0) {
+      const [collectionsResult, membershipsResult] = await Promise.all([
+        supabase.from("special_collections").select("id, name").order("name", { ascending: true }),
+        supabase
+          .from("special_collection_items")
+          .select("collection_id, flashcard_id")
+          .in("flashcard_id", wrongCardIds),
+      ]);
+      collections = (collectionsResult.data ?? []).map((collection) => ({
+        id: collection.id,
+        name: collection.name,
+      }));
+      membershipsByCard = {};
+      for (const item of membershipsResult.data ?? []) {
+        (membershipsByCard[item.flashcard_id] ??= []).push(item.collection_id);
+      }
+    }
+
     return {
       ok: true,
-      result: { correctCount, totalCount: parsed.data.totalQuestions, questions },
+      result: {
+        correctCount,
+        totalCount: parsed.data.totalQuestions,
+        questions,
+        collections,
+        membershipsByCard,
+      },
       saveError: !coverage.ok ? coverage.error : save.ok ? null : save.error,
     };
   } catch {

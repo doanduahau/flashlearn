@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   startTypingSession: vi.fn(),
   submitTypingAttempt: vi.fn(),
   retryTypingSave: vi.fn(),
+  updateCardCollections: vi.fn(),
   router: { push: vi.fn(), back: vi.fn(), refresh: vi.fn() },
 }));
 
@@ -15,6 +16,16 @@ vi.mock("@/features/typing/server/actions", () => ({
 }));
 vi.mock("@/features/practice-coverage/server/actions", () => ({
   completeLearningCoverageSession: vi.fn(),
+}));
+vi.mock("@/features/special-collections/server/actions", () => ({
+  updateCardCollections: mocks.updateCardCollections,
+}));
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => mocks.router }));
 
@@ -50,6 +61,8 @@ beforeEach(() => {
   mocks.startTypingSession.mockReset();
   mocks.submitTypingAttempt.mockReset();
   mocks.retryTypingSave.mockReset();
+  mocks.updateCardCollections.mockReset();
+  mocks.updateCardCollections.mockResolvedValue({ ok: true });
   mocks.startTypingSession.mockResolvedValue({ ok: true, session });
 });
 
@@ -95,9 +108,12 @@ describe("TypingSession", () => {
       result: {
         correctCount: 1,
         totalCount: 2,
+        collections: [{ id: "44444444-4444-4444-8444-444444444444", name: "Khó nhớ" }],
+        membershipsByCard: {},
         questions: [
           {
             flashcardId: CARD_A,
+            setId: "22222222-2222-4222-8222-222222222222",
             front: "Câu hỏi một?",
             back: "Đáp án một",
             userAnswer: "Đáp án một",
@@ -105,6 +121,7 @@ describe("TypingSession", () => {
           },
           {
             flashcardId: CARD_B,
+            setId: "22222222-2222-4222-8222-222222222222",
             front: "Câu hỏi hai?",
             back: "Đáp án hai",
             userAnswer: "sai rồi",
@@ -129,10 +146,61 @@ describe("TypingSession", () => {
     expect(screen.getByText("Kết quả kiểm tra")).toBeInTheDocument();
     expect(screen.getByText("1/2 đúng (50%)")).toBeInTheDocument();
     expect(screen.getAllByText("Đáp án của bạn:")).toHaveLength(2);
-    expect(screen.getByText("Đáp án đúng:")).toBeInTheDocument();
+    expect(screen.getAllByText("Đáp án đúng:")).toHaveLength(2);
     expect(screen.getByText("sai rồi")).toBeInTheDocument();
     expect(screen.getByText("Đáp án hai")).toBeInTheDocument();
     expect(mocks.submitTypingAttempt).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a collection control below the wrong answer label", async () => {
+    mocks.submitTypingAttempt.mockResolvedValue({
+      ok: true,
+      saveError: null,
+      result: {
+        correctCount: 1,
+        totalCount: 2,
+        collections: [{ id: "44444444-4444-4444-8444-444444444444", name: "Khó nhớ" }],
+        membershipsByCard: {},
+        questions: [
+          {
+            flashcardId: CARD_A,
+            setId: "22222222-2222-4222-8222-222222222222",
+            front: "Câu hỏi một?",
+            back: "Đáp án một",
+            userAnswer: "Đáp án một",
+            isCorrect: true,
+          },
+          {
+            flashcardId: CARD_B,
+            setId: "22222222-2222-4222-8222-222222222222",
+            front: "Câu hỏi hai?",
+            back: "Đáp án hai",
+            userAnswer: "sai rồi",
+            isCorrect: false,
+          },
+        ],
+      },
+    });
+    await renderSession();
+
+    fireEvent.change(screen.getByLabelText("Đáp án cho câu 1"), {
+      target: { value: "Đáp án một" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Câu sau" }));
+    fireEvent.change(screen.getByLabelText("Đáp án cho câu 2"), {
+      target: { value: "sai rồi" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Nộp bài" }));
+    });
+
+    // Only the wrong question (index 2) shows the "Thêm vào bộ đặc biệt" trigger.
+    const triggers = screen.getAllByRole("button", { name: "Thêm vào bộ đặc biệt" });
+    expect(triggers).toHaveLength(1);
+    await act(async () => {
+      fireEvent.click(triggers[0]!);
+    });
+    expect(screen.getByRole("checkbox", { name: "Khó nhớ" })).toBeInTheDocument();
   });
 
   it("replays the same configuration from the result screen", async () => {
@@ -142,9 +210,12 @@ describe("TypingSession", () => {
       result: {
         correctCount: 2,
         totalCount: 2,
+        collections: [],
+        membershipsByCard: {},
         questions: [
           {
             flashcardId: CARD_A,
+            setId: "22222222-2222-4222-8222-222222222222",
             front: "Câu hỏi một?",
             back: "Đáp án một",
             userAnswer: "Đáp án một",
@@ -152,6 +223,7 @@ describe("TypingSession", () => {
           },
           {
             flashcardId: CARD_B,
+            setId: "22222222-2222-4222-8222-222222222222",
             front: "Câu hỏi hai?",
             back: "Đáp án hai",
             userAnswer: "Đáp án hai",

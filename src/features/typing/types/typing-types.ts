@@ -13,16 +13,24 @@ export type StartedTypingSession = {
 
 export type TypingQuestionResult = {
   flashcardId: string;
+  setId: string;
   front: string;
   back: string;
   userAnswer: string;
   isCorrect: boolean;
 };
 
+export type TypingCollectionOption = {
+  id: string;
+  name: string;
+};
+
 export type TypingSubmitResult = {
   correctCount: number;
   totalCount: number;
   questions: TypingQuestionResult[];
+  collections: TypingCollectionOption[];
+  membershipsByCard: Record<string, string[]>;
 };
 
 export type TypingAvailability = {

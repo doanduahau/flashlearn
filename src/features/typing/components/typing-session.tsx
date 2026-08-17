@@ -6,6 +6,7 @@ import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
+import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
 import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
 import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
 import { useVisibilityPause } from "@/features/learning-modes/hooks/use-visibility-pause";
@@ -247,14 +248,27 @@ export function TypingSession({
                 <p className="whitespace-pre-wrap font-semibold">
                   {index + 1}. {question.front}
                 </p>
-                <span
-                  className={cn(
-                    "shrink-0 rounded-full px-3 py-1 text-sm font-semibold",
-                    question.isCorrect ? "bg-success/10 text-success" : "bg-danger/10 text-danger",
-                  )}
-                >
-                  {question.isCorrect ? "✓ Đúng" : "✗ Sai"}
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <span
+                    className={cn(
+                      "rounded-full px-3 py-1 text-sm font-semibold",
+                      question.isCorrect
+                        ? "bg-success/10 text-success"
+                        : "bg-danger/10 text-danger",
+                    )}
+                  >
+                    {question.isCorrect ? "✓ Đúng" : "✗ Sai"}
+                  </span>
+                  {!question.isCorrect ? (
+                    <CardCollectionsControl
+                      cardId={question.flashcardId}
+                      setId={question.setId}
+                      collections={result.collections}
+                      memberships={result.membershipsByCard[question.flashcardId] ?? []}
+                      variant="icon"
+                    />
+                  ) : null}
+                </div>
               </div>
               <p className="mt-2">
                 Đáp án của bạn:{" "}
@@ -262,12 +276,10 @@ export function TypingSession({
                   {question.userAnswer.trim() || "Chưa trả lời"}
                 </span>
               </p>
-              {!question.isCorrect ? (
-                <p>
-                  Đáp án đúng:{" "}
-                  <span className="whitespace-pre-wrap text-success">{question.back}</span>
-                </p>
-              ) : null}
+              <p className="mt-1">
+                Đáp án đúng:{" "}
+                <span className="whitespace-pre-wrap text-success">{question.back}</span>
+              </p>
             </article>
           ))}
         </section>

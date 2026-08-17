@@ -237,6 +237,7 @@ export type Database = {
           share_token: string | null
           sort_order: number
           source_filename: string | null
+          source_share_token: string | null
           updated_at: string
           user_id: string
         }
@@ -249,6 +250,7 @@ export type Database = {
           share_token?: string | null
           sort_order?: number
           source_filename?: string | null
+          source_share_token?: string | null
           updated_at?: string
           user_id: string
         }
@@ -261,6 +263,7 @@ export type Database = {
           share_token?: string | null
           sort_order?: number
           source_filename?: string | null
+          source_share_token?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -425,8 +428,38 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "flashcards"
             referencedColumns: ["id"]
-          }
+          },
         ]
+      }
+      notification_preferences: {
+        Row: {
+          push_enabled: boolean
+          review_enabled: boolean
+          review_time: string
+          streak_enabled: boolean
+          streak_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          push_enabled?: boolean
+          review_enabled?: boolean
+          review_time?: string
+          streak_enabled?: boolean
+          streak_time?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          push_enabled?: boolean
+          review_enabled?: boolean
+          review_time?: string
+          streak_enabled?: boolean
+          streak_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -458,41 +491,59 @@ export type Database = {
         }
         Relationships: []
       }
-      typing_attempts: {
+      push_notifications_log: {
         Row: {
-          completed_at: string | null
-          correct_questions: number
-          elapsed_ms: number
           id: string
-          source_all: boolean
-          source_collection_ids: string[]
-          source_set_ids: string[]
-          started_at: string
-          total_questions: number
+          kind: string
+          local_date: string
+          sent_at: string
           user_id: string
         }
         Insert: {
-          completed_at?: string | null
-          correct_questions: number
-          elapsed_ms: number
           id?: string
-          source_all?: boolean
-          source_collection_ids?: string[]
-          source_set_ids?: string[]
-          started_at?: string
-          total_questions: number
+          kind: string
+          local_date: string
+          sent_at?: string
           user_id: string
         }
         Update: {
-          completed_at?: string | null
-          correct_questions?: number
-          elapsed_ms?: number
           id?: string
-          source_all?: boolean
-          source_collection_ids?: string[]
-          source_set_ids?: string[]
-          started_at?: string
-          total_questions?: number
+          kind?: string
+          local_date?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
@@ -500,7 +551,6 @@ export type Database = {
       quiz_questions: {
         Row: {
           answered_at: string | null
-
           choices: Json
           correct_answer: string
           correct_choice_index: number
@@ -770,6 +820,45 @@ export type Database = {
         }
         Relationships: []
       }
+      typing_attempts: {
+        Row: {
+          completed_at: string | null
+          correct_questions: number
+          elapsed_ms: number
+          id: string
+          source_all: boolean
+          source_collection_ids: string[]
+          source_set_ids: string[]
+          started_at: string
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          correct_questions: number
+          elapsed_ms: number
+          id?: string
+          source_all?: boolean
+          source_collection_ids?: string[]
+          source_set_ids?: string[]
+          started_at?: string
+          total_questions: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          correct_questions?: number
+          elapsed_ms?: number
+          id?: string
+          source_all?: boolean
+          source_collection_ids?: string[]
+          source_set_ids?: string[]
+          started_at?: string
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -785,8 +874,8 @@ export type Database = {
       clone_shared_set: {
         Args: { p_token: string; p_user_id: string }
         Returns: {
-          new_set_id: string
           already_exists: boolean
+          new_set_id: string
         }[]
       }
       complete_learning_coverage_session: {
@@ -853,6 +942,10 @@ export type Database = {
       create_special_collection: {
         Args: { p_color?: string; p_icon?: string; p_name: string }
         Returns: string
+      }
+      get_due_review_card_count: {
+        Args: { p_user_id: string }
+        Returns: number
       }
       get_learning_statistics: { Args: never; Returns: Json }
       get_set_members_with_stats: {
@@ -925,14 +1018,6 @@ export type Database = {
         Args: { p_direction: string; p_set_id: string }
         Returns: undefined
       }
-      register_set_membership: {
-        Args: {
-          p_clone_set_id: string
-          p_member_user_id: string
-          p_token: string
-        }
-        Returns: string
-      }
       record_daily_activity: {
         Args: {
           p_correct_answers: number
@@ -943,8 +1028,16 @@ export type Database = {
         Returns: undefined
       }
       record_mode_answers: {
-        Args: { p_answers: unknown; p_mode: string; p_user_id: string }
+        Args: { p_answers: Json; p_mode: string; p_user_id: string }
         Returns: undefined
+      }
+      register_set_membership: {
+        Args: {
+          p_clone_set_id: string
+          p_member_user_id: string
+          p_token: string
+        }
+        Returns: string
       }
       revoke_set_share_token: {
         Args: { p_set_id: string; p_user_id: string }

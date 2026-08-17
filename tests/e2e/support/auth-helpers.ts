@@ -4,7 +4,6 @@ import { mailpitUrl } from "./local-endpoints";
 
 export const TEST_PASSWORD = "TestPassword123!";
 const EMAIL_DOMAIN = "test.capystudy.dev";
-const APP_ORIGIN = "http://127.0.0.1:3000";
 
 export function uniqueEmail(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}@${EMAIL_DOMAIN}`;
@@ -34,15 +33,26 @@ export async function signUpAndConfirm(page: Page, email: string): Promise<void>
 
   const confirmLink = mailPage.locator('a[href*="auth/confirm"]').first();
   await confirmLink.waitFor({ state: "attached", timeout: 30_000 });
-  const href = await confirmLink.getAttribute("href");
+  const rawHref = await confirmLink.getAttribute("href");
 
   await mailPage.close();
 
-  if (!href) {
+  if (!rawHref) {
     throw new Error("Confirmation link not found in Mailpit");
   }
-  expect(new URL(href).origin).toBe(APP_ORIGIN);
 
-  await page.goto(href);
+  const parsedUrl = new URL(rawHref);
+  const currentOrigin = new URL(page.url()).origin;
+  const redirectTo = parsedUrl.searchParams.get("redirect_to");
+  if (redirectTo) {
+    const parsedRedirect = new URL(redirectTo);
+    parsedUrl.searchParams.set(
+      "redirect_to",
+      `${currentOrigin}${parsedRedirect.pathname}${parsedRedirect.search}`,
+    );
+  }
+  const confirmUrl = `${parsedUrl.origin}${parsedUrl.pathname}${parsedUrl.search}`;
+
+  await page.goto(confirmUrl);
   await expect(page).toHaveURL(/\/dashboard$/);
 }

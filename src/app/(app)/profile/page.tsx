@@ -5,6 +5,8 @@ import { SectionTabs } from "@/components/shared/section-tabs";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
 import { MilestoneMascots } from "@/features/mascot/components/milestone-mascots";
 import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
+import { NotificationSettings } from "@/features/notifications/components/notification-settings";
+import { loadNotificationPreferences } from "@/features/notifications/server/load-notification-preferences";
 import { ProfileSettingsForm } from "@/features/profile/components/profile-settings-form";
 import { loadProfileSettings } from "@/features/profile/server/load-profile";
 import { StatisticsPanel } from "@/features/statistics/components/statistics-panel";
@@ -79,6 +81,9 @@ async function ProfileDetails({ tab }: Readonly<{ tab: Exclude<ProfileTab, "stat
   }
 
   if (tab === "settings") {
+    const notificationPrefs = await loadNotificationPreferences(supabase);
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+
     return (
       <div className="space-y-6">
         <ProfileSettingsForm
@@ -88,6 +93,7 @@ async function ProfileDetails({ tab }: Readonly<{ tab: Exclude<ProfileTab, "stat
           timezoneChangeAvailableAt={profile.timezoneChangeAvailableAt}
           timezoneChangeCooldownHours={profile.timezoneChangeCooldownHours}
         />
+        <NotificationSettings prefs={notificationPrefs} vapidPublicKey={vapidPublicKey} />
         <section
           className="rounded-3xl border border-border-soft bg-surface p-5"
           aria-label="Đăng xuất"

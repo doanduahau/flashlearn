@@ -110,11 +110,15 @@ async function markSent(
   localDate: string,
 ): Promise<void> {
   // on conflict do nothing keeps the dedupe safe even if two runs overlap.
-  await supabase.from("push_notifications_log").insert({
-    user_id: userId,
-    kind,
-    local_date: localDate,
-  });
+  await supabase
+    .from("push_notifications_log")
+    .insert({
+      user_id: userId,
+      kind,
+      local_date: localDate,
+    })
+    .onConflict("user_id,kind,local_date")
+    .ignore();
 }
 
 async function sendToSubscriptions(
@@ -151,7 +155,7 @@ async function sendToSubscriptions(
           userId,
           kind,
           status,
-          endpoint: subscription.endpoint,
+          endpoint: `${subscription.endpoint.slice(0, 60)}…`,
         });
       }
     }
@@ -160,7 +164,10 @@ async function sendToSubscriptions(
 }
 
 Deno.serve(async (request) => {
-  if (request.headers.get("authorization") !== `Bearer ${Deno.env.get("CRON_SECRET") ?? ""}`) {
+  // Fail closed: without CRON_SECRET set, every call is unauthorized — a
+  // missing secret must never default the expected bearer token to empty.
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  if (!cronSecret || request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
 

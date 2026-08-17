@@ -116,8 +116,8 @@ test.describe("Study mode", () => {
     await expect(page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) })).toBeChecked();
     await page.getByRole("button", { name: /^Hủy$/i }).click();
 
-    await page.getByRole("button", { name: /Nhấn để lật/ }).click();
-    await expect(page.getByRole("button", { name: /Nhấn để xem mặt trước/ })).toBeVisible();
+    await page.locator('[data-testid="study-card"][data-active="true"]').click();
+    await expect(page.getByText("Hello")).toBeVisible();
 
     await page.keyboard.press("ArrowDown");
     await expect(page.getByText("2 / 2")).toBeVisible();
@@ -190,6 +190,7 @@ test.describe("Study mode", () => {
     await expect(page).toHaveURL(/\/study\/mode/);
     await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
     await expect(page).toHaveURL(/\/study\/session/);
+    await expect(page.getByText("1 / 2")).toBeVisible();
 
     expect(
       await page.evaluate(
@@ -203,8 +204,8 @@ test.describe("Study mode", () => {
     await page.keyboard.press("ArrowUp");
     await expect(page.getByText("1 / 2")).toBeVisible();
 
-    await page.getByRole("button", { name: /Nhấn để lật/ }).click();
-    await expect(page.getByRole("button", { name: /Nhấn để xem mặt trước/ })).toBeVisible();
+    await page.locator('[data-testid="study-card"][data-active="true"]').click();
+    await expect(page.getByText("Hello")).toBeVisible();
 
     await context.close();
   });
@@ -249,7 +250,9 @@ test.describe("Study mode", () => {
     await page.keyboard.press("ArrowLeft");
     await expect(page.getByText("1 / 4")).toBeVisible();
     await page.keyboard.press(" ");
-    await expect(page.getByRole("button", { name: /Nhấn để xem mặt trước/ })).toBeVisible();
+    await expect(
+      page.locator('[data-testid="study-card"][data-active="true"]').getByText("Hello"),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: /Trộn thứ tự/ }).click();
     await expect(page).toHaveURL(/seed=\d+/);

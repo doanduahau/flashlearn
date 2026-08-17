@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 const DRAG_THRESHOLD = 25;
 const CLICK_SLOP = 8;
 const CONTAINER_HEIGHT = 440;
+const WHEEL_WINDOW = 5;
 const INTERACTIVE_SELECTOR =
   'a, button, input, textarea, select, [role="button"], [contenteditable="true"]';
 
@@ -27,6 +28,18 @@ function getSignedDistance(index: number, current: number, total: number): numbe
   if (diff > half) diff -= total;
   if (diff < -half) diff += total;
   return diff;
+}
+
+function getVisibleWindow(current: number, total: number, radius: number): number[] {
+  if (total <= 0) return [];
+  if (total <= 2 * radius + 1) {
+    return Array.from({ length: total }, (_, i) => i);
+  }
+  const indices: number[] = [];
+  for (let offset = -radius; offset <= radius; offset += 1) {
+    indices.push((current + offset + total * (radius + 1)) % total);
+  }
+  return indices;
 }
 
 export function StudySession({
@@ -253,56 +266,54 @@ export function StudySession({
 
   if (isCompleted) {
     return (
-      <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
-        <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-          <MascotImage
-            level={mascotLevel}
-            state="congrats"
-            size={144}
-            className="size-36 object-contain"
-            aria-hidden
-          />
-          <h2 className="text-xl font-bold sm:text-2xl">Hoàn thành!</h2>
-          <p className="text-sm text-text-secondary">Đã xem {total} thẻ</p>
-          <div className="mt-2 flex flex-wrap justify-center gap-2">
-            <Button type="button" variant="soft" onClick={handleReplay}>
-              Chơi lại
-            </Button>
-            <BackButton fallbackHref={fallbackHref} />
-          </div>
+      <main className="mx-auto flex h-dvh w-full max-w-3xl flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+        <MascotImage
+          level={mascotLevel}
+          state="congrats"
+          size={144}
+          className="size-36 object-contain"
+          aria-hidden
+        />
+        <h2 className="text-xl font-bold sm:text-2xl">Hoàn thành!</h2>
+        <p className="text-sm text-text-secondary">Đã xem {total} thẻ</p>
+        <div className="mt-2 flex flex-wrap justify-center gap-2">
+          <Button type="button" variant="soft" onClick={handleReplay}>
+            Chơi lại
+          </Button>
+          <BackButton fallbackHref={fallbackHref} />
         </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
-      <div className="flex justify-start">
+    <main className="mx-auto flex h-dvh w-full max-w-3xl flex-col overflow-hidden px-4 py-3 sm:px-6 sm:py-4">
+      <div className="flex items-center justify-between gap-3">
         <SessionExitButton fallbackHref={exitHref} />
-      </div>
 
-      <div
-        role="progressbar"
-        aria-label="Tiến độ phiên học"
-        aria-valuemin={1}
-        aria-valuemax={total}
-        aria-valuenow={currentIndex + 1}
-        className="mt-4 flex items-center gap-3"
-      >
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-subtle">
-          <div
-            className="h-full rounded-full bg-primary transition-[width] duration-300"
-            style={{ width: `${progress}%` }}
-          />
+        <div
+          role="progressbar"
+          aria-label="Tiến độ phiên học"
+          aria-valuemin={1}
+          aria-valuemax={total}
+          aria-valuenow={currentIndex + 1}
+          className="flex flex-1 items-center gap-3"
+        >
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-subtle">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="text-sm font-medium text-text-primary">
+            {currentIndex + 1} / {total}
+          </span>
         </div>
-        <span className="text-sm font-medium text-text-primary">
-          {currentIndex + 1} / {total}
-        </span>
       </div>
 
       {/* Animated Flashcard Wheel Container */}
       <div
-        className="relative my-4 flex h-[440px] sm:h-[480px] w-full max-w-2xl mx-auto flex-col items-center justify-center overflow-hidden py-2 select-none [touch-action:none]"
+        className="relative my-2 flex w-full max-w-2xl flex-1 flex-col items-center justify-center overflow-hidden select-none [touch-action:none]"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -311,7 +322,8 @@ export function StudySession({
         onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
       >
-        {cards.map((c, index) => {
+        {getVisibleWindow(currentIndex, total, WHEEL_WINDOW).map((index) => {
+          const c = cards[index]!;
           const diff = getSignedDistance(index, currentIndex, total);
           const isActive = diff === 0;
 
@@ -340,12 +352,13 @@ export function StudySession({
                 opacity,
                 zIndex,
                 pointerEvents,
+                willChange: isDragging || absEff < 1.2 ? "transform, opacity" : undefined,
               }}
               className={cn(
-                "absolute top-1/2 left-0 -translate-y-1/2 w-full motion-reduce:transition-none",
+                "absolute top-1/2 left-0 -translate-y-1/2 w-full [contain:layout paint] motion-reduce:transition-none",
                 isDragging
                   ? "transition-none"
-                  : "transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+                  : "transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
               )}
               onClick={() => {
                 if (isActive) {
@@ -357,7 +370,7 @@ export function StudySession({
                 }
               }}
             >
-              <div className="select-none [perspective:1200px]">
+              <div className={cn("select-none", isActive && "[perspective:1200px]")}>
                 <div
                   className={cn(
                     "relative transition-transform duration-200 ease-out [transform-style:preserve-3d] motion-reduce:transition-none",
@@ -431,45 +444,37 @@ export function StudySession({
         })}
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
-        <Button
-          type="button"
-          variant="soft"
-          onClick={() => setIsFlipped((flipped) => !flipped)}
-          aria-pressed={isFlipped}
-        >
-          {isFlipped ? "Nhấn để xem mặt trước" : "Nhấn để lật"}
-        </Button>
+      <div className="flex min-h-10 items-center justify-center">
         {isLast ? (
           <Button type="button" onClick={() => setIsCompleted(true)}>
             Hoàn thành
           </Button>
-        ) : null}
+        ) : (
+          <p className="text-xs text-text-secondary">Chạm vào thẻ để lật</p>
+        )}
       </div>
 
-      <div className="mt-6 rounded-2xl border border-border-soft bg-surface p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm text-text-secondary">Bộ gốc</p>
-            <p className="truncate font-semibold">{activeCard.setName}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={toggleShuffle}
-              aria-pressed={seed !== undefined}
-            >
-              {seed !== undefined ? "Bỏ trộn thứ tự" : "Trộn thứ tự"}
-            </Button>
-          </div>
+      <div className="flex items-center justify-between gap-3 border-t border-border-soft/70 pt-2">
+        <div className="min-w-0">
+          <p className="text-xs text-text-secondary">Bộ gốc</p>
+          <p className="truncate text-sm font-semibold">{activeCard.setName}</p>
         </div>
-        {truncated ? (
-          <p className="mt-3 text-sm text-text-secondary">
-            Phiên giới hạn ở {STUDY_MAX_CARDS} thẻ. Hãy chọn phạm vi nhỏ hơn để ôn toàn bộ.
-          </p>
-        ) : null}
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={toggleShuffle}
+            aria-pressed={seed !== undefined}
+          >
+            {seed !== undefined ? "Bỏ trộn thứ tự" : "Trộn thứ tự"}
+          </Button>
+        </div>
       </div>
+      {truncated ? (
+        <p className="mt-1 text-center text-xs text-text-secondary">
+          Phiên giới hạn ở {STUDY_MAX_CARDS} thẻ. Hãy chọn phạm vi nhỏ hơn để ôn toàn bộ.
+        </p>
+      ) : null}
     </main>
   );
 }

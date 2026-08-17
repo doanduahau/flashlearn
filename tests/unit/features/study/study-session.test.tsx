@@ -100,15 +100,10 @@ describe("StudySession", () => {
   });
 
   it("flips between front and back", async () => {
-    const user = userEvent.setup();
     renderSession();
-    await user.click(screen.getByRole("button", { name: /Nhấn để lật/ }));
+    fireEvent.keyDown(window, { key: " " });
     expect(screen.getByText("Mặt trước 1").parentElement).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByText("Mặt sau 1").parentElement).toHaveAttribute("aria-hidden", "false");
-    expect(screen.getByRole("button", { name: /Nhấn để xem mặt trước/ })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
   });
 
   it("advances to the next card with keyboard ArrowDown and goes back with ArrowUp", async () => {
@@ -124,15 +119,11 @@ describe("StudySession", () => {
   });
 
   it("resets the flip when navigating to another card", async () => {
-    const user = userEvent.setup();
     renderSession();
-    await user.click(screen.getByRole("button", { name: /Nhấn để lật/ }));
-    expect(screen.getByRole("button", { name: /Nhấn để xem mặt trước/ })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: " " });
+    expect(screen.getByText("Mặt sau 1").parentElement).toHaveAttribute("aria-hidden", "false");
     fireEvent.keyDown(window, { key: "ArrowDown" });
-    expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(screen.getByText("Mặt trước 2").parentElement).toHaveAttribute("aria-hidden", "false");
   });
 
   it("shows the completion screen on the last card instead of leaving the page", async () => {
@@ -233,10 +224,7 @@ describe("StudySession", () => {
     const user = userEvent.setup();
     renderSession();
     await user.click(screen.getByRole("button", { name: "Thêm vào bộ đặc biệt" }));
-    expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(screen.getByText("Mặt trước 1").parentElement).toHaveAttribute("aria-hidden", "false");
   });
 
   it("does not navigate when opening the collection control", async () => {
@@ -259,21 +247,15 @@ describe("StudySession", () => {
     fireEvent.keyDown(document.body, { key: "ArrowLeft" });
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
     fireEvent.keyDown(document.body, { key: " " });
-    expect(screen.getByRole("button", { name: /Nhấn để xem mặt trước/ })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.getByText("Mặt sau 1").parentElement).toHaveAttribute("aria-hidden", "false");
   });
 
   it("ignores keys while a form control is focused", () => {
     renderSession();
-    const flipButton = screen.getByRole("button", { name: /Nhấn để lật/ });
+    const flipButton = screen.getByRole("button", { name: /Trộn thứ tự/ });
     fireEvent.keyDown(flipButton, { key: " " });
     fireEvent.keyDown(flipButton, { key: "ArrowDown" });
-    expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(screen.getByText("Mặt trước 1").parentElement).toHaveAttribute("aria-hidden", "false");
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
   });
 
@@ -282,10 +264,7 @@ describe("StudySession", () => {
     const back = screen.getByRole("button", { name: /Thoát phiên học/ });
     fireEvent.keyDown(back, { key: " " });
     fireEvent.keyDown(back, { key: "ArrowRight" });
-    expect(screen.getByRole("button", { name: /Nhấn để lật/ })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(screen.getByText("Mặt trước 1").parentElement).toHaveAttribute("aria-hidden", "false");
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
   });
 

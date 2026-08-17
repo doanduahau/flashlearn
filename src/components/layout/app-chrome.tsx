@@ -17,7 +17,7 @@ export function AppChrome({
 }>) {
   const pathname = usePathname();
 
-  if (pathname.startsWith("/runner/session")) {
+  if (pathname.startsWith("/runner/session") || pathname.startsWith("/study/session")) {
     return <div className="min-h-dvh">{children}</div>;
   }
 

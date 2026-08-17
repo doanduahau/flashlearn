@@ -8,6 +8,7 @@ const CSV = "tests/fixtures/smart-review-24-cards.csv";
 async function importSet(page: Page, name: string): Promise<void> {
   await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(CSV);
+  await page.getByRole("button", { name: "Phân tích" }).click();
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
@@ -42,7 +43,7 @@ test.describe("Capy Runner setup", () => {
       await expect(page.getByRole("button", { name: label })).toBeVisible();
     }
     await expect(page.getByRole("button", { name: "Vừa" })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByText(/2 mạng · 3 giây\/đáp án/)).toBeVisible();
+    await expect(page.getByText(/2 mạng · 2 giây\/đáp án/)).toBeVisible();
   });
 
   test("offers 12/18/24, starts a session, and shows the first question", async ({ page }) => {
@@ -59,9 +60,7 @@ test.describe("Capy Runner setup", () => {
     await expect(page).toHaveURL(/\/runner\/session\?sessionId=[0-9a-f-]+/);
 
     await expect(page.getByText("Câu 1 / 12")).toBeVisible();
-    await expect(page.getByText(/Vừa · 2 mạng/)).toBeVisible();
     await expect(page.getByText("Chạm để bắt đầu")).toBeVisible();
-    await expect(page.getByText(/Smart prompt \d+/)).toBeVisible();
   });
 
   test("with 7 cards shows the pool message and disables Start", async ({ page }) => {

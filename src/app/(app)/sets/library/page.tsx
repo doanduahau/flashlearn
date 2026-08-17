@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { BackButton } from "@/components/shared/back-button";
+import { OfflineBanner } from "@/components/shared/offline-banner";
 import { PaginationControls } from "@/components/shared/pagination-controls";
 import { SectionTabs } from "@/components/shared/section-tabs";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ export default async function LibraryPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
+      <OfflineBanner />
       <BackButton href="/sets" />
       <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Flash card của bạn</h1>
       <div className="mt-3 sm:mt-5">

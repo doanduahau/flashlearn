@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { BackButton } from "@/components/shared/back-button";
+import { OfflineBanner } from "@/components/shared/offline-banner";
 import { MasteryCardContent } from "@/features/mastery/components/mastery-card-content";
 import { MasteryCounts } from "@/features/mastery/components/mastery-counts";
 import { MasteryLegend } from "@/features/mastery/components/mastery-legend";
@@ -123,6 +124,7 @@ export default async function SetDetailPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
+      <OfflineBanner />
       <BackButton href="/sets/library" />
       <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
         <div>

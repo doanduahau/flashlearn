@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { OfflineBanner } from "@/components/shared/offline-banner";
 import { DashboardMotivationBar } from "@/features/dashboard/components/dashboard-motivation-bar";
 import { DashboardLearningStatus } from "@/features/dashboard/components/dashboard-learning-status";
 import { StreakMilestoneBanner } from "@/features/dashboard/components/streak-milestone-banner";
@@ -99,6 +100,7 @@ export default async function DashboardPage({
 
   return (
     <main className="mx-auto w-full max-w-5xl p-3 sm:p-8">
+      <OfflineBanner />
       <h1 className="text-2xl font-bold sm:text-3xl">Tổng quan</h1>
 
       <DashboardMotivationBar

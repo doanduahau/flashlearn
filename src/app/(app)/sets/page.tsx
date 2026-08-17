@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { OfflineBanner } from "@/components/shared/offline-banner";
 import { SetLauncherCard } from "@/features/flashcard-sets/components/set-launcher-card";
 import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import type { RouteSearchParams } from "@/lib/pagination";
@@ -53,6 +54,7 @@ export default async function SetsPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
+      <OfflineBanner />
       <h1 className="text-2xl font-bold sm:text-3xl">Bộ flashcard</h1>
       <div className="mt-4 grid min-h-[calc(100dvh-16rem)] grid-rows-2 gap-4 sm:mt-6 sm:min-h-0 sm:grid-cols-2 sm:grid-rows-none sm:items-stretch">
         <SetLauncherCard

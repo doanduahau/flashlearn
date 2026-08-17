@@ -2,17 +2,17 @@
 
 import { useEffect, useRef } from "react";
 
-import type { MascotLevel } from "@/features/mascot/types/mascot-types";
+import type { MascotLevel, MascotState } from "@/features/mascot/types/mascot-types";
 import type { Feedback, RunnerDifficulty, RunnerEvent, RunnerState } from "../types/runner-types";
 import { calculateRunnerSpeed, getRunnerDifficultyConfig } from "../utils/runner-difficulty";
 import { rectsOverlap } from "../utils/collision";
-import { drawRunnerCharacter } from "../art/runner-character";
+import { drawRunnerCharacter, preloadRunnerCharacter } from "../art/runner-character";
 
 const CHARACTER_WIDTH = 100;
 const CHARACTER_HEIGHT = 120;
 const CHARACTER_POSITION_RATIO = 0.3;
 const BOTTOM_MARGIN = 24;
-const FOOD_SIZE = 32;
+const FOOD_SIZE = 44;
 const SKY_HEIGHT = 135;
 const JUMP_VELOCITY = 0.75;
 const GRAVITY = 0.0018;
@@ -23,6 +23,30 @@ const CHARACTER_STATE_MS = 600;
 const FRUIT_EMOJIS = ["🍌", "🍊", "🍎"] as const;
 
 type Burst = { kind: "correct" | "wrong"; x: number; y: number; until: number };
+
+const foodSprites = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Pre-renders a fruit emoji into a FOOD_SIZE canvas once per fruit so the
+ * game loop only ever blits a small bitmap instead of laying out an emoji
+ * glyph (font + textAlign + textBaseline) on every frame.
+ */
+function getFoodSprite(emoji: string): HTMLCanvasElement | null {
+  const existing = foodSprites.get(emoji);
+  if (existing) return existing;
+  if (typeof document === "undefined") return null;
+  const sprite = document.createElement("canvas");
+  sprite.width = FOOD_SIZE;
+  sprite.height = FOOD_SIZE;
+  const ctx = sprite.getContext("2d");
+  if (!ctx) return null;
+  ctx.font = `${Math.round(FOOD_SIZE * 0.8)}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(emoji, FOOD_SIZE / 2, FOOD_SIZE / 2);
+  foodSprites.set(emoji, sprite);
+  return sprite;
+}
 
 export function RunnerCanvas({
   stateRef,
@@ -53,6 +77,10 @@ export function RunnerCanvas({
     const timePerItemMs = getRunnerDifficultyConfig(difficulty).timePerItemMs;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    // Start fetching the character states used mid-game so switching to
+    // happy/sad never flashes a placeholder while an image downloads.
+    preloadRunnerCharacter(mascotLevel);
+
     let cssWidth = 0;
     let cssHeight = 0;
     let rafId = 0;
@@ -67,6 +95,7 @@ export function RunnerCanvas({
     let burst: Burst | null = null;
     let characterState: "run" | "happy" | "sad" = "run";
     let characterStateUntil = 0;
+    let lastDrawnState: MascotState | null = null;
     let speed = 0;
 
     function groundY(): number {
@@ -94,6 +123,29 @@ export function RunnerCanvas({
       }
     }
 
+    function drawCharacter(): void {
+      const opts = {
+        x: characterX(),
+        y: charY,
+        width: CHARACTER_WIDTH,
+        height: CHARACTER_HEIGHT,
+        level: mascotLevel,
+        state: characterState,
+      };
+      if (drawRunnerCharacter(context, opts)) {
+        lastDrawnState = characterState;
+        return;
+      }
+      // The requested state image is still loading: keep the previous visual
+      // instead of showing the plain placeholder shape mid-game.
+      if (lastDrawnState !== null && lastDrawnState !== characterState) {
+        drawRunnerCharacter(context, { ...opts, state: lastDrawnState });
+        return;
+      }
+      // Nothing has loaded yet: draw the placeholder so the area is not empty.
+      drawRunnerCharacter(context, opts);
+    }
+
     function draw(state: RunnerState): void {
       context.clearRect(0, 0, cssWidth, cssHeight);
 
@@ -109,21 +161,19 @@ export function RunnerCanvas({
       const foodY = gy - CHARACTER_HEIGHT - SKY_HEIGHT;
       if (foodX >= -FOOD_SIZE && state.status !== "ready") {
         const fruitEmoji = FRUIT_EMOJIS[Math.abs(state.itemSeq) % FRUIT_EMOJIS.length];
-        context.font = "28px sans-serif";
-        context.textAlign = "center";
-        context.textBaseline = "middle";
-        context.fillText(fruitEmoji, foodX + FOOD_SIZE / 2, foodY + FOOD_SIZE / 2);
+        const fruitSprite = getFoodSprite(fruitEmoji);
+        if (fruitSprite) {
+          context.drawImage(fruitSprite, foodX, foodY, FOOD_SIZE, FOOD_SIZE);
+        } else {
+          context.font = `${Math.round(FOOD_SIZE * 0.8)}px sans-serif`;
+          context.textAlign = "center";
+          context.textBaseline = "middle";
+          context.fillText(fruitEmoji, foodX + FOOD_SIZE / 2, foodY + FOOD_SIZE / 2);
+        }
       }
 
       // Character.
-      drawRunnerCharacter(context, {
-        x: characterX(),
-        y: charY,
-        width: CHARACTER_WIDTH,
-        height: CHARACTER_HEIGHT,
-        level: mascotLevel,
-        state: characterState,
-      });
+      drawCharacter();
 
       // Feedback burst.
       if (burst && !reducedMotion) {

@@ -1,16 +1,23 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { startMatchCoverageSession, completeLearningCoverageSession, saveMatchAttempt, router } =
-  vi.hoisted(() => ({
-    startMatchCoverageSession: vi.fn(),
-    completeLearningCoverageSession: vi.fn(),
-    saveMatchAttempt: vi.fn(),
-    router: { push: vi.fn(), back: vi.fn(), refresh: vi.fn() },
-  }));
+const {
+  startMatchCoverageSession,
+  completeLearningCoverageSession,
+  saveMatchAttempt,
+  recordDailyActivity,
+  router,
+} = vi.hoisted(() => ({
+  startMatchCoverageSession: vi.fn(),
+  completeLearningCoverageSession: vi.fn(),
+  saveMatchAttempt: vi.fn(),
+  recordDailyActivity: vi.fn(),
+  router: { push: vi.fn(), back: vi.fn(), refresh: vi.fn() },
+}));
 
 vi.mock("@/features/match/server/actions", () => ({ startMatchCoverageSession, saveMatchAttempt }));
 vi.mock("@/features/practice-coverage/server/actions", () => ({ completeLearningCoverageSession }));
+vi.mock("@/features/learning-modes/server/record-activity", () => ({ recordDailyActivity }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 import { MatchSession } from "@/features/match/components/match-session";

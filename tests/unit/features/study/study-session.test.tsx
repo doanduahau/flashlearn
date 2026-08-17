@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import type { ReactNode } from "react";
@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   back: vi.fn(),
   updateCardCollections: vi.fn() as Mock,
+  completeStudySession: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -28,6 +29,9 @@ vi.mock("next/link", () => ({
 }));
 vi.mock("@/features/special-collections/server/actions", () => ({
   updateCardCollections: mocks.updateCardCollections,
+}));
+vi.mock("@/features/study/server/actions", () => ({
+  completeStudySession: mocks.completeStudySession,
 }));
 
 import { StudySession } from "@/features/study/components/study-session";
@@ -87,6 +91,8 @@ describe("StudySession", () => {
     mocks.back.mockReset();
     mocks.updateCardCollections.mockReset();
     mocks.updateCardCollections.mockResolvedValue({ ok: true });
+    mocks.completeStudySession.mockReset();
+    mocks.completeStudySession.mockResolvedValue({ ok: true });
   });
 
   it("shows the first card front with progress 1 / 2", () => {
@@ -151,6 +157,37 @@ describe("StudySession", () => {
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
     expect(screen.getByText("Mặt trước 1")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Hoàn thành/ })).not.toBeInTheDocument();
+  });
+
+  it("records daily activity and refreshes after completing", async () => {
+    const user = userEvent.setup();
+    renderSession();
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
+    expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument();
+    expect(mocks.completeStudySession).toHaveBeenCalledTimes(1);
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows a retry prompt when recording the study completion fails", async () => {
+    const user = userEvent.setup();
+    mocks.completeStudySession.mockResolvedValue({
+      ok: false,
+      error: "Không thể cập nhật hoạt động hôm nay.",
+    });
+    renderSession();
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    await user.click(screen.getByRole("button", { name: /Hoàn thành/ }));
+    expect(screen.getByRole("heading", { name: "Hoàn thành!" })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Không thể cập nhật hoạt động hôm nay.");
+    expect(mocks.refresh).not.toHaveBeenCalled();
+
+    mocks.completeStudySession.mockResolvedValue({ ok: true });
+    await user.click(screen.getByRole("button", { name: /Thử lại/ }));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+    expect(mocks.completeStudySession).toHaveBeenCalledTimes(2);
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("goes back to the previous path when history is available after completing", async () => {

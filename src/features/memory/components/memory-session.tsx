@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import type {
 import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
 import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
 import { useVisibilityPause } from "@/features/learning-modes/hooks/use-visibility-pause";
+import { recordDailyActivity } from "@/features/learning-modes/server/record-activity";
 
 type MemorySessionProps = {
   sessionHref: string;
@@ -46,6 +48,7 @@ export function MemorySession({
   exitHref,
   mascotLevel,
 }: MemorySessionProps) {
+  const router = useRouter();
   const [session, setSession] = useState<StartedMemorySession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completionError, setCompletionError] = useState<string | null>(null);
@@ -90,9 +93,19 @@ export function MemorySession({
         setCompletionError(result.error);
         return;
       }
+      const record = await recordDailyActivity({
+        mode: "memory",
+        questionsAnswered: 0,
+        correctAnswers: 0,
+      });
+      if (!record.ok) {
+        setCompletionError(record.error);
+        return;
+      }
+      router.refresh();
       setDone(true);
     },
-    [session],
+    [router, session],
   );
 
   function replay(): void {

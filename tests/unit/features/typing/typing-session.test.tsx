@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   submitTypingAttempt: vi.fn(),
   retryTypingSave: vi.fn(),
   updateCardCollections: vi.fn(),
+  recordDailyActivity: vi.fn(),
   router: { push: vi.fn(), back: vi.fn(), refresh: vi.fn() },
 }));
 
@@ -13,6 +14,9 @@ vi.mock("@/features/typing/server/actions", () => ({
   startTypingSession: mocks.startTypingSession,
   submitTypingAttempt: mocks.submitTypingAttempt,
   retryTypingSave: mocks.retryTypingSave,
+}));
+vi.mock("@/features/learning-modes/server/record-activity", () => ({
+  recordDailyActivity: mocks.recordDailyActivity,
 }));
 vi.mock("@/features/practice-coverage/server/actions", () => ({
   completeLearningCoverageSession: vi.fn(),
@@ -62,8 +66,10 @@ beforeEach(() => {
   mocks.submitTypingAttempt.mockReset();
   mocks.retryTypingSave.mockReset();
   mocks.updateCardCollections.mockReset();
+  mocks.recordDailyActivity.mockReset();
   mocks.updateCardCollections.mockResolvedValue({ ok: true });
   mocks.startTypingSession.mockResolvedValue({ ok: true, session });
+  mocks.recordDailyActivity.mockResolvedValue({ ok: true });
 });
 
 describe("TypingSession", () => {

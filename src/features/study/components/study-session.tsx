@@ -9,6 +9,7 @@ import { SessionExitButton } from "@/features/learning-modes/components/session-
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { CardCollectionsControl } from "@/features/special-collections/components/card-collections-control";
+import { completeStudySession } from "@/features/study/server/actions";
 import { studyModeHrefFromSession } from "@/features/study/utils/study-mode-href";
 import type { StudyCard, StudyCollectionOption } from "@/features/study/types/study-types";
 import { STUDY_MAX_CARDS } from "@/lib/constants";
@@ -64,8 +65,10 @@ export function StudySession({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const completingRef = useRef(false);
 
   const dragRef = useRef<{ startY: number; startTime: number; active: boolean } | null>(null);
   const touchStartRef = useRef<{ y: number; time: number } | null>(null);
@@ -158,8 +161,26 @@ export function StudySession({
 
   function handleReplay(): void {
     setIsCompleted(false);
+    setCompletionError(null);
     setCurrentIndex(0);
     setIsFlipped(false);
+  }
+
+  async function handleComplete(): Promise<void> {
+    if (completingRef.current) return;
+    completingRef.current = true;
+    try {
+      const outcome = await completeStudySession();
+      if (!outcome.ok) {
+        setCompletionError(outcome.error);
+      } else {
+        setCompletionError(null);
+        router.refresh();
+      }
+    } finally {
+      completingRef.current = false;
+      setIsCompleted(true);
+    }
   }
 
   function handleTouchStart(e: React.TouchEvent<HTMLDivElement>): void {
@@ -276,6 +297,17 @@ export function StudySession({
         />
         <h2 className="text-xl font-bold sm:text-2xl">Hoàn thành!</h2>
         <p className="text-sm text-text-secondary">Đã xem {total} thẻ</p>
+        {completionError ? (
+          <div
+            role="alert"
+            className="flex flex-col gap-2 rounded-2xl border border-border-soft bg-surface p-4 text-left sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="text-sm text-danger">{completionError}</p>
+            <Button type="button" variant="outline" onClick={() => void handleComplete()}>
+              Thử lại
+            </Button>
+          </div>
+        ) : null}
         <div className="mt-2 flex flex-wrap justify-center gap-2">
           <Button type="button" variant="soft" onClick={handleReplay}>
             Chơi lại
@@ -446,7 +478,7 @@ export function StudySession({
 
       <div className="flex min-h-10 items-center justify-center">
         {isLast ? (
-          <Button type="button" onClick={() => setIsCompleted(true)}>
+          <Button type="button" onClick={() => void handleComplete()}>
             Hoàn thành
           </Button>
         ) : (

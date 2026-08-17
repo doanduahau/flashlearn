@@ -933,6 +933,15 @@ export type Database = {
         }
         Returns: string
       }
+      record_daily_activity: {
+        Args: {
+          p_correct_answers: number
+          p_mode: string
+          p_questions_answered: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       record_mode_answers: {
         Args: { p_answers: unknown; p_mode: string; p_user_id: string }
         Returns: undefined

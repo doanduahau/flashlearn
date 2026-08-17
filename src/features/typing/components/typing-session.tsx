@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { CardCollectionsControl } from "@/features/special-collections/component
 import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
 import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
 import { useVisibilityPause } from "@/features/learning-modes/hooks/use-visibility-pause";
+import { recordDailyActivity } from "@/features/learning-modes/server/record-activity";
 import {
   retryTypingSave,
   startTypingSession,
@@ -43,6 +45,7 @@ export function TypingSession({
   exitHref,
   mascotLevel,
 }: Readonly<TypingSessionProps>) {
+  const router = useRouter();
   const [session, setSession] = useState<StartedTypingSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completionError, setCompletionError] = useState<string | null>(null);
@@ -157,6 +160,18 @@ export function TypingSession({
         })),
       };
       setSaveError(outcome.saveError);
+      if (outcome.saveError === null) {
+        const record = await recordDailyActivity({
+          mode: "typing",
+          questionsAnswered: questionCount,
+          correctAnswers: outcome.result.correctCount,
+        });
+        if (!record.ok) {
+          setSaveError(record.error);
+        } else {
+          router.refresh();
+        }
+      }
       setResult(outcome.result);
     } finally {
       completingRef.current = false;
@@ -173,6 +188,16 @@ export function TypingSession({
         setSaveError(outcome.error);
       } else {
         setSaveError(null);
+        const record = await recordDailyActivity({
+          mode: "typing",
+          questionsAnswered: retryPayloadRef.current.totalQuestions,
+          correctAnswers: retryPayloadRef.current.correctCount,
+        });
+        if (!record.ok) {
+          setSaveError(record.error);
+        } else {
+          router.refresh();
+        }
       }
     } finally {
       completingRef.current = false;

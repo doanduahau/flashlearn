@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
+import { recordDailyActivity } from "@/features/learning-modes/server/record-activity";
 import { completeLearningCoverageSession } from "@/features/practice-coverage/server/actions";
 import { buildStudyModeHref } from "@/features/study/utils/study-mode-href";
 import { useBackWithFallback } from "@/hooks/use-back-with-fallback";
@@ -102,6 +103,7 @@ export function RunnerSession({
   const coveragePendingRef = useRef(false);
   const savingBestRef = useRef(false);
   const replayPendingRef = useRef(false);
+  const recordErrorRef = useRef<string | null>(null);
 
   const dispatch = useCallback((event: RunnerEvent) => {
     const next = applyRunnerEvent(stateRef.current, event);
@@ -172,6 +174,17 @@ export function RunnerSession({
           return;
         }
         coverageCompletedRef.current = true;
+        const record = await recordDailyActivity({
+          mode: "runner",
+          questionsAnswered: 0,
+          correctAnswers: 0,
+        });
+        if (record.ok) {
+          recordErrorRef.current = null;
+          router.refresh();
+        } else {
+          recordErrorRef.current = record.error;
+        }
       } catch {
         setPersistenceError("Không thể hoàn tất phiên học lúc này.");
         return;
@@ -180,6 +193,9 @@ export function RunnerSession({
       }
     }
     await saveBest();
+    if (recordErrorRef.current) {
+      setPersistenceError(recordErrorRef.current);
+    }
   }, [coverageSessionId, saveBest]);
 
   useEffect(() => {
@@ -284,7 +300,9 @@ export function RunnerSession({
           onRetry={
             persistenceError
               ? () =>
-                  void (coverageCompletedRef.current ? saveBest() : completeCoverageAndSaveBest())
+                  void (coverageCompletedRef.current && !recordErrorRef.current
+                    ? saveBest()
+                    : completeCoverageAndSaveBest())
               : null
           }
           fallbackHref={exitHref}

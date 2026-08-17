@@ -7,17 +7,28 @@ import type { RunnerQuestion } from "@/features/runner/types/runner-types";
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
+  refresh: vi.fn(),
   completeCoverage: vi.fn(),
   submitBest: vi.fn(),
   startRunner: vi.fn(),
+  recordDailyActivity: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mocks.push, replace: vi.fn(), prefetch: vi.fn() }),
+  useRouter: () => ({
+    push: mocks.push,
+    replace: vi.fn(),
+    refresh: mocks.refresh,
+    prefetch: vi.fn(),
+  }),
 }));
 
 vi.mock("@/features/practice-coverage/server/actions", () => ({
   completeLearningCoverageSession: mocks.completeCoverage,
+}));
+
+vi.mock("@/features/learning-modes/server/record-activity", () => ({
+  recordDailyActivity: mocks.recordDailyActivity,
 }));
 
 vi.mock("@/features/runner/server/actions", () => ({
@@ -97,6 +108,8 @@ async function completeGame(): Promise<void> {
 describe("RunnerSession", () => {
   beforeEach(() => {
     mocks.push.mockReset();
+    mocks.refresh.mockReset();
+    mocks.recordDailyActivity.mockReset().mockResolvedValue({ ok: true });
     mocks.completeCoverage.mockReset().mockResolvedValue({ ok: true, didReset: false });
     mocks.submitBest.mockReset().mockResolvedValue({
       ok: true,
@@ -127,6 +140,12 @@ describe("RunnerSession", () => {
     expect(order).toEqual(["coverage", "best"]);
     expect(mocks.completeCoverage).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000012");
     expect(mocks.submitBest).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000011", 1_234);
+    expect(mocks.recordDailyActivity).toHaveBeenCalledWith({
+      mode: "runner",
+      questionsAnswered: 0,
+      correctAnswers: 0,
+    });
+    expect(mocks.refresh).toHaveBeenCalled();
     expect(screen.getByText(/Kỷ lục mới! 00:01/)).toBeInTheDocument();
   });
 

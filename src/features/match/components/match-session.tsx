@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { completeLearningCoverageSession } from "@/features/practice-coverage/se
 import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
 import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
 import { useVisibilityPause } from "@/features/learning-modes/hooks/use-visibility-pause";
+import { recordDailyActivity } from "@/features/learning-modes/server/record-activity";
 
 type MatchSessionProps = {
   sessionHref: string;
@@ -38,6 +40,7 @@ export function MatchSession({
   exitHref,
   mascotLevel,
 }: MatchSessionProps) {
+  const router = useRouter();
   const [session, setSession] = useState<StartedMatchSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completionError, setCompletionError] = useState<string | null>(null);
@@ -111,6 +114,15 @@ export function MatchSession({
         setMatchSaveError(save.error);
       } else {
         setMatchSaveError(null);
+        const record = await recordDailyActivity({
+          mode: "match",
+          questionsAnswered: stats.correctPairs + stats.incorrectAttempts,
+          correctAnswers: stats.correctPairs,
+        });
+        if (!record.ok) {
+          setMatchSaveError(record.error);
+        }
+        router.refresh();
       }
       setDone(true);
     } finally {
@@ -127,6 +139,16 @@ export function MatchSession({
         setMatchSaveError(save.error);
       } else {
         setMatchSaveError(null);
+        const record = await recordDailyActivity({
+          mode: "match",
+          questionsAnswered:
+            lastSaveInputRef.current.correctPairs + lastSaveInputRef.current.incorrectAttempts,
+          correctAnswers: lastSaveInputRef.current.correctPairs,
+        });
+        if (!record.ok) {
+          setMatchSaveError(record.error);
+        }
+        router.refresh();
       }
     } finally {
       completingRef.current = false;

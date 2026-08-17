@@ -1,14 +1,17 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { startMemoryCoverageSession, completeLearningCoverageSession, router } = vi.hoisted(() => ({
-  startMemoryCoverageSession: vi.fn(),
-  completeLearningCoverageSession: vi.fn(),
-  router: { push: vi.fn(), back: vi.fn(), refresh: vi.fn() },
-}));
+const { startMemoryCoverageSession, completeLearningCoverageSession, recordDailyActivity, router } =
+  vi.hoisted(() => ({
+    startMemoryCoverageSession: vi.fn(),
+    completeLearningCoverageSession: vi.fn(),
+    recordDailyActivity: vi.fn(),
+    router: { push: vi.fn(), back: vi.fn(), refresh: vi.fn() },
+  }));
 
 vi.mock("@/features/memory/server/actions", () => ({ startMemoryCoverageSession }));
 vi.mock("@/features/practice-coverage/server/actions", () => ({ completeLearningCoverageSession }));
+vi.mock("@/features/learning-modes/server/record-activity", () => ({ recordDailyActivity }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 import { MemorySession } from "@/features/memory/components/memory-session";

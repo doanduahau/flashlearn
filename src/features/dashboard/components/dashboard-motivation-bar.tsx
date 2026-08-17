@@ -39,7 +39,7 @@ export function DashboardMotivationBar({
         </h2>
       </div>
       <Button asChild size="sm" className="shrink-0">
-        <Link href="/quiz?tab=create">
+        <Link href="/quiz?tab=create" prefetch={true}>
           <Play aria-hidden="true" />
           <span className="hidden sm:inline">{completedToday ? "Tiếp tục" : "Bắt đầu"}</span>
           <span className="sm:hidden">{completedToday ? "Luyện tập" : "Kiểm tra"}</span>

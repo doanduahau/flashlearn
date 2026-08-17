@@ -29,6 +29,7 @@ function SidebarLink({
   return (
     <Link
       href={href}
+      prefetch={true}
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
@@ -60,6 +61,7 @@ function BottomNavLink({
   return (
     <Link
       href={href}
+      prefetch={true}
       aria-label={label}
       aria-current={active ? "page" : undefined}
       className={cn(

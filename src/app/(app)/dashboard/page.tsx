@@ -203,7 +203,11 @@ export default async function DashboardPage({
         </p>
       )}
 
-      <Link className="mt-4 inline-block text-sm underline sm:mt-6" href="/profile?tab=statistics">
+      <Link
+        className="mt-4 inline-block text-sm underline sm:mt-6"
+        href="/profile?tab=statistics"
+        prefetch={true}
+      >
         Xem thống kê chi tiết
       </Link>
     </main>

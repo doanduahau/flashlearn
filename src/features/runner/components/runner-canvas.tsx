@@ -27,24 +27,25 @@ type Burst = { kind: "correct" | "wrong"; x: number; y: number; until: number };
 const foodSprites = new Map<string, HTMLCanvasElement>();
 
 /**
- * Pre-renders a fruit emoji into a FOOD_SIZE canvas once per fruit so the
- * game loop only ever blits a small bitmap instead of laying out an emoji
- * glyph (font + textAlign + textBaseline) on every frame.
+ * Pre-renders a fruit emoji at DEVICE pixel size (FOOD_SIZE * dpr) once per
+ * fruit + dpr combination, so the game loop only blits a small bitmap and
+ * the emoji stays crisp on hi-dpi screens (no canvas upscale).
  */
-function getFoodSprite(emoji: string): HTMLCanvasElement | null {
-  const existing = foodSprites.get(emoji);
+function getFoodSprite(emoji: string, dpr: number): HTMLCanvasElement | null {
+  const key = `${emoji}:${dpr}`;
+  const existing = foodSprites.get(key);
   if (existing) return existing;
   if (typeof document === "undefined") return null;
   const sprite = document.createElement("canvas");
-  sprite.width = FOOD_SIZE;
-  sprite.height = FOOD_SIZE;
+  sprite.width = Math.max(1, Math.round(FOOD_SIZE * dpr));
+  sprite.height = Math.max(1, Math.round(FOOD_SIZE * dpr));
   const ctx = sprite.getContext("2d");
   if (!ctx) return null;
-  ctx.font = `${Math.round(FOOD_SIZE * 0.8)}px sans-serif`;
+  ctx.font = `${Math.round(FOOD_SIZE * 0.8 * dpr)}px sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(emoji, FOOD_SIZE / 2, FOOD_SIZE / 2);
-  foodSprites.set(emoji, sprite);
+  ctx.fillText(emoji, sprite.width / 2, sprite.height / 2);
+  foodSprites.set(key, sprite);
   return sprite;
 }
 
@@ -96,6 +97,7 @@ export function RunnerCanvas({
     let characterState: "run" | "happy" | "sad" = "run";
     let characterStateUntil = 0;
     let lastDrawnState: MascotState | null = null;
+    let currentDpr = window.devicePixelRatio || 1;
     let speed = 0;
 
     function groundY(): number {
@@ -111,6 +113,7 @@ export function RunnerCanvas({
       cssWidth = rect.width;
       cssHeight = rect.height;
       const dpr = window.devicePixelRatio || 1;
+      currentDpr = dpr;
       canvasEl.width = Math.max(1, Math.round(cssWidth * dpr));
       canvasEl.height = Math.max(1, Math.round(cssHeight * dpr));
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -131,6 +134,7 @@ export function RunnerCanvas({
         height: CHARACTER_HEIGHT,
         level: mascotLevel,
         state: characterState,
+        dpr: currentDpr,
       };
       if (drawRunnerCharacter(context, opts)) {
         lastDrawnState = characterState;
@@ -161,7 +165,7 @@ export function RunnerCanvas({
       const foodY = gy - CHARACTER_HEIGHT - SKY_HEIGHT;
       if (foodX >= -FOOD_SIZE && state.status !== "ready") {
         const fruitEmoji = FRUIT_EMOJIS[Math.abs(state.itemSeq) % FRUIT_EMOJIS.length];
-        const fruitSprite = getFoodSprite(fruitEmoji);
+        const fruitSprite = getFoodSprite(fruitEmoji, currentDpr);
         if (fruitSprite) {
           context.drawImage(fruitSprite, foodX, foodY, FOOD_SIZE, FOOD_SIZE);
         } else {

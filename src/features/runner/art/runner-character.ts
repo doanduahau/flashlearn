@@ -8,6 +8,8 @@ export type RunnerCharacterDrawOptions = {
   height: number;
   level: MascotLevel;
   state: MascotState;
+  /** Device pixel ratio of the target canvas (>= 1). */
+  dpr: number;
 };
 
 const imageCache = new Map<string, HTMLImageElement>();
@@ -35,27 +37,32 @@ export function preloadRunnerCharacter(level: MascotLevel): void {
   }
 }
 
-function spriteKey(path: string, width: number, height: number): string {
-  return `${path}:${Math.round(width)}x${Math.round(height)}`;
+function spriteKey(path: string, width: number, height: number, dpr: number): string {
+  return `${path}:${Math.round(width * dpr)}x${Math.round(height * dpr)}`;
 }
 
 /**
- * Returns a small offscreen canvas with the mascot pre-rendered at the exact
- * display size. The source PNGs are 1254x1254 (~1.2 MB), so drawing them
- * directly every frame forces a full-image downscale on each draw; rendering
- * once into a 100x120 sprite makes the per-frame drawImage nearly free.
+ * Returns an offscreen canvas with the mascot pre-rendered at the exact
+ * DEVICE pixel size (CSS size * dpr), so drawing it onto the dpr-scaled
+ * canvas is a 1:1 blit: fast AND sharp. Rendering at CSS size would let the
+ * canvas upscale the small sprite on hi-dpi screens and look blurry, while
+ * drawing the 1254x1254 source directly every frame forces a costly
+ * full-image downscale per draw (the original stutter).
  */
 function getRunnerCharacterSprite(opts: RunnerCharacterDrawOptions): HTMLCanvasElement | null {
-  const image = cachedImage(mascotAssetPath(opts.level, opts.state));
+  const path = mascotAssetPath(opts.level, opts.state);
+  const image = cachedImage(path);
   if (!image || !image.complete || image.naturalWidth === 0) return null;
-  const key = spriteKey(mascotAssetPath(opts.level, opts.state), opts.width, opts.height);
+  const key = spriteKey(path, opts.width, opts.height, opts.dpr);
   const existing = spriteCache.get(key);
   if (existing) return existing;
   const sprite = document.createElement("canvas");
-  sprite.width = Math.max(1, Math.round(opts.width));
-  sprite.height = Math.max(1, Math.round(opts.height));
+  sprite.width = Math.max(1, Math.round(opts.width * opts.dpr));
+  sprite.height = Math.max(1, Math.round(opts.height * opts.dpr));
   const ctx = sprite.getContext("2d");
   if (!ctx) return null;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.drawImage(image, 0, 0, sprite.width, sprite.height);
   spriteCache.set(key, sprite);
   return sprite;

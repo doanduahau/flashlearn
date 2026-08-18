@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { BrandSplash } from "@/components/shared/brand-splash";
 
 export default function RunnerLoading() {
-  return <PageSkeleton title="Đang tải Runner" />;
+  return <BrandSplash title="Đang tải Runner" />;
 }

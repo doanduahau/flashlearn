@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { BrandSplash } from "@/components/shared/brand-splash";
 
 export default function MemoryLoading() {
-  return <PageSkeleton title="Đang tải trò chơi lật hình" />;
+  return <BrandSplash title="Đang tải trò chơi lật hình" />;
 }

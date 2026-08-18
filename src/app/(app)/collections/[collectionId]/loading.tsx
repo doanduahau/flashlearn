@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { BrandSplash } from "@/components/shared/brand-splash";
 
 export default function CollectionDetailLoading() {
-  return <PageSkeleton title="Đang tải chi tiết bộ đặc biệt" />;
+  return <BrandSplash title="Đang tải chi tiết bộ đặc biệt" />;
 }

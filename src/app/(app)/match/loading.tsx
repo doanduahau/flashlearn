@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { BrandSplash } from "@/components/shared/brand-splash";
 
 export default function MatchLoading() {
-  return <PageSkeleton title="Đang tải ghép thẻ" />;
+  return <BrandSplash title="Đang tải ghép thẻ" />;
 }

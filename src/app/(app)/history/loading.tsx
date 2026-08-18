@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { BrandSplash } from "@/components/shared/brand-splash";
 
 export default function HistoryLoading() {
-  return <PageSkeleton title="Đang tải lịch sử bài test" />;
+  return <BrandSplash title="Đang tải lịch sử bài test" />;
 }

@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { BrandSplash } from "@/components/shared/brand-splash";
 
 export default function StudyModeLoading() {
-  return <PageSkeleton title="Đang tải chế độ học" />;
+  return <BrandSplash title="Đang tải chế độ học" />;
 }

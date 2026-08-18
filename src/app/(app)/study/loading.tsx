@@ -1,8 +1,5 @@
+import { BrandSplash } from "@/components/shared/brand-splash";
+
 export default function StudyLoading() {
-  return (
-    <div
-      className="h-64 animate-pulse rounded-3xl bg-surface-subtle"
-      aria-label="Đang tải nguồn học"
-    />
-  );
+  return <BrandSplash title="Đang tải nguồn học" />;
 }

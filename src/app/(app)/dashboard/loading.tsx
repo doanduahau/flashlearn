@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { BrandSplash } from "@/components/shared/brand-splash";
 
 export default function DashboardLoading() {
-  return <PageSkeleton title="Đang tải tổng quan" />;
+  return <BrandSplash title="Đang tải tổng quan" />;
 }

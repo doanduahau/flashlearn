@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { BrandSplash } from "@/components/shared/brand-splash";
 
 export default function SetsLibraryLoading() {
-  return <PageSkeleton title="Đang tải thư viện bộ thẻ" />;
+  return <BrandSplash title="Đang tải thư viện bộ thẻ" />;
 }

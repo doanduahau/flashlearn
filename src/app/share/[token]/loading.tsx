@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { BrandSplash } from "@/components/shared/brand-splash";
 
 export default function ShareLoading() {
-  return <PageSkeleton title="Đang tải trang chia sẻ" />;
+  return <BrandSplash title="Đang tải trang chia sẻ" />;
 }

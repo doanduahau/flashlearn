@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { BrandSplash } from "@/components/shared/brand-splash";
 
 export default function QuizModeLoading() {
-  return <PageSkeleton title="Đang tải chế độ kiểm tra" />;
+  return <BrandSplash title="Đang tải chế độ kiểm tra" />;
 }

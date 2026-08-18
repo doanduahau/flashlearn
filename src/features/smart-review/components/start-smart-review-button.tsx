@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { startSmartReview } from "@/features/smart-review/server/actions";
 
 export function StartSmartReviewButton({ label = "Ôn ngay" }: { label?: string }) {
@@ -41,7 +42,7 @@ export function StartSmartReviewButton({ label = "Ôn ngay" }: { label?: string 
         disabled={pending}
         aria-describedby={error ? "smart-review-start-error" : undefined}
       >
-        {pending ? "Đang mở…" : label}
+        {pending ? <LoadingDots label="Đang mở" /> : label}
       </Button>
       {error ? (
         <p id="smart-review-start-error" role="alert" className="mt-1 text-xs text-danger">

@@ -25,6 +25,7 @@ import { IMPORT_PREVIEW_ROWS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LoadingDots } from "@/components/shared/loading-dots";
 
 const COLUMN_REANALYZE_DEBOUNCE_MS = 250;
 
@@ -618,9 +619,9 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
             size={64}
             className="size-16 object-contain"
           />
-          <p>
-            {mode === "picker_loading" ? "Đang kết nối Google Drive..." : "Đang đọc bảng tính..."}
-          </p>
+          <LoadingDots
+            label={mode === "picker_loading" ? "Đang kết nối Google Drive" : "Đang đọc bảng tính"}
+          />
         </div>
       )}
 

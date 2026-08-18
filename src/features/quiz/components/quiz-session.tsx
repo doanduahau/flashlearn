@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { submitQuizAnswer } from "@/features/quiz/server/actions";
+import { cn } from "@/lib/utils";
 
 import { SessionExitButton } from "@/features/learning-modes/components/session-exit-button";
 import { PauseOverlay } from "@/features/learning-modes/components/pause-overlay";
@@ -112,11 +113,17 @@ export function QuizSession({
           {question.choices.map((choice, index) => (
             <label
               key={`${index}-${choice}`}
-              className="flex cursor-pointer gap-3 rounded-2xl border border-border-soft p-4"
+              className={cn(
+                "flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-all focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2",
+                selected === index
+                  ? "border-primary bg-primary-soft shadow-soft-card"
+                  : "border-border-soft bg-surface hover:bg-surface-subtle",
+              )}
             >
               <input
                 type="radio"
                 name="answer"
+                className="sr-only"
                 disabled={pending || feedback !== null}
                 checked={selected === index}
                 onChange={() => {
@@ -124,7 +131,7 @@ export function QuizSession({
                   setError(null);
                 }}
               />
-              <span className="whitespace-pre-wrap break-words">{choice}</span>
+              <span className="whitespace-pre-wrap break-words text-primary">{choice}</span>
             </label>
           ))}
         </fieldset>

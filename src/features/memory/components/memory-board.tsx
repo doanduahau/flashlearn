@@ -241,7 +241,7 @@ function MemoryTileButton({
 }>) {
   const revealed = matched || flipped;
   return (
-    <li className="h-full w-full min-h-0 min-w-0">
+    <li className="h-full w-full min-h-0 min-w-0 [perspective:600px]">
       <button
         type="button"
         disabled={disabled}
@@ -253,22 +253,26 @@ function MemoryTileButton({
         aria-label={matched ? "Đã ghép đúng" : flipped ? "Đã lật" : "Ô úp"}
         onClick={onTap}
         className={cn(
-          "flex h-full w-full items-center justify-center rounded-xl border transition-colors sm:rounded-2xl",
-          matched
-            ? "border-border-soft bg-surface-subtle opacity-50"
-            : flipped
-              ? "border-primary bg-primary-soft"
-              : "border-border-soft bg-info/20 hover:bg-info/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
+          "relative h-full w-full [transform-style:preserve-3d] transition-transform duration-300 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
+          revealed && "[transform:rotateY(180deg)]",
+          matched && "opacity-50",
         )}
       >
-        {revealed ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full rounded-xl border-2 border-border-soft bg-info/20 [backface-visibility:hidden] hover:bg-info/30 sm:rounded-2xl"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 flex h-full w-full items-center justify-center rounded-xl border-2 border-primary bg-primary-soft [backface-visibility:hidden] [transform:rotateY(180deg)] sm:rounded-2xl"
+        >
           <img
             src="/mascot/logo.png"
             alt=""
             aria-hidden="true"
             className="h-4/5 w-4/5 object-contain"
           />
-        ) : null}
+        </span>
       </button>
     </li>
   );

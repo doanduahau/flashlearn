@@ -25,6 +25,7 @@ export function QuizSession({
   const router = useRouter();
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<boolean | null>(null);
+  const [correctChoiceIndex, setCorrectChoiceIndex] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -70,6 +71,7 @@ export function QuizSession({
         const done = result.completed ?? false;
         setFeedback(correct);
         setCompleted(done);
+        setCorrectChoiceIndex(result.correctChoiceIndex ?? null);
         if (done) {
           // Final answer: preserve the existing completion path (brief delay,
           // then the result page), unchanged from before.
@@ -78,8 +80,9 @@ export function QuizSession({
             ADVANCE_DELAY_MS,
           );
         } else if (correct) {
-          // Non-final correct answer: advance immediately, no "Câu tiếp theo".
-          router.refresh();
+          // Non-final correct answer: keep the green feedback visible before
+          // auto-advancing to the next question.
+          advanceTimerRef.current = window.setTimeout(() => router.refresh(), ADVANCE_DELAY_MS);
         }
       } finally {
         submittingRef.current = false;
@@ -92,6 +95,30 @@ export function QuizSession({
     if (pending || feedback === null) return;
     if (completed) router.push(`/quiz/${sessionId}/result`);
     else router.refresh();
+  };
+
+  const labelClassName = (index: number) => {
+    const base =
+      "flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-all focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2";
+    if (feedback === null) {
+      return cn(
+        base,
+        selected === index
+          ? "border-primary bg-primary-soft shadow-soft-card"
+          : "border-border-soft bg-surface hover:bg-surface-subtle",
+      );
+    }
+    if (feedback === false && index === selected) {
+      return cn(base, "border-danger bg-danger-soft");
+    }
+    const isCorrectChoice =
+      correctChoiceIndex !== null
+        ? index === correctChoiceIndex
+        : index === selected && feedback === true;
+    if (isCorrectChoice) {
+      return cn(base, "border-success bg-success-soft");
+    }
+    return cn(base, "border-border-soft bg-surface");
   };
   return (
     <>
@@ -111,15 +138,7 @@ export function QuizSession({
         </h1>
         <fieldset className="mt-6 space-y-3" aria-label="Các đáp án">
           {question.choices.map((choice, index) => (
-            <label
-              key={`${index}-${choice}`}
-              className={cn(
-                "flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-all focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2",
-                selected === index
-                  ? "border-primary bg-primary-soft shadow-soft-card"
-                  : "border-border-soft bg-surface hover:bg-surface-subtle",
-              )}
-            >
+            <label key={`${index}-${choice}`} className={labelClassName(index)}>
               <input
                 type="radio"
                 name="answer"

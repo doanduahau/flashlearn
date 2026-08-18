@@ -112,29 +112,37 @@ describe("submitQuizAnswer FSRS shadow boundary", () => {
         ],
         error: null,
       });
-      const ledgerQuery = {
+      const quizQuestionQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { correct_choice_index: 2 } }),
+      };
+      const sessionOriginQuery = {
+        select: vi.fn().mockReturnValue({
+          eq: vi
+            .fn()
+            .mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: { origin } }) }),
+        }),
+      };
+      const coverageLedgerQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockResolvedValue({ data: null }),
       };
       supabase.from
-        .mockReturnValueOnce({
-          select: vi.fn().mockReturnValue({
-            eq: vi
-              .fn()
-              .mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: { origin } }) }),
-          }),
-        })
-        .mockReturnValue(ledgerQuery);
+        .mockReturnValueOnce(quizQuestionQuery)
+        .mockReturnValueOnce(sessionOriginQuery)
+        .mockReturnValue(coverageLedgerQuery);
       mocks.createClient.mockResolvedValue(supabase);
 
       await expect(submitQuizAnswer({ questionId, selectedChoiceIndex: 0 })).resolves.toMatchObject(
         {
           ok: true,
           completed: true,
+          correctChoiceIndex: 2,
         },
       );
-      expect(supabase.from).toHaveBeenCalledTimes(1);
+      expect(supabase.from).toHaveBeenCalledTimes(2);
       expect(mocks.completeLearningCoverageSession).not.toHaveBeenCalled();
     },
   );

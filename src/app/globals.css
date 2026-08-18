@@ -16,8 +16,10 @@
   --border-soft: #eaddcb;
 
   --success: #65be91;
+  --success-soft: #eef8f1;
   --warning: #f3a66a;
   --danger: #ef8585;
+  --danger-soft: #fdf0ee;
   --info: #7ab8e8;
   --achievement: #f6c85f;
 
@@ -89,8 +91,10 @@
   --color-text-secondary: var(--text-secondary);
   --color-border-soft: var(--border-soft);
   --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --color-info: var(--info);
   --color-achievement: var(--achievement);
   --color-mastery-untested: var(--mastery-untested);

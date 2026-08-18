@@ -53,7 +53,7 @@ describe("QuizSession", () => {
     expect(screen.queryByRole("button", { name: "Xem kết quả" })).not.toBeInTheDocument();
   });
 
-  it("advances a correct answer without waiting on a timer", async () => {
+  it("delays the advance so the green feedback stays visible after a correct answer", async () => {
     vi.useFakeTimers();
     try {
       submitQuizAnswer.mockResolvedValue({ ok: true, correct: true, completed: false });
@@ -61,10 +61,17 @@ describe("QuizSession", () => {
       fireEvent.click(screen.getByRole("radio", { name: "One" }));
       fireEvent.click(screen.getByRole("button", { name: "Xác nhận đáp án" }));
 
-      // No timer may be advanced for the normal correct-answer progression.
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();
+      });
+      // The feedback stays visible; the advance waits for ADVANCE_DELAY_MS.
+      expect(router.refresh).not.toHaveBeenCalled();
+      expect(router.push).not.toHaveBeenCalled();
+      expect(screen.getByText("Chính xác.")).toBeInTheDocument();
+
+      await act(async () => {
+        vi.advanceTimersByTime(800);
       });
       expect(router.refresh).toHaveBeenCalledTimes(1);
       expect(router.push).not.toHaveBeenCalled();

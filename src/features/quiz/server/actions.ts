@@ -16,7 +16,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type Result =
-  | { ok: true; sessionId?: string; correct?: boolean; completed?: boolean }
+  | {
+      ok: true;
+      sessionId?: string;
+      correct?: boolean;
+      completed?: boolean;
+      correctChoiceIndex?: number;
+    }
   | { ok: false; error: string };
 const generic = "Không thể xử lý bài kiểm tra. Vui lòng thử lại.";
 
@@ -148,6 +154,22 @@ export async function submitQuizAnswer(input: unknown): Promise<Result> {
   const answer = data?.[0];
   if (error || !answer) return { ok: false, error: generic };
 
+  // Best-effort lookup of the correct choice so the client can highlight the
+  // right cell in green. Never fails the answer when the row is unreachable.
+  let correctChoiceIndex: number | undefined;
+  try {
+    const { data: q } = await supabase
+      .from("quiz_questions")
+      .select("correct_choice_index")
+      .eq("id", parsed.data.questionId)
+      .maybeSingle();
+    if (typeof q?.correct_choice_index === "number") {
+      correctChoiceIndex = q.correct_choice_index;
+    }
+  } catch {
+    // The UI degrades gracefully when the field is unavailable.
+  }
+
   // Shadow FSRS reconciliation: best-effort, never fails the quiz answer.
   if (answer.flashcard_id && answer.review_event_id) {
     try {
@@ -184,5 +206,10 @@ export async function submitQuizAnswer(input: unknown): Promise<Result> {
     }
   }
 
-  return { ok: true, correct: answer.is_correct, completed: answer.completed };
+  return {
+    ok: true,
+    correct: answer.is_correct,
+    completed: answer.completed,
+    ...(correctChoiceIndex !== undefined ? { correctChoiceIndex } : {}),
+  };
 }

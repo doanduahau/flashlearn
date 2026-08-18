@@ -9,6 +9,7 @@ const NEW_CARDS_CSV = "tests/fixtures/smart-review-24-cards.csv";
 async function importSet(page: Page, name: string): Promise<void> {
   await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(NEW_CARDS_CSV);
+  await page.getByRole("button", { name: "Phân tích" }).click();
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
@@ -102,7 +103,7 @@ async function answerQuestion(page: Page, wantCorrect: boolean): Promise<void> {
   for (let index = 0; index < (await choices.count()); index += 1) {
     const choice = (await choices.nth(index).textContent())?.trim() ?? "";
     if ((wantCorrect && choice === correctAnswer) || (!wantCorrect && choice !== correctAnswer)) {
-      await choices.nth(index).getByRole("radio").check();
+      await choices.nth(index).getByRole("radio").check({ force: true });
       selected = true;
       break;
     }
@@ -127,6 +128,9 @@ async function answerBatch(page: Page, count: number, firstCorrect = false): Pro
 async function startManualQuiz(page: Page): Promise<void> {
   await page.goto("/quiz");
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+  await expect(page).toHaveURL(/\/quiz\/mode/);
+  await page.getByLabel("Bắt đầu Trắc nghiệm").click();
+  await page.getByRole("button", { name: "Bắt đầu" }).first().click();
   await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
 }
 

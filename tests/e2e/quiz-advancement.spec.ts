@@ -15,7 +15,7 @@ test("correct answers auto-advance while wrong answers wait for the learner", as
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
 
   await page.goto("/quiz");
-  await expect(page.getByText("10 thẻ hợp lệ").filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Tất cả 10 thẻ" })).toBeChecked();
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
   await expect(page).toHaveURL(/\/quiz\/mode/);
 
@@ -31,7 +31,7 @@ test("correct answers auto-advance while wrong answers wait for the learner", as
   // Q1 answered correctly → advances without any further action
   const firstPrompt = (await heading.textContent()) ?? "";
   const firstAnswer = firstPrompt.replace("prompt", "answer");
-  await labels.filter({ hasText: firstAnswer }).getByRole("radio").check();
+  await labels.filter({ hasText: firstAnswer }).getByRole("radio").check({ force: true });
   await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
   // No "Câu tiếp theo" is ever offered; the quiz advances automatically.
   await expect(page.getByRole("button", { name: "Câu tiếp theo" })).toHaveCount(0);
@@ -49,7 +49,7 @@ test("correct answers auto-advance while wrong answers wait for the learner", as
   for (let index = 0; index < answerCount; index += 1) {
     const text = (await labels.nth(index).textContent())?.trim() ?? "";
     if (text !== secondAnswer) {
-      await labels.nth(index).getByRole("radio").check();
+      await labels.nth(index).getByRole("radio").check({ force: true });
       selectedWrong = true;
       break;
     }
@@ -77,7 +77,7 @@ test("exit button asks for confirmation and confirmed exit returns to setup", as
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
 
   await page.goto("/quiz");
-  await expect(page.getByText("10 thẻ hợp lệ").filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Tất cả 10 thẻ" })).toBeChecked();
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
   await expect(page).toHaveURL(/\/quiz\/mode/);
   await page.getByLabel("Bắt đầu Trắc nghiệm").click();

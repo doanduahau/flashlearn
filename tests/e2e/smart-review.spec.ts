@@ -10,6 +10,7 @@ const SMART_REVIEW_24_CSV = "tests/fixtures/smart-review-24-cards.csv";
 async function importSet(page: Page, name: string, csv = QUIZ_CSV): Promise<void> {
   await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(csv);
+  await page.getByRole("button", { name: "Phân tích" }).click();
   await page.getByLabel("Tên bộ").fill(name);
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
@@ -29,7 +30,7 @@ async function answerQuestion(page: Page, wantCorrect: boolean): Promise<void> {
       ((await answers.nth(index).textContent()) ?? "").trim() === correctAnswer;
     if (isCorrectAnswer === wantCorrect) {
       const radio = answers.nth(index).getByRole("radio");
-      await radio.check();
+      await radio.check({ force: true });
       await expect(radio).toBeChecked();
       selected = true;
       break;
@@ -62,10 +63,13 @@ async function answerEveryQuestionCorrect(page: Page): Promise<void> {
 
 async function startManualQuiz(page: Page, useAllAvailableCards = false): Promise<string> {
   await page.goto("/quiz");
+  await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+  await expect(page).toHaveURL(/\/quiz\/mode/);
+  await page.getByLabel("Bắt đầu Trắc nghiệm").click();
   if (useAllAvailableCards) {
     await page.getByRole("button", { name: "24", exact: true }).click();
   }
-  await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+  await page.getByRole("button", { name: "Bắt đầu" }).first().click();
   await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
   return new URL(page.url()).pathname.split("/").at(-1) ?? "";
 }

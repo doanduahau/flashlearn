@@ -25,6 +25,7 @@ test.describe("Quiz result collections", () => {
 
     await page.goto("/sets/create?source=file");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(QUIZ_CSV);
+    await page.getByRole("button", { name: "Phân tích" }).click();
     await page.getByLabel("Tên bộ").fill(SET_NAME);
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
 
@@ -204,7 +205,7 @@ async function answerQuestion(page: Page, wantCorrect: boolean): Promise<string>
     const text = (await labels.nth(index).textContent())?.trim() ?? "";
     const matches = text === correctAnswer;
     if (wantCorrect ? matches : !matches) {
-      await labels.nth(index).getByRole("radio").check();
+      await labels.nth(index).getByRole("radio").check({ force: true });
       selected = true;
       break;
     }

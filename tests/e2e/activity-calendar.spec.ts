@@ -13,13 +13,17 @@ const DAY_DETAIL_INLINE = 'span[role="dialog"][aria-label="Chi tiết hoạt đ�
 async function completeTenQuestionQuiz(page: Page): Promise<void> {
   await page.goto("/sets/create?source=file");
   await page.getByLabel(/CSV\/XLSX/i).setInputFiles(QUIZ_CSV);
+  await page.getByRole("button", { name: "Phân tích" }).click();
   await page.getByLabel("Tên bộ").fill("Bộ lịch hoạt động");
   await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
 
   await page.goto("/quiz");
-  await expect(page.getByText("10 thẻ hợp lệ").filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Tất cả 10 thẻ" })).toBeChecked();
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+  await expect(page).toHaveURL(/\/quiz\/mode/);
+  await page.getByLabel("Bắt đầu Trắc nghiệm").click();
+  await page.getByRole("button", { name: "Bắt đầu" }).first().click();
   await expect(page).toHaveURL(/\/quiz\/[0-9a-f-]+$/);
 
   let previousPrompt = "";
@@ -30,7 +34,7 @@ async function completeTenQuestionQuiz(page: Page): Promise<void> {
     }
     previousPrompt = (await heading.textContent()) ?? "";
 
-    await page.getByRole("radio").first().check();
+    await page.getByRole("radio").first().check({ force: true });
     await page.getByRole("button", { name: "Xác nhận đáp án" }).click();
     // A correct answer auto-advances; an incorrect answer exposes a
     // "Câu tiếp theo"/"Xem kết quả" action. Wait for either outcome.

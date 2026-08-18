@@ -17,7 +17,7 @@ test("typing mode lets the learner type answers and shows a graded result", asyn
 
   // /quiz/mode now offers the third card "Nhập đáp án".
   await page.goto("/quiz");
-  await expect(page.getByText("10 thẻ hợp lệ").filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Tất cả 10 thẻ" })).toBeChecked();
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
   await expect(page).toHaveURL(/\/quiz\/mode/);
 
@@ -75,8 +75,9 @@ test("typing session warns before submitting with unanswered questions", async (
   await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
 
   await page.goto("/quiz");
-  await expect(page.getByText("10 thẻ hợp lệ").filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Tất cả 10 thẻ" })).toBeChecked();
   await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+  await expect(page).toHaveURL(/\/quiz\/mode/);
   await page.getByRole("button", { name: "Bắt đầu" }).last().click();
   await page.getByRole("button", { name: "10 câu" }).click();
   await page.getByRole("button", { name: "Bắt đầu" }).last().click();

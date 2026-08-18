@@ -150,7 +150,7 @@ export function QuizSession({
                   setError(null);
                 }}
               />
-              <span className="whitespace-pre-wrap break-words text-primary">{choice}</span>
+              <span className="whitespace-pre-wrap break-words text-text-primary">{choice}</span>
             </label>
           ))}
         </fieldset>

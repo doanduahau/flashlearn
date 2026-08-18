@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { BackButton } from "@/components/shared/back-button";
+import { BrandLoading } from "@/components/shared/brand-loading";
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
@@ -222,12 +223,7 @@ export function TypingSession({
       </div>
     );
   }
-  if (!session)
-    return (
-      <p role="status" className="text-text-secondary">
-        Đang tải thẻ…
-      </p>
-    );
+  if (!session) return <BrandLoading title="Đang tải thẻ" />;
   if (result) {
     const percentage = Math.round((result.correctCount / result.totalCount) * 100);
     return (

@@ -1,5 +1,6 @@
 import { BackButton } from "@/components/shared/back-button";
 import { Button } from "@/components/ui/button";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import type { MascotLevel, MascotState } from "@/features/mascot/types/mascot-types";
 import { mascotAssetPath } from "@/features/mascot/utils/mascot-asset";
 import { formatRunnerTime } from "../utils/format-runner-time";
@@ -61,9 +62,7 @@ export function RunnerEndOverlay({
               {best.isNewBest ? "Kỷ lục mới!" : "Kỷ lục:"} {formatRunnerTime(best.bestMs)}
             </p>
           ) : persistenceError === null ? (
-            <p role="status" className="text-sm text-text-secondary">
-              Đang lưu kỷ lục…
-            </p>
+            <LoadingDots label="Đang lưu kỷ lục" />
           ) : null}
         </>
       ) : null}

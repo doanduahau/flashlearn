@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { BrandLoading } from "@/components/shared/brand-loading";
 import { SectionTabs } from "@/components/shared/section-tabs";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
 import { MilestoneMascots } from "@/features/mascot/components/milestone-mascots";
@@ -137,10 +138,5 @@ async function ProfileDetails({ tab }: Readonly<{ tab: Exclude<ProfileTab, "stat
 }
 
 function ProfileTabLoading() {
-  return (
-    <section aria-label="Đang tải nội dung cá nhân" className="mt-6 space-y-4" role="status">
-      <div className="h-7 w-36 animate-pulse rounded-lg bg-surface-subtle" />
-      <div className="h-32 animate-pulse rounded-3xl bg-surface-subtle" />
-    </section>
-  );
+  return <BrandLoading title="Đang tải nội dung cá nhân" />;
 }

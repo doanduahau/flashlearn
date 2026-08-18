@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { cloneSharedSet } from "@/features/sharing/server/actions";
 
 export function CloneSetButton({
@@ -66,7 +67,7 @@ export function CloneSetButton({
   return (
     <div className="flex flex-col items-start gap-2">
       <Button type="button" disabled={isPending} onClick={save}>
-        {isPending ? "Đang lưu…" : label}
+        {isPending ? <LoadingDots label="Đang lưu" /> : label}
       </Button>
       {error ? (
         <p role="alert" className="text-sm text-danger">

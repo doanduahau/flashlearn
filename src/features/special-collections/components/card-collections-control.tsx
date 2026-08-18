@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { FolderPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { updateCardCollections } from "@/features/special-collections/server/actions";
 import { cn } from "@/lib/utils";
 
@@ -176,7 +177,7 @@ export function CardCollectionsControl({
           </ul>
           <div className="mt-3 flex gap-2">
             <Button type="button" disabled={isPending} onClick={save}>
-              {isPending ? "Đang lưu…" : "Lưu"}
+              {isPending ? <LoadingDots label="Đang lưu" /> : "Lưu"}
             </Button>
             <Button
               type="button"

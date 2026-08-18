@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { LoadingDots } from "@/components/shared/loading-dots";
+
 import {
   QuestionCountSelector,
   type CountOption,
@@ -221,9 +223,11 @@ export function RunnerSetup({
 
       <StickyStartBar
         summary={
-          counting
-            ? "Đang tính thẻ…"
-            : `${all ? 0 : selectedSources.length} nguồn · ${eligible} thẻ`
+          counting ? (
+            <LoadingDots label="Đang tính thẻ" />
+          ) : (
+            `${all ? 0 : selectedSources.length} nguồn · ${eligible} thẻ`
+          )
         }
         canStart={canStart}
         pending={pending}

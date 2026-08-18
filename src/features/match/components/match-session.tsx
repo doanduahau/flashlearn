@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { BackButton } from "@/components/shared/back-button";
+import { BrandLoading } from "@/components/shared/brand-loading";
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
@@ -227,12 +228,7 @@ export function MatchSession({
       </div>
     );
   }
-  if (!session)
-    return (
-      <p role="status" className="text-text-secondary">
-        Đang tải thẻ…
-      </p>
-    );
+  if (!session) return <BrandLoading title="Đang tải thẻ" />;
   if (done) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">

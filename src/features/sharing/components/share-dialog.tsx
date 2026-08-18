@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { DialogOverlay } from "@/components/ui/dialog-overlay";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import {
   createShareLink,
   revokeShareLink,
@@ -113,7 +114,7 @@ export function ShareDialog({
                 Tạo một link để học sinh xem và lưu bộ flashcard này vào tài khoản của họ.
               </p>
               <Button type="button" disabled={isPending} onClick={create} className="mt-4">
-                {isPending ? "Đang tạo…" : "Tạo link chia sẻ"}
+                {isPending ? <LoadingDots label="Đang tạo" /> : "Tạo link chia sẻ"}
               </Button>
             </div>
           ) : (
@@ -136,7 +137,7 @@ export function ShareDialog({
               ) : null}
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="soft" disabled={isPending} onClick={copy}>
-                  {isPending ? "Đang xử lý…" : "Sao chép link"}
+                  {isPending ? <LoadingDots label="Đang xử lý" /> : "Sao chép link"}
                 </Button>
                 <Button
                   type="button"

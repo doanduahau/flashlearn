@@ -16,6 +16,7 @@ import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { DOCUMENT_MAX_BYTES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { LoadingDots } from "@/components/shared/loading-dots";
 
 const SUPPORTED_TYPES = ".docx,.pdf";
 
@@ -164,17 +165,7 @@ export function DocumentImport({
         />
       </div>
 
-      {isPending ? (
-        <div role="status" className="flex items-center gap-2 text-sm text-text-secondary">
-          <MascotImage
-            level={mascotLevel}
-            state="thinking"
-            size={64}
-            className="size-16 object-contain"
-          />
-          <p>Đang đọc tài liệu...</p>
-        </div>
-      ) : null}
+      {isPending ? <LoadingDots label="Đang đọc tài liệu" /> : null}
 
       {extraction && (
         <div className="flex flex-col gap-3 rounded-xl border border-border-soft bg-surface-subtle p-3 sm:rounded-2xl sm:p-5">
@@ -238,7 +229,7 @@ export function DocumentImport({
 
           {analysis && !generatedCards && (
             <Button onClick={() => void handleGenerate()} disabled={isPending}>
-              {isPending ? "Đang tạo..." : "Tạo thẻ"}
+              {isPending ? <LoadingDots label="Đang tạo" /> : "Tạo thẻ"}
             </Button>
           )}
 

@@ -1,6 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { Button } from "@/components/ui/button";
+import { LoadingDots } from "@/components/shared/loading-dots";
 
 export function StickyStartBar({
   summary,
@@ -10,7 +13,7 @@ export function StickyStartBar({
   startLabel,
   onStart,
 }: Readonly<{
-  summary: string;
+  summary: ReactNode;
   canStart: boolean;
   pending: boolean;
   pendingLabel: string;
@@ -29,7 +32,7 @@ export function StickyStartBar({
           onClick={onStart}
           disabled={pending || !canStart}
         >
-          {pending ? pendingLabel : startLabel}
+          {pending ? <LoadingDots label={pendingLabel} /> : startLabel}
         </Button>
       </div>
     </div>

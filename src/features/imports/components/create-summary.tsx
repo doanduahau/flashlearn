@@ -11,6 +11,7 @@ import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { Label } from "@/components/ui/label";
 import { IMPORT_MAX_ROWS, IMPORT_PREVIEW_ROWS, SET_NAME_MAX_LENGTH } from "@/lib/constants";
 
@@ -164,19 +165,7 @@ export function CreateSummary({
             disabled={!canCreate}
             className={importing ? "h-auto py-2" : undefined}
           >
-            {importing ? (
-              <>
-                <MascotImage
-                  level={mascotLevel}
-                  state="thinking"
-                  size={64}
-                  className="size-16 object-contain"
-                />
-                Đang tạo...
-              </>
-            ) : (
-              "Tạo bộ flashcard"
-            )}
+            {importing ? <LoadingDots label="Đang tạo" /> : "Tạo bộ flashcard"}
           </Button>
         </>
       )}

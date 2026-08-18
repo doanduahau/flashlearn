@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { moveSet } from "@/features/flashcard-sets/server/actions";
@@ -78,7 +79,7 @@ export function SetReorderList({
         </p>
       ) : null}
       <p aria-live="polite" className="mt-4 text-sm text-text-secondary">
-        {isPending ? "Đang lưu thứ tự…" : "Thứ tự đã được lưu."}
+        {isPending ? <LoadingDots label="Đang lưu thứ tự" /> : "Thứ tự đã được lưu."}
       </p>
 
       <ol aria-label="Thứ tự bộ flashcard" className="mt-4 grid gap-3">

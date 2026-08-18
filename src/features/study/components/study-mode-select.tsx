@@ -15,6 +15,7 @@ import type {
   RunnerReplaySource,
 } from "@/features/runner/types/runner-types";
 import { buildRunnerSessionHref } from "@/features/runner/utils/runner-session-url";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { cn } from "@/lib/utils";
 
 export type StudyModeSource = {
@@ -173,12 +174,14 @@ export function StudyModeSelect({
               <p className="text-sm text-text-secondary">Ghi nhớ vị trí và nội dung thẻ</p>
             </div>
             <span className="shrink-0 text-sm font-medium text-text-primary">
-              {memory === null ? "Đang tính…" : `${memory.count} thẻ`}
+              {memory === null ? <LoadingDots label="Đang tính" /> : `${memory.count} thẻ`}
             </span>
           </div>
 
           {memory === null ? (
-            <p className="text-center text-xs text-text-secondary">Đang tính số thẻ…</p>
+            <p className="text-center text-xs text-text-secondary">
+              <LoadingDots label="Đang tính số thẻ" />
+            </p>
           ) : selectedMode !== "memory" && memoryOptions.length ? (
             <div>
               <button
@@ -247,12 +250,14 @@ export function StudyModeSelect({
               <p className="text-sm text-text-secondary">Chướng ngại vật hay là đáp án</p>
             </div>
             <span className="shrink-0 text-sm font-medium text-text-primary">
-              {runner === null ? "Đang tính…" : `${runner.count} thẻ`}
+              {runner === null ? <LoadingDots label="Đang tính" /> : `${runner.count} thẻ`}
             </span>
           </div>
 
           {runner === null ? (
-            <p className="text-center text-xs text-text-secondary">Đang tính số thẻ…</p>
+            <p className="text-center text-xs text-text-secondary">
+              <LoadingDots label="Đang tính số thẻ" />
+            </p>
           ) : selectedMode !== "runner" && runnerOptions.length ? (
             <div>
               <button
@@ -290,7 +295,7 @@ export function StudyModeSelect({
                 className={PRIMARY_ACTION}
                 onClick={() => void startRunner()}
               >
-                {runnerPending ? "Đang mở…" : "Bắt đầu"}
+                {runnerPending ? <LoadingDots label="Đang mở" /> : "Bắt đầu"}
               </button>
             </div>
           ) : (

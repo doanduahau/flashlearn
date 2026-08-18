@@ -6,6 +6,7 @@ import { Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DialogOverlay } from "@/components/ui/dialog-overlay";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateCard } from "@/features/flashcard-sets/server/actions";
@@ -105,7 +106,7 @@ export function EditCardForm({
             ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
               <Button type="submit" disabled={isPending || !front.trim() || !back.trim()}>
-                {isPending ? "Đang lưu…" : "Lưu"}
+                {isPending ? <LoadingDots label="Đang lưu" /> : "Lưu"}
               </Button>
               <Button type="button" variant="ghost" disabled={isPending} onClick={close}>
                 Hủy

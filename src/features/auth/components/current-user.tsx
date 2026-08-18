@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { createClient } from "@/lib/supabase/client";
 
 type ProfileRow = {
@@ -64,12 +65,7 @@ export function CurrentUser() {
   }, [pathname]);
 
   if (loading) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-text-secondary">
-        <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden="true" />
-        <span>Đang tải...</span>
-      </div>
-    );
+    return <LoadingDots label="Đang tải" />;
   }
 
   if (!userEmail) {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { BrandLoading } from "@/components/shared/brand-loading";
 import { QuizSetup } from "@/features/quiz/components/quiz-setup";
 import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import { loadSourcePage, sourceType } from "@/features/source-selection/server/load-source-page";
@@ -49,11 +50,5 @@ async function QuizCreator({ searchParams }: Readonly<{ searchParams: RouteSearc
 }
 
 function QuizLoading() {
-  return (
-    <section aria-label="Đang tải nội dung kiểm tra" className="mt-6 space-y-4" role="status">
-      <div className="h-5 w-4/5 animate-pulse rounded-lg bg-surface-subtle" />
-      <div className="h-16 animate-pulse rounded-2xl bg-surface-subtle" />
-      <div className="h-16 animate-pulse rounded-2xl bg-surface-subtle" />
-    </section>
-  );
+  return <BrandLoading title="Đang tải nội dung kiểm tra" />;
 }

@@ -7,6 +7,7 @@ import { Plus, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { importFlashcards } from "@/features/imports/server/actions";
@@ -292,7 +293,7 @@ export function ManualSetForm() {
                 Hủy
               </Button>
               <Button type="submit" size="lg" className="min-h-11 sm:min-h-10" disabled={pending}>
-                {pending ? "Đang tạo…" : "Tạo bộ"}
+                {pending ? <LoadingDots label="Đang tạo" /> : "Tạo bộ"}
               </Button>
             </div>
           </footer>

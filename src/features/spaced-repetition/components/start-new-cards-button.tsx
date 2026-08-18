@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { startNewCardsLearning } from "@/features/spaced-repetition/server/actions";
 
 export function StartNewCardsButton({ label = "Học thẻ mới" }: Readonly<{ label?: string }>) {
@@ -37,7 +38,7 @@ export function StartNewCardsButton({ label = "Học thẻ mới" }: Readonly<{ 
         </p>
       ) : null}
       <Button size="sm" className="w-full" onClick={handleClick} disabled={pending}>
-        {pending ? "Đang tải..." : label}
+        {pending ? <LoadingDots label="Đang tải" /> : label}
       </Button>
     </div>
   );

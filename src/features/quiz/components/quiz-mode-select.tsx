@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { BackButton } from "@/components/shared/back-button";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { startQuiz } from "@/features/quiz/server/actions";
@@ -173,7 +174,7 @@ export function QuizModeSelect({
                     disabled={pending}
                     onClick={handleStartQuiz}
                   >
-                    {pending ? "Đang tạo…" : "Bắt đầu"}
+                    {pending ? <LoadingDots label="Đang tạo" /> : "Bắt đầu"}
                   </button>
                   {quizError ? (
                     <p role="alert" className="text-center text-xs text-danger">

@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { BrandLoading } from "@/components/shared/brand-loading";
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
@@ -193,11 +194,5 @@ export function SourceBrowser({
 }
 
 function SourceSkeleton() {
-  return (
-    <div aria-label="Đang tải nguồn" className="grid gap-2" role="status">
-      {[0, 1, 2].map((index) => (
-        <div key={index} className="h-16 animate-pulse rounded-2xl bg-surface-subtle" />
-      ))}
-    </div>
-  );
+  return <BrandLoading title="Đang tải nguồn" />;
 }

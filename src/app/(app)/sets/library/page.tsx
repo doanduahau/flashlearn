@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { BackButton } from "@/components/shared/back-button";
+import { BrandLoading } from "@/components/shared/brand-loading";
 import { OfflineBanner } from "@/components/shared/offline-banner";
 import { PaginationControls } from "@/components/shared/pagination-controls";
 import { SectionTabs } from "@/components/shared/section-tabs";
@@ -211,15 +212,5 @@ async function LibraryTabContent({
 }
 
 function LibraryTabLoading() {
-  return (
-    <section
-      aria-label="Đang tải nội dung bộ flashcard"
-      className="mt-3 space-y-3 sm:mt-5 sm:space-y-4"
-      role="status"
-    >
-      <div className="h-6 w-32 animate-pulse rounded-lg bg-surface-subtle sm:h-7 sm:w-40" />
-      <div className="h-9 animate-pulse rounded-xl bg-surface-subtle sm:h-11 sm:max-w-sm" />
-      <div className="h-24 animate-pulse rounded-2xl bg-surface-subtle sm:h-28" />
-    </section>
-  );
+  return <BrandLoading title="Đang tải nội dung bộ flashcard" />;
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { Label } from "@/components/ui/label";
 import { renameSet } from "@/features/flashcard-sets/server/actions";
 import { SET_NAME_MAX_LENGTH } from "@/lib/constants";
@@ -64,7 +65,7 @@ export function RenameSetForm({
       ) : null}
       <div className="mt-3 flex gap-2">
         <Button type="submit" disabled={isPending || !name.trim()}>
-          {isPending ? "Đang lưu…" : "Lưu"}
+          {isPending ? <LoadingDots label="Đang lưu" /> : "Lưu"}
         </Button>
         <Button
           type="button"

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { Label } from "@/components/ui/label";
 import { createCollection } from "@/features/special-collections/server/actions";
 import { COLLECTION_NAME_MAX_LENGTH } from "@/lib/constants";
@@ -50,7 +51,7 @@ export function CreateCollectionForm() {
         </p>
       ) : null}
       <Button type="submit" className="mt-3" disabled={isPending || !name.trim()}>
-        {isPending ? "Đang tạo…" : "Tạo bộ"}
+        {isPending ? <LoadingDots label="Đang tạo" /> : "Tạo bộ"}
       </Button>
     </form>
   );

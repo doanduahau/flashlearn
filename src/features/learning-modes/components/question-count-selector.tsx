@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { LoadingDots } from "@/components/shared/loading-dots";
 
 export type CountOption = { value: number; label: string };
 
@@ -27,7 +28,7 @@ export function QuestionCountSelector({
           Số câu
         </h2>
         <p aria-live="polite" className="text-xs text-text-secondary">
-          {counting ? "Đang tính…" : `${eligible} thẻ hợp lệ`}
+          {counting ? <LoadingDots label="Đang tính" /> : `${eligible} thẻ hợp lệ`}
         </p>
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Chọn số câu">

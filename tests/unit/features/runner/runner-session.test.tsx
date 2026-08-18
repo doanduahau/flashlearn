@@ -273,7 +273,7 @@ describe("RunnerSession", () => {
     });
 
     await completeGame();
-    expect(screen.getByText("Đang lưu kỷ lục…")).toBeInTheDocument();
+    expect(screen.getByText("Đang lưu kỷ lục", { hidden: true })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Chơi lại" })).toBeNull();
 
     resolveBest?.({ ok: true, bestMs: 1_234, questionCount: 2, isNewBest: true });

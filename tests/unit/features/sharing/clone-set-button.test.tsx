@@ -61,7 +61,7 @@ describe("CloneSetButton", () => {
     render(<CloneSetButton token={TOKEN} isAuthenticated={true} isClassroom={true} />);
 
     await user.click(screen.getByRole("button", { name: "Tham gia lớp học" }));
-    expect(screen.getByRole("button", { name: "Đang lưu…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Đang lưu" })).toBeDisabled();
 
     resolve({ setId: SET_ID, alreadyExists: false });
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(`/sets/${SET_ID}`));

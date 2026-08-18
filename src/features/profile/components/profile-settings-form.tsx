@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoadingDots } from "@/components/shared/loading-dots";
 import { Label } from "@/components/ui/label";
 import { isSupportedTimezone, TIMEZONE_GROUPS } from "@/features/profile/constants/timezones";
 import { LocalTimePreview } from "@/features/profile/components/local-time-preview";
@@ -154,7 +155,7 @@ export function ProfileSettingsForm({
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Đang lưu…" : "Lưu thay đổi"}
+          {isPending ? <LoadingDots label="Đang lưu" /> : "Lưu thay đổi"}
         </Button>
       </div>
     </form>

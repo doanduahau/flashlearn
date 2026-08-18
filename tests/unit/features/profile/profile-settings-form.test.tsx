@@ -159,7 +159,7 @@ describe("ProfileSettingsForm", () => {
 
     const submit = screen.getByRole("button", { name: /Lưu thay đổi/ });
     await user.click(submit);
-    expect(screen.getByRole("button", { name: /Đang lưu…/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Đang lưu/ })).toBeDisabled();
     expect(mocks.updateProfile).toHaveBeenCalledTimes(1);
     resolveAction?.({ ok: true });
     await waitFor(() => expect(screen.getByRole("button", { name: /Lưu thay đổi/ })).toBeEnabled());

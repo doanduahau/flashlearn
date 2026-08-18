@@ -149,3 +149,14 @@ draft (tôi soạn, có thể sửa nhiều lần)
 
 - Prompt phải luôn kèm: scope, frozen rules, verification gates, evidence report template.
 - Nếu prompt chạm quyết định sản phẩm chưa chốt → hỏi user kèm đề xuất trước khi `reviewed`, không tự quyết.
+
+## Task queue (cập nhật 2026-08-18)
+
+> Sau rollback runner (`4527c7a`), tiếp tục chuỗi task UI. Baseline chung: `4527c7a`.
+
+| ID   | Task                                                | Scope                                             | Status     | Commit  |
+| ---- | --------------------------------------------------- | ------------------------------------------------- | ---------- | ------- |
+| N21a | Quiz option: bỏ radio dot, ô chọn có màu + viền đậm | `src/features/quiz/components/quiz-session.tsx`   | ✓ verified | dfb7218 |
+| N21b | Memory: flip 3D lật/úp thẻ                          | `src/features/memory/components/memory-board.tsx` | ✓ verified | b8a3a84 |
+| N21c | Depth pass: đổ bóng + độ nổi cho surface            | `globals.css` + ~15 surface/components            | ✓ verified | e8d5601 |
+| Test | E2E quiz-path: sr-only radio + flow /quiz/mode      | `tests/e2e/*.spec.ts` (6 files)                   | ✓ verified | cdd7037 |

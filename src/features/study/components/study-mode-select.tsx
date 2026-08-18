@@ -123,7 +123,7 @@ export function StudyModeSelect({
       </div>
 
       {/* Lật thẻ Card */}
-      <article className="flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4 min-h-[120px]">
+      <article className="flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft-card sm:p-4 min-h-[120px]">
         <div className="flex w-[30%] shrink-0 items-center justify-center">
           <MascotImage
             level={mascotLevel}
@@ -158,7 +158,7 @@ export function StudyModeSelect({
       </article>
 
       {/* Memory matching Card */}
-      <article className="flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4 min-h-[120px]">
+      <article className="flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft-card sm:p-4 min-h-[120px]">
         <div className="flex w-[30%] shrink-0 items-center justify-center">
           <MascotImage
             level={mascotLevel}
@@ -231,7 +231,7 @@ export function StudyModeSelect({
       {/* Capy runner Card */}
       <article
         className={cn(
-          "flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4 min-h-[120px]",
+          "flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft-card sm:p-4 min-h-[120px]",
           runner !== null && runnerOptions.length === 0 && "opacity-60",
         )}
       >

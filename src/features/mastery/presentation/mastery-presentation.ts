@@ -50,7 +50,7 @@ export function getMasteryPresentation(status: MasteryStatus): MasteryPresentati
 
 export function masteryCardClassName(status: MasteryStatus): string {
   return cn(
-    "rounded-2xl border border-border-soft bg-surface p-4 sm:p-5",
+    "rounded-2xl border border-border-soft bg-surface p-4 sm:p-5 shadow-soft-card",
     getMasteryPresentation(status).cardClassName,
   );
 }

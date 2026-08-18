@@ -113,6 +113,8 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   --shadow-soft-card: 0 8px 24px rgba(74, 50, 14, 0.08);
+  --shadow-soft-card-hover: 0 12px 28px rgba(74, 50, 14, 0.12);
+  --shadow-soft-card-up: 0 -8px 24px rgba(74, 50, 14, 0.08);
 
   --animate-card-in: card-in 0.18s ease-out;
   --animate-fade-in: fadeIn 0.12s ease-out;

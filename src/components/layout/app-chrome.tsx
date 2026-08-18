@@ -37,7 +37,7 @@ export function AppChrome({
 
   return (
     <div className="min-h-dvh">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col gap-6 border-r border-border-soft bg-surface p-6 md:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col gap-6 border-r border-border-soft bg-surface p-6 shadow-soft-card-up md:flex">
         <Link href="/dashboard" className="flex items-center gap-2 font-heading text-lg font-bold">
           <span className="flex size-9 items-center justify-center rounded-xl bg-primary-soft">
             <img

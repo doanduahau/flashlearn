@@ -21,7 +21,7 @@ export function StickyStartBar({
   onStart: () => void;
 }>) {
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-y border-border-soft bg-surface/95 p-3 shadow-[0_-8px_24px_rgba(39,93,70,0.08)] backdrop-blur md:sticky md:bottom-4 md:rounded-2xl md:border">
+    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-y border-border-soft bg-surface/95 p-3 shadow-soft-card-up backdrop-blur md:sticky md:bottom-4 md:rounded-2xl md:border">
       <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 md:max-w-none">
         <p aria-live="polite" className="min-w-0 text-sm font-medium">
           {summary}

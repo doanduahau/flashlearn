@@ -102,7 +102,7 @@ export default async function DashboardPage({
         className="mt-2 grid grid-cols-2 gap-2 sm:mt-3 sm:gap-3"
         aria-label="Tóm tắt hôm nay"
       >
-        <article className="rounded-xl border border-border-soft bg-surface p-2.5 sm:rounded-2xl sm:p-4">
+        <article className="rounded-xl border border-border-soft bg-surface p-2.5 shadow-soft-card sm:rounded-2xl sm:p-4">
           <h2 className="text-xs text-text-secondary sm:text-sm">Độ chính xác</h2>
           <p className="mt-0.5 text-xl font-bold sm:mt-1 sm:text-2xl">
             {completedToday && todayAccuracy !== null ? `${todayAccuracy}%` : "—"}
@@ -113,7 +113,7 @@ export default async function DashboardPage({
             </p>
           )}
         </article>
-        <article className="rounded-xl border border-border-soft bg-surface p-2.5 sm:rounded-2xl sm:p-4">
+        <article className="rounded-xl border border-border-soft bg-surface p-2.5 shadow-soft-card sm:rounded-2xl sm:p-4">
           <h2 className="text-xs text-text-secondary sm:text-sm">Bài hôm nay</h2>
           <p className="mt-0.5 text-xl font-bold sm:mt-1 sm:text-2xl">
             {completedToday ? String(todayDetail.quizCount) : "0"}
@@ -124,7 +124,7 @@ export default async function DashboardPage({
 
       {dueCount > 0 || newCardsCount > 0 ? (
         <section aria-label="Tóm tắt trạng thái học" className="mt-2 sm:mt-3">
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 sm:rounded-3xl sm:px-5 sm:py-3">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface px-3 py-2.5 shadow-soft-card sm:rounded-3xl sm:px-5 sm:py-3">
             <DashboardLearningStatus
               dueCount={dueCount}
               newCardsCount={newCardsCount}
@@ -139,7 +139,7 @@ export default async function DashboardPage({
       ) : null}
 
       {monthActivity ? (
-        <div className="mt-3 rounded-2xl border border-border-soft bg-surface p-3 sm:mt-4 sm:rounded-3xl sm:p-6">
+        <div className="mt-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft-card sm:mt-4 sm:rounded-3xl sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-bold sm:text-lg">Hoạt động tháng này</h2>
             <div className="flex items-center gap-1">

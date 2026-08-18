@@ -35,7 +35,7 @@ export type QuizModeSelectProps = {
 };
 
 const CARD_CLS =
-  "flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft sm:p-4 min-h-[120px]";
+  "flex gap-3 rounded-2xl border border-border-soft bg-surface p-3 shadow-soft-card sm:p-4 min-h-[120px]";
 const PRIMARY_BTN =
   "min-h-10 w-full rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-opacity whitespace-nowrap flex items-center justify-center";
 

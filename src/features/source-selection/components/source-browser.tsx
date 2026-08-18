@@ -112,7 +112,7 @@ export function SourceBrowser({
       {isNavigating ? <SourceSkeleton /> : null}
       <ul className={cn("grid gap-2", isNavigating && "opacity-50")} aria-live="polite">
         <li>
-          <label className="flex min-h-10 items-center gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 hover:bg-surface-subtle sm:min-h-12 sm:p-3">
+          <label className="flex min-h-10 items-center gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 transition-shadow hover:bg-surface-subtle hover:shadow-soft-card-hover sm:min-h-12 sm:p-3">
             <input
               type="radio"
               name="source-scope"
@@ -132,7 +132,7 @@ export function SourceBrowser({
           const selectedSource = selectedKeys.has(`${source.kind}:${source.id}`);
           return (
             <li key={`${source.kind}:${source.id}`}>
-              <label className="flex min-h-10 items-center gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 hover:bg-surface-subtle sm:min-h-12 sm:p-3">
+              <label className="flex min-h-10 items-center gap-3 rounded-2xl border border-border-soft bg-surface p-2.5 transition-shadow hover:bg-surface-subtle hover:shadow-soft-card-hover sm:min-h-12 sm:p-3">
                 <input
                   type="checkbox"
                   checked={selectedSource}

@@ -9,12 +9,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover",
-        primary: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover",
-        soft: "bg-primary-soft text-primary-foreground hover:bg-primary-soft/70",
-        outline: "border border-border bg-surface text-text-primary hover:bg-surface-subtle",
+        default:
+          "bg-primary text-primary-foreground shadow-soft-card transition-all active:translate-y-px hover:bg-primary-hover",
+        primary:
+          "bg-primary text-primary-foreground shadow-soft-card transition-all active:translate-y-px hover:bg-primary-hover",
+        soft: "bg-primary-soft text-primary-foreground shadow-soft-card transition-all active:translate-y-px hover:bg-primary-soft/70",
+        outline:
+          "border border-border bg-surface text-text-primary shadow-soft-card transition-all active:translate-y-px hover:bg-surface-subtle",
         ghost: "text-text-primary hover:bg-surface-subtle",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-soft-card transition-all active:translate-y-px hover:bg-destructive/90",
       },
       size: {
         default: "h-10 px-4 py-2",

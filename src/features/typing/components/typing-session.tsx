@@ -357,7 +357,7 @@ export function TypingSession({
           />
         </div>
       </div>
-      <div className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-border-soft bg-surface p-6 text-center shadow-soft">
+      <div className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-border-soft bg-surface p-6 text-center shadow-soft-card">
         <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Câu hỏi</p>
         <p className="mt-3 whitespace-pre-wrap text-xl font-semibold leading-relaxed sm:text-2xl">
           {card.front}

@@ -89,7 +89,7 @@ export function AppNavigation({ variant }: Readonly<{ variant: "sidebar" | "bott
   return (
     <nav
       aria-label="Điều hướng chính"
-      className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-border-soft bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-border-soft bg-surface pb-[env(safe-area-inset-bottom)] shadow-soft-card-up transition-shadow md:hidden"
     >
       {mobilePrimaryNavItems.map((item) => (
         <BottomNavLink key={item.href} {...item} />

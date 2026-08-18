@@ -21,7 +21,7 @@ export function QuestionCountSelector({
   return (
     <section
       aria-labelledby="question-count-heading"
-      className="rounded-2xl border border-border-soft bg-surface p-4"
+      className="rounded-2xl border border-border-soft bg-surface p-4 shadow-soft-card"
     >
       <div className="flex items-baseline justify-between gap-2">
         <h2 id="question-count-heading" className="text-sm font-semibold sm:text-base">

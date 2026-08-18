@@ -41,7 +41,7 @@ export function CollectionsList({
       {collections.map((collection) => (
         <li key={collection.id}>
           <Link
-            className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface p-5 hover:bg-surface-subtle"
+            className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface p-5 transition-shadow hover:bg-surface-subtle hover:shadow-soft-card-hover"
             href={`/collections/${collection.id}`}
           >
             <span className="font-semibold">{collection.name}</span>

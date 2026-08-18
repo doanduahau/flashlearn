@@ -96,7 +96,7 @@ export function CurrentUser() {
       </span>
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-full right-0 z-10 mb-2 max-w-[16rem] break-words rounded-lg border border-border-soft bg-surface px-3 py-1.5 text-xs text-text-secondary shadow-[0_8px_24px_rgba(39,93,70,0.08)] opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+        className="pointer-events-none absolute bottom-full right-0 z-10 mb-2 max-w-[16rem] break-words rounded-lg border border-border-soft bg-surface px-3 py-1.5 text-xs text-text-secondary shadow-soft-card opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
         role="tooltip"
       >
         {userEmail}

@@ -19,7 +19,7 @@ export function SetLauncherCard({
   return (
     <Link
       href={href}
-      className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-border-soft bg-surface-subtle p-6 text-center outline-none transition-colors hover:bg-surface/70 focus-visible:ring-2 focus-visible:ring-ring/50 sm:p-10"
+      className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-border-soft bg-surface-subtle p-6 text-center outline-none transition-colors transition-shadow hover:bg-surface/70 hover:shadow-soft-card-hover focus-visible:ring-2 focus-visible:ring-ring/50 sm:p-10"
     >
       <MascotImage
         level={mascotLevel}

@@ -67,7 +67,7 @@ export async function StatisticsPanel({
             {history.map((item) => (
               <li
                 key={`${item.type}-${item.id}`}
-                className="flex items-center justify-between rounded-2xl border border-border-soft bg-surface p-4"
+                className="flex items-center justify-between rounded-2xl border border-border-soft bg-surface p-4 transition-shadow hover:shadow-soft-card-hover"
               >
                 <div>
                   {item.type === "quiz" ? (
@@ -138,7 +138,7 @@ export async function StatisticsPanel({
       <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-3" aria-label="Tóm tắt thống kê">
         {cards.map(([label, value]) => (
           <article
-            className="rounded-2xl border border-border-soft bg-surface p-3 sm:p-4"
+            className="rounded-2xl border border-border-soft bg-surface p-3 shadow-soft-card sm:p-4"
             key={label}
           >
             <h3 className="text-xs text-text-secondary sm:text-sm">{label}</h3>
@@ -164,7 +164,7 @@ export async function StatisticsPanel({
       )}
       <section
         aria-labelledby="history-summary-heading"
-        className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-border-soft bg-surface p-4"
+        className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-border-soft bg-surface p-4 transition-shadow hover:shadow-soft-card-hover"
       >
         <div>
           <h3 id="history-summary-heading" className="font-semibold text-text-primary">

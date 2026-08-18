@@ -31,7 +31,7 @@ test.describe("Study mode", () => {
     await page.context().storageState({ path: AUTH_STATE });
   });
 
-  test("selection shows a deduplicated unique count", async ({ browser }) => {
+  test("selection shows an immediate count from source card counts", async ({ browser }) => {
     const context = await browser.newContext({ storageState: AUTH_STATE });
     const page = await context.newPage();
 
@@ -40,7 +40,7 @@ test.describe("Study mode", () => {
 
     await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).check();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
-    await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
+    await expect(page.getByText("2 nguồn · 3 thẻ")).toBeVisible();
 
     await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).uncheck();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).uncheck();
@@ -100,7 +100,7 @@ test.describe("Study mode", () => {
     await page.goto("/study");
     await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).check();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
-    await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
+    await expect(page.getByText("2 nguồn · 3 thẻ")).toBeVisible();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
     await expect(page).toHaveURL(/\/study\/mode\?sets=/);
     await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
@@ -185,7 +185,7 @@ test.describe("Study mode", () => {
     await page.goto("/study");
     await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).check();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
-    await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
+    await expect(page.getByText("2 nguồn · 3 thẻ")).toBeVisible();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
     await expect(page).toHaveURL(/\/study\/mode/);
     await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();
@@ -279,7 +279,7 @@ test.describe("Study mode", () => {
     await page.goto("/study");
     await page.getByRole("checkbox", { name: new RegExp(SET_A_NAME) }).check();
     await page.getByRole("checkbox", { name: new RegExp(COLLECTION_NAME) }).check();
-    await expect(page.getByText("2 nguồn · 2 thẻ")).toBeVisible();
+    await expect(page.getByText("2 nguồn · 3 thẻ")).toBeVisible();
     await page.getByRole("button", { name: /Bắt đầu học/ }).click();
     await expect(page).toHaveURL(/\/study\/mode/);
     await page.getByRole("button", { name: /Bắt đầu lật thẻ/ }).click();

@@ -9,22 +9,6 @@ const idListSchema = z
 
 const seedSchema = z.number().int().min(0).max(4294967295);
 
-export const studySourceSchema = z
-  .object({
-    setIds: z
-      .array(z.uuid("Mã bộ flashcard không hợp lệ."))
-      .max(STUDY_MAX_SOURCES, `Tối đa ${STUDY_MAX_SOURCES} bộ.`)
-      .default([]),
-    collectionIds: z
-      .array(z.uuid("Mã bộ đặc biệt không hợp lệ."))
-      .max(STUDY_MAX_SOURCES, `Tối đa ${STUDY_MAX_SOURCES} bộ.`)
-      .default([]),
-  })
-  .refine(
-    ({ setIds, collectionIds }) => setIds.length + collectionIds.length <= STUDY_MAX_SOURCES,
-    `Tối đa ${STUDY_MAX_SOURCES} nguồn.`,
-  );
-
 function extractIdList(value: string | string[] | undefined): string[] {
   if (value === undefined) return [];
   const parts = Array.isArray(value) ? value : value.split(",");

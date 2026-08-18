@@ -1,10 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => ({
-  getStudyCardCount: vi.fn() as Mock,
   push: vi.fn(),
 }));
 
@@ -13,9 +12,6 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => (
     <a href={href}>{children}</a>
   ),
-}));
-vi.mock("@/features/study/server/actions", () => ({
-  getStudyCardCount: mocks.getStudyCardCount,
 }));
 
 import { StudySourceSelect } from "@/features/study/components/study-source-select";
@@ -32,9 +28,7 @@ const COLLECTIONS = [{ id: COLLECTION_ID, name: "Khó nhớ", cardCount: 1 }];
 
 describe("StudySourceSelect", () => {
   beforeEach(() => {
-    mocks.getStudyCardCount.mockReset();
     mocks.push.mockReset();
-    mocks.getStudyCardCount.mockResolvedValue({ ok: true, count: 2 });
   });
 
   it("defaults to all cards with the total count and an enabled start button", () => {
@@ -63,67 +57,56 @@ describe("StudySourceSelect", () => {
     expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeDisabled();
   });
 
-  it("shows a loading state while the unique count is being computed", async () => {
-    let resolveCount: ((result: { ok: true; count: number }) => void) | undefined;
-    mocks.getStudyCardCount.mockReturnValue(
-      new Promise((resolve) => {
-        resolveCount = resolve;
-      }),
-    );
+  it("shows an immediate single-source count when one source is selected", async () => {
     const user = userEvent.setup();
     render(
       <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
     );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    expect(screen.getByText("Đang tính thẻ…")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeDisabled();
-    resolveCount?.({ ok: true, count: 2 });
-    await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
+    expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeEnabled();
   });
 
-  it("fetches a deduplicated count when a set is selected", async () => {
-    const user = userEvent.setup();
-    render(
-      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
-    );
-    await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    await waitFor(() =>
-      expect(mocks.getStudyCardCount).toHaveBeenCalledWith({
-        setIds: [SET_A_ID],
-        collectionIds: [],
-      }),
-    );
-    await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
-  });
-
-  it("combines sets and collections into a unique count", async () => {
+  it("shows the immediate summed count for multiple selected sources", async () => {
     const user = userEvent.setup();
     render(
       <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
     );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
     await user.click(screen.getByRole("checkbox", { name: /Khó nhớ/ }));
-    await waitFor(() =>
-      expect(mocks.getStudyCardCount).toHaveBeenCalledWith({
-        setIds: [SET_A_ID],
-        collectionIds: [COLLECTION_ID],
-      }),
-    );
+    expect(screen.getByText("2 nguồn · 3 thẻ")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeEnabled();
   });
 
-  it("shows zero and disables start when the selection is emptied", async () => {
-    mocks.getStudyCardCount.mockImplementation(
-      (input: { setIds: string[]; collectionIds: string[] }) =>
-        Promise.resolve({ ok: true, count: input.setIds.includes(SET_A_ID) ? 2 : 0 }),
+  it("shows an immediate collection-only count when only a collection is selected", async () => {
+    const user = userEvent.setup();
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
     );
+    await user.click(screen.getByRole("checkbox", { name: /Khó nhớ/ }));
+    expect(screen.getByText("1 nguồn · 1 thẻ")).toBeInTheDocument();
+  });
+
+  it("never shows a counting placeholder and keeps start enabled after selecting", async () => {
     const user = userEvent.setup();
     render(
       <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
     );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
+    await user.click(screen.getByRole("checkbox", { name: /Khó nhớ/ }));
+    expect(screen.queryByText("Đang tính thẻ…")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeEnabled();
+  });
+
+  it("shows zero and disables start when the selection is emptied", async () => {
+    const user = userEvent.setup();
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    await waitFor(() => expect(screen.getByText("0 nguồn · 0 thẻ")).toBeInTheDocument());
+    expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
+    expect(screen.getByText("0 nguồn · 0 thẻ")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeDisabled();
   });
 
@@ -133,9 +116,21 @@ describe("StudySourceSelect", () => {
       <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
     );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /Bắt đầu học/ }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(`/study/mode?sets=${SET_A_ID}`));
+    expect(mocks.push).toHaveBeenCalledWith(`/study/mode?sets=${SET_A_ID}`);
+  });
+
+  it("starts a custom session and redirects with both sets and collections in the query", async () => {
+    const user = userEvent.setup();
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+    );
+    await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
+    await user.click(screen.getByRole("checkbox", { name: /Khó nhớ/ }));
+    await user.click(screen.getByRole("button", { name: /Bắt đầu học/ }));
+    expect(mocks.push).toHaveBeenCalledWith(
+      `/study/mode?sets=${SET_A_ID}&collections=${COLLECTION_ID}`,
+    );
   });
 
   it("restores custom source selection passed back from mode selection", () => {
@@ -152,36 +147,72 @@ describe("StudySourceSelect", () => {
     expect(screen.getByRole("radio", { name: "Tất cả 4 thẻ" })).not.toBeChecked();
   });
 
-  it("re-checks the count on start and shows an error when the selection is empty", async () => {
-    mocks.getStudyCardCount
-      .mockResolvedValueOnce({ ok: true, count: 2 })
-      .mockResolvedValueOnce({ ok: true, count: 0 });
-    const user = userEvent.setup();
+  it("restores a custom selection and shows the immediate summed count", () => {
     render(
-      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
+      <StudySourceSelect
+        sets={SETS}
+        collections={COLLECTIONS}
+        totalCards={4}
+        initialSource={{ all: false, setIds: [SET_A_ID], collectionIds: [COLLECTION_ID] }}
+        mascotLevel={1}
+      />,
     );
-    await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    await waitFor(() => expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument());
-    await user.click(screen.getByRole("button", { name: /Bắt đầu học/ }));
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent("Chưa có thẻ nào trong phạm vi đã chọn."),
-    );
-    expect(mocks.push).not.toHaveBeenCalled();
+    expect(screen.getByText("2 nguồn · 3 thẻ")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeEnabled();
   });
 
-  it("shows a recoverable error when the count action fails", async () => {
-    mocks.getStudyCardCount.mockResolvedValue({
-      ok: false,
-      error: "Phiên đăng nhập đã hết hạn.",
-    });
+  it("returns to the all-cards total when the user selects all", async () => {
     const user = userEvent.setup();
     render(
       <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
     );
     await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent("Phiên đăng nhập đã hết hạn."),
+    expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Tất cả 4 thẻ" }));
+    expect(screen.getByText("4 thẻ")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeEnabled();
+  });
+
+  it("keeps the immediate count in sync when unchecking and rechecking a source", async () => {
+    const user = userEvent.setup();
+    render(
+      <StudySourceSelect sets={SETS} collections={COLLECTIONS} totalCards={4} mascotLevel={1} />,
     );
+    await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
+    expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
+    expect(screen.getByText("0 nguồn · 0 thẻ")).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: /Bộ A/ }));
+    expect(screen.getByText("1 nguồn · 2 thẻ")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeEnabled();
+  });
+
+  it("shows zero for an empty custom selection restored from mode selection", () => {
+    render(
+      <StudySourceSelect
+        sets={SETS}
+        collections={COLLECTIONS}
+        totalCards={4}
+        initialSource={{ all: false, setIds: [], collectionIds: [] }}
+        mascotLevel={1}
+      />,
+    );
+    expect(screen.getByText("0 nguồn · 0 thẻ")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeDisabled();
+  });
+
+  it("disables start when the selected sources sum to zero cards", async () => {
+    const user = userEvent.setup();
+    render(
+      <StudySourceSelect
+        sets={[{ id: SET_A_ID, name: "Bộ rỗng", cardCount: 0 }]}
+        collections={[]}
+        totalCards={0}
+        mascotLevel={1}
+      />,
+    );
+    await user.click(screen.getByRole("checkbox", { name: /Bộ rỗng/ }));
+    expect(screen.getByText("1 nguồn · 0 thẻ")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Bắt đầu học/ })).toBeDisabled();
   });
 

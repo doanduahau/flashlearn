@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseStudySessionParams, studySourceSchema } from "@/features/study/schemas/study-schema";
+import { parseStudySessionParams } from "@/features/study/schemas/study-schema";
 import { STUDY_MAX_SOURCES } from "@/lib/constants";
 
 const UUID_A = "11111111-1111-4111-8111-111111111111";
@@ -13,47 +13,6 @@ function uuidList(count: number): string[] {
     (_, index) => `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
   );
 }
-
-describe("studySourceSchema", () => {
-  it("accepts valid set and collection ids", () => {
-    const result = studySourceSchema.safeParse({ setIds: [UUID_A], collectionIds: [UUID_B] });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.setIds).toEqual([UUID_A]);
-      expect(result.data.collectionIds).toEqual([UUID_B]);
-    }
-  });
-
-  it("defaults to empty arrays when fields are missing", () => {
-    const result = studySourceSchema.safeParse({});
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.setIds).toEqual([]);
-      expect(result.data.collectionIds).toEqual([]);
-    }
-  });
-
-  it("rejects an invalid set or collection id", () => {
-    expect(studySourceSchema.safeParse({ setIds: ["nope"] }).success).toBe(false);
-    expect(studySourceSchema.safeParse({ collectionIds: ["nope"] }).success).toBe(false);
-  });
-
-  it("rejects more than the source limit in one list", () => {
-    expect(studySourceSchema.safeParse({ setIds: uuidList(STUDY_MAX_SOURCES + 1) }).success).toBe(
-      false,
-    );
-    expect(studySourceSchema.safeParse({ setIds: uuidList(STUDY_MAX_SOURCES) }).success).toBe(true);
-  });
-
-  it("rejects more than the source limit across both lists", () => {
-    expect(
-      studySourceSchema.safeParse({
-        setIds: uuidList(STUDY_MAX_SOURCES),
-        collectionIds: [UUID_A],
-      }).success,
-    ).toBe(false);
-  });
-});
 
 describe("parseStudySessionParams", () => {
   it("parses comma-separated set and collection ids", () => {

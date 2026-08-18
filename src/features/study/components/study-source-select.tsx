@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { StickyStartBar } from "@/features/learning-modes/components/sticky-start-bar";
@@ -9,9 +9,6 @@ import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { SourceBrowser } from "@/features/source-selection/components/source-browser";
 import type { SourceOption, SourcePage } from "@/features/source-selection/types/source-types";
-import { getStudyCardCount } from "@/features/study/server/actions";
-
-const COUNT_DEBOUNCE_MS = 250;
 
 type SourceParams = {
   setIds: string[];
@@ -19,15 +16,6 @@ type SourceParams = {
 };
 
 type InitialSource = SourceParams & { all: boolean };
-
-function sameSources(a: SourceParams, b: SourceParams): boolean {
-  return (
-    a.setIds.length === b.setIds.length &&
-    a.collectionIds.length === b.collectionIds.length &&
-    a.setIds.every((id, index) => id === b.setIds[index]) &&
-    a.collectionIds.every((id, index) => id === b.collectionIds[index])
-  );
-}
 
 export function StudySourceSelect({
   sourcePage,
@@ -46,13 +34,7 @@ export function StudySourceSelect({
 }>) {
   const router = useRouter();
   const [all, setAll] = useState(initialSource?.all ?? true);
-  const [customCount, setCustomCount] = useState<{
-    count: number;
-    computedFor: SourceParams;
-  } | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isStarting, startTransition] = useTransition();
   const resolvedSourcePage: SourcePage = sourcePage ?? {
     sources: [
       ...(sets ?? []).map((source) => ({ ...source, kind: "regular" as const })),
@@ -86,31 +68,17 @@ export function StudySourceSelect({
     [selectedSources],
   );
 
-  useEffect(() => {
-    if (all) return;
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      void (async () => {
-        const result = await getStudyCardCount(currentSources);
-        if (cancelled) return;
-        if (result.ok) setCustomCount({ count: result.count, computedFor: currentSources });
-        else setActionError(result.error);
-      })();
-    }, COUNT_DEBOUNCE_MS);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [currentSources, all]);
-
-  const isCounting =
-    !all && (customCount === null || !sameSources(customCount.computedFor, currentSources));
-  const availableCards = all ? totalCards : (customCount?.count ?? 0);
-  const canStart = all ? totalCards > 0 : actionError === null && !isCounting && availableCards > 0;
+  // Show the card count immediately like /quiz: totalCards for "Tất cả",
+  // otherwise the sum of each selected source's cardCount (before dedup).
+  // Dedup still happens server-side on /study/mode after the user presses
+  // "Bắt đầu học".
+  const total = all
+    ? totalCards
+    : selectedSources.reduce((sum, source) => sum + (source.cardCount ?? 0), 0);
+  const canStart = total >= 1 && (all || selectedSources.length > 0);
 
   function toggleSource(source: SourceOption): void {
     setAll(false);
-    setActionError(null);
     setError(null);
     setSelected((previous) => {
       const next = new Map(previous);
@@ -137,22 +105,11 @@ export function StudySourceSelect({
       router.push("/study/mode?all=1");
       return;
     }
-    startTransition(async () => {
-      const result = await getStudyCardCount(currentSources);
-      if (!result.ok) {
-        setActionError(result.error);
-        return;
-      }
-      if (!result.count) {
-        setError("Chưa có thẻ nào trong phạm vi đã chọn.");
-        return;
-      }
-      const query = new URLSearchParams();
-      if (currentSources.setIds.length) query.set("sets", currentSources.setIds.join(","));
-      if (currentSources.collectionIds.length)
-        query.set("collections", currentSources.collectionIds.join(","));
-      router.push(`/study/mode?${query.toString()}`);
-    });
+    const query = new URLSearchParams();
+    if (currentSources.setIds.length) query.set("sets", currentSources.setIds.join(","));
+    if (currentSources.collectionIds.length)
+      query.set("collections", currentSources.collectionIds.join(","));
+    router.push(`/study/mode?${query.toString()}`);
   }
 
   return (
@@ -181,27 +138,16 @@ export function StudySourceSelect({
         onSelectAll={selectAll}
         mascotLevel={mascotLevel}
       />
-      {actionError ? (
-        <p role="alert" className="text-danger">
-          {actionError}
-        </p>
-      ) : null}
       {error ? (
         <p role="alert" className="text-danger">
           {error}
         </p>
       ) : null}
       <StickyStartBar
-        summary={
-          isCounting
-            ? "Đang tính thẻ…"
-            : all
-              ? `${availableCards} thẻ`
-              : `${selectedSources.length} nguồn · ${availableCards} thẻ`
-        }
+        summary={all ? `${total} thẻ` : `${selectedSources.length} nguồn · ${total} thẻ`}
         canStart={canStart}
-        pending={isStarting}
-        pendingLabel="Đang mở phiên…"
+        pending={false}
+        pendingLabel="Đang tải…"
         startLabel="Bắt đầu học"
         onStart={start}
       />

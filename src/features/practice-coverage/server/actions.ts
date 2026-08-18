@@ -2,17 +2,20 @@
 
 import { z } from "zod";
 
+import type { CoverageMode } from "../constants";
 import { createClient } from "@/lib/supabase/server";
-
-type CoverageMode = "quiz" | "match" | "memory" | "runner" | "typing";
 
 const coverageSessionIdSchema = z.uuid();
 const COVERAGE_ID_BATCH_SIZE = 200;
 const WRONG_ANSWER_PAGE_SIZE = 1000;
 
-/** Reads the authenticated user's per-card appearance count for one mode. */
+/**
+ * Reads the authenticated user's per-card appearance count summed across a
+ * mode group (quiz/match/typing or memory/runner): a card that appeared in
+ * several modes of the group contributes the total of its appearance counts.
+ */
 export async function loadAppearanceCounts(
-  mode: CoverageMode,
+  modes: readonly CoverageMode[],
   eligibleIds: string[],
 ): Promise<Map<string, number>> {
   const counts = new Map<string, number>();
@@ -28,14 +31,16 @@ export async function loadAppearanceCounts(
       supabase
         .from("flashcard_coverage")
         .select("flashcard_id, appearance_count")
-        .eq("mode", mode)
+        .in("mode", [...modes])
         .in("flashcard_id", ids),
     ),
   );
   if (results.some((result) => result.error)) throw new Error("coverage query failed");
   for (const result of results) {
     for (const row of result.data ?? []) {
-      if (row.flashcard_id) counts.set(row.flashcard_id, row.appearance_count);
+      if (row.flashcard_id) {
+        counts.set(row.flashcard_id, (counts.get(row.flashcard_id) ?? 0) + row.appearance_count);
+      }
     }
   }
   return counts;

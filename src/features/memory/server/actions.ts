@@ -5,6 +5,7 @@ import { randomInt } from "node:crypto";
 import { memoryStartSchema } from "@/features/memory/schemas/memory-schema";
 import type { MemoryCard, StartedMemorySession } from "@/features/memory/types/memory-types";
 import { buildMemorySession, getMemoryEligibility } from "@/features/memory/utils/memory-session";
+import { STUDY_COVERAGE_MODES } from "@/features/practice-coverage/constants";
 import {
   loadAppearanceCounts,
   loadWrongAnswerCardIds,
@@ -59,7 +60,7 @@ async function loadPriorityIds(cards: MemoryCard[]): Promise<{
 }> {
   const allIds = cards.map((card) => card.id);
   const [appearance, wrong] = await Promise.all([
-    loadAppearanceCounts("memory", allIds),
+    loadAppearanceCounts(STUDY_COVERAGE_MODES, allIds),
     loadWrongAnswerCardIds(allIds),
   ]);
   return { wrong, appearance };

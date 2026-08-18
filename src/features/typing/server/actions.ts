@@ -18,6 +18,7 @@ import type {
 } from "@/features/typing/types/typing-types";
 import { gradeTypingAnswer } from "@/features/typing/server/answer-check";
 import { selectCardsByPriority } from "@/features/learning-modes/types";
+import { QUIZ_COVERAGE_MODES } from "@/features/practice-coverage/constants";
 import {
   completeLearningCoverageSession,
   loadAppearanceCounts,
@@ -106,7 +107,7 @@ export async function startTypingSession(input: unknown): Promise<StartTypingRes
     const pool = cards.map((card) => card.id);
     const shuffled = seededShuffle(pool, randomInt(0, 2 ** 32));
     const [appearance, wrong] = await Promise.all([
-      loadAppearanceCounts("typing", shuffled),
+      loadAppearanceCounts(QUIZ_COVERAGE_MODES, shuffled),
       loadWrongAnswerCardIds(shuffled),
     ]);
     const selectedIds = selectCardsByPriority(

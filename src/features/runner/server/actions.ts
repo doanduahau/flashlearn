@@ -3,6 +3,7 @@
 import { randomInt } from "node:crypto";
 
 import { selectCardsByPriority } from "@/features/learning-modes/types";
+import { STUDY_COVERAGE_MODES } from "@/features/practice-coverage/constants";
 import {
   loadAppearanceCounts,
   loadWrongAnswerCardIds,
@@ -173,7 +174,7 @@ export async function startRunnerSession(input: unknown): Promise<StartRunnerSes
     if (!shuffled) return { ok: false, error: poolMessage() };
     const eligibleById = new Map(eligible.map((card) => [card.id, card]));
     const [appearance, wrong] = await Promise.all([
-      loadAppearanceCounts("runner", shuffled.sessionCardIds),
+      loadAppearanceCounts(STUDY_COVERAGE_MODES, shuffled.sessionCardIds),
       loadWrongAnswerCardIds(shuffled.sessionCardIds),
     ]);
     const selectedIds = selectCardsByPriority(

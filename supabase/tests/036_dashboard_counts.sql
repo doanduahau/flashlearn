@@ -1,5 +1,5 @@
 begin;
-select plan(30);
+select plan(32);
 
 -- ---------------------------------------------------------------------------
 -- Setup: user A owns 8 flashcards (c1..c8). Answers exercise the latest-answer
@@ -67,6 +67,12 @@ insert into public.mode_answer_events (user_id, flashcard_id, mode, is_correct, 
 insert into public.flashcard_coverage (user_id, mode, flashcard_id) values
   ('aaaaaaaa-7777-7777-7777-777777777777', 'quiz', 'ca000001-7777-4000-8000-000000000001'),
   ('aaaaaaaa-7777-7777-7777-777777777777', 'quiz', 'ca000002-7777-4000-8000-000000000001');
+
+-- N17: c8 appears in the Kiểm tra group via match (1) + typing (2) but never
+-- in a quiz session — get_quiz_scope_sets must SUM the group to 3.
+insert into public.flashcard_coverage (user_id, mode, flashcard_id, appearance_count) values
+  ('aaaaaaaa-7777-7777-7777-777777777777', 'match', 'ca000008-7777-4000-8000-000000000001', 1),
+  ('aaaaaaaa-7777-7777-7777-777777777777', 'typing', 'ca000008-7777-4000-8000-000000000001', 2);
 
 -- c7 has a card_review_event (so it is NOT untouched).
 insert into public.card_review_events (user_id, flashcard_id, source, is_correct, reviewed_at) values
@@ -193,7 +199,8 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- 5. get_quiz_scope_sets — appearance counts (mode=quiz) and wrong (latest answer).
+-- 5. get_quiz_scope_sets — appearance counts (mode group quiz/match/typing)
+--    and wrong (latest answer).
 -- ---------------------------------------------------------------------------
 
 -- all scope: c1,c2 covered once (appearance_count=1), the rest 0.
@@ -220,6 +227,20 @@ select is(
    from public.get_quiz_scope_sets('{}'::uuid[], '{}'::uuid[], true)),
   0,
   'appearance_counts reports c4 never covered'
+);
+-- N17: c8 sums match (1) + typing (2) into one quiz-group appearance count.
+select is(
+  (select (appearance_counts->>'ca000008-7777-4000-8000-000000000001')::integer
+   from public.get_quiz_scope_sets('{}'::uuid[], '{}'::uuid[], true)),
+  3,
+  'appearance_counts sums match + typing appearances for c8'
+);
+-- N17: a card without any quiz-group coverage still reports zero.
+select is(
+  (select (appearance_counts->>'ca000005-7777-4000-8000-000000000001')::integer
+   from public.get_quiz_scope_sets('{}'::uuid[], '{}'::uuid[], true)),
+  0,
+  'appearance_counts reports c5 zero without quiz-group coverage'
 );
 select is(
   (select cardinality(wrong_ids) from public.get_quiz_scope_sets('{}'::uuid[], '{}'::uuid[], true)),

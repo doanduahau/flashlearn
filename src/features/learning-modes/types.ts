@@ -1,8 +1,9 @@
 /**
  * Produces a no-duplicate selection with the shared learning/quiz policy:
  * latest-wrong cards first, then the remaining cards sorted ascending by
- * appearance count in the mode (fewer appearances are picked first). Ties keep
- * the caller's input order, so callers may pre-shuffle `ids` for a
+ * appearance count within the card's mode group (quiz/match/typing or
+ * memory/runner; fewer appearances are picked first). Ties keep the caller's
+ * input order, so callers may pre-shuffle `ids` for a
  * deterministic-but-varied remainder.
  */
 export function selectCardsByPriority(

@@ -11,6 +11,7 @@ import {
   shuffle,
 } from "@/features/match/utils/match-session";
 import { selectCardsByPriority } from "@/features/learning-modes/types";
+import { QUIZ_COVERAGE_MODES } from "@/features/practice-coverage/constants";
 import {
   loadAppearanceCounts,
   loadWrongAnswerCardIds,
@@ -80,7 +81,7 @@ export async function startMatchCoverageSession(
     const shuffled = shuffle(cards, random);
     const poolIds = shuffled.map((card) => card.id);
     const [appearance, wrong] = await Promise.all([
-      loadAppearanceCounts("match", poolIds),
+      loadAppearanceCounts(QUIZ_COVERAGE_MODES, poolIds),
       loadWrongAnswerCardIds(poolIds),
     ]);
     const selectedIds = selectCardsByPriority(

@@ -104,7 +104,9 @@ export async function startQuiz(input: unknown): Promise<Result> {
 /**
  * Reports the strict eligible pool sizes for the three filters over the
  * selected source scope, so the setup UI can render "Tất cả N" and cap fixed
- * counts without ever backfilling.
+ * counts without ever backfilling. `uncovered` counts cards that have never
+ * appeared in the Kiểm tra group (quiz/match/typing); the field is not shown
+ * in the UI.
  */
 export async function getQuizEligibility(
   input: unknown,

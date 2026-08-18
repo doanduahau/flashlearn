@@ -102,7 +102,10 @@ describe("startTypingSession", () => {
       expect(selectedIds).toContain("card-0");
       expect(selectedIds).toContain("card-1");
     }
-    expect(mocks.loadAppearanceCounts).toHaveBeenCalledWith("typing", expect.any(Array));
+    expect(mocks.loadAppearanceCounts).toHaveBeenCalledWith(
+      ["quiz", "match", "typing"],
+      expect.any(Array),
+    );
     expect(mocks.createAdminClient().rpc).toHaveBeenCalledWith(
       "create_learning_coverage_session",
       expect.objectContaining({ p_mode: "typing", p_user_id: "user-1" }),

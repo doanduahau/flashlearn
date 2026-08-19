@@ -165,6 +165,142 @@ export type Database = {
           },
         ]
       }
+      catalog_cards: {
+        Row: {
+          back: string
+          catalog_set_id: string
+          created_at: string
+          front: string
+          id: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          back: string
+          catalog_set_id: string
+          created_at?: string
+          front: string
+          id?: string
+          position: number
+          updated_at?: string
+        }
+        Update: {
+          back?: string
+          catalog_set_id?: string
+          created_at?: string
+          front?: string
+          id?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_cards_catalog_set_id_fkey"
+            columns: ["catalog_set_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_sets: {
+        Row: {
+          category_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_starter: boolean
+          language_back: string
+          language_front: string
+          level: string | null
+          published_at: string | null
+          slug: string
+          starter_order: number | null
+          status: string
+          tags: string[]
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_starter?: boolean
+          language_back: string
+          language_front: string
+          level?: string | null
+          published_at?: string | null
+          slug: string
+          starter_order?: number | null
+          status?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_starter?: boolean
+          language_back?: string
+          language_front?: string
+          level?: string | null
+          published_at?: string | null
+          slug?: string
+          starter_order?: number | null
+          status?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_sets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_learning_records: {
         Row: {
           completed_quiz_count: number
@@ -281,6 +417,8 @@ export type Database = {
           share_classroom_enabled: boolean
           share_token: string | null
           sort_order: number
+          source_catalog_set_id: string | null
+          source_catalog_version: number | null
           source_filename: string | null
           source_share_token: string | null
           updated_at: string
@@ -294,6 +432,8 @@ export type Database = {
           share_classroom_enabled?: boolean
           share_token?: string | null
           sort_order?: number
+          source_catalog_set_id?: string | null
+          source_catalog_version?: number | null
           source_filename?: string | null
           source_share_token?: string | null
           updated_at?: string
@@ -307,12 +447,22 @@ export type Database = {
           share_classroom_enabled?: boolean
           share_token?: string | null
           sort_order?: number
+          source_catalog_set_id?: string | null
+          source_catalog_version?: number | null
           source_filename?: string | null
           source_share_token?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "flashcard_sets_source_catalog_set_id_fkey"
+            columns: ["source_catalog_set_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_sets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       flashcards: {
         Row: {
@@ -1185,6 +1335,57 @@ export type Database = {
           },
         ]
       }
+      user_catalog_installs: {
+        Row: {
+          catalog_set_id: string
+          catalog_version: number
+          created_at: string
+          id: string
+          idempotency_key: string
+          installed_set_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          catalog_set_id: string
+          catalog_version: number
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          installed_set_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          catalog_set_id?: string
+          catalog_version?: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          installed_set_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_catalog_installs_catalog_set_id_fkey"
+            columns: ["catalog_set_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_catalog_installs_installed_set_id_fkey"
+            columns: ["installed_set_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_subscriptions: {
         Row: {
           created_at: string
@@ -1416,6 +1617,19 @@ export type Database = {
         Args: { p_cards: Json; p_name: string }
         Returns: {
           imported_count: number
+          set_id: string
+        }[]
+      }
+      install_catalog_set: {
+        Args: {
+          p_catalog_set_id: string
+          p_idempotency_key: string
+          p_user_id: string
+        }
+        Returns: {
+          already_exists: boolean
+          card_count: number
+          catalog_version: number
           set_id: string
         }[]
       }

@@ -1204,6 +1204,45 @@ export type Database = {
         }
         Relationships: []
       }
+      starter_provisioning_states: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          installed_count: number
+          last_attempt_at: string | null
+          last_error_code: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          installed_count?: number
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          installed_count?: number
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       typing_attempts: {
         Row: {
           completed_at: string | null
@@ -1613,6 +1652,20 @@ export type Database = {
           position: number
         }[]
       }
+      get_starter_backfill_batch: {
+        Args: {
+          p_after_created_at?: string
+          p_after_user_id?: string
+          p_limit?: number
+        }
+        Returns: {
+          missing_starter_cards: number
+          missing_starter_sets: number
+          provisioning_status: string
+          user_created_at: string
+          user_id: string
+        }[]
+      }
       import_flashcard_set: {
         Args: { p_cards: Json; p_name: string }
         Returns: {
@@ -1660,6 +1713,16 @@ export type Database = {
       move_flashcard_set: {
         Args: { p_direction: string; p_set_id: string }
         Returns: undefined
+      }
+      provision_starter_sets: {
+        Args: { p_user_id: string }
+        Returns: {
+          attempts: number
+          created_sets: number
+          existing_sets: number
+          missing_sets: number
+          provisioning_status: string
+        }[]
       }
       record_daily_activity: {
         Args: {

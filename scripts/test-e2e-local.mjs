@@ -4,6 +4,8 @@ import { resolveLocalSupabaseEnv } from "./lib/local-supabase-env.mjs";
 
 const npmCliPath = process.env.npm_execpath;
 if (!npmCliPath) throw new Error("npm_execpath is required for the local E2E runner.");
+const starterProvisioningEnabled = process.argv.includes("--starter-provisioning");
+const playwrightArgs = process.argv.slice(2).filter((arg) => arg !== "--starter-provisioning");
 
 function runNpm(args, env) {
   return new Promise((resolve, reject) => {
@@ -34,6 +36,7 @@ const localEnv = {
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
   SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
   CAPYSTUDY_ENVIRONMENT: "test",
+  CAPYSTUDY_STARTER_PROVISIONING_ENABLED: starterProvisioningEnabled ? "true" : "false",
   MAILPIT_URL: mailpitUrl,
   // Use the test-only classifier mock so E2E never calls real Gemini.
   CAPYSTUDY_CLASSIFIER_MOCK: "1",
@@ -49,7 +52,7 @@ const localEnv = {
 await runNpm(["run", "build"], localEnv);
 const child = spawn(
   process.execPath,
-  [npmCliPath, "exec", "--", "playwright", "test", ...process.argv.slice(2)],
+  [npmCliPath, "exec", "--", "playwright", "test", ...playwrightArgs],
   {
     stdio: "inherit",
     env: localEnv,

@@ -51,6 +51,13 @@ type TelemetryEvent =
       resource: "import" | "document_ai" | "typing_ai" | "storage";
       mode: "observe" | "warn" | "block";
       outcome: "allowed" | "warning" | "denied";
+    }
+  | {
+      name: "capystudy.provisioning.completed";
+      correlationId: TelemetryCorrelationId;
+      outcome: "completed" | "partial" | "failed" | "unavailable";
+      createdCountBucket: string;
+      missingCountBucket: string;
     };
 
 const COUNT_BUCKETS = [0, 1, 10, 25, 50, 100, 500, 1_000, 5_000, 10_000] as const;

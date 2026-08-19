@@ -2,7 +2,7 @@
 
 ## 0. Metadata
 
-- `Status`: planned
+- `Status`: implemented — production rollout/backfill pending independent review, verified backup and explicit capacity approval
 - `Difficulty`: 9/10 — rất cao
 - `Risk`: high data volume, partial failure, duplicate creation và Auth reliability
 - `Dependencies`: LP-03, LP-04

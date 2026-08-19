@@ -736,3 +736,21 @@ Existing completed sessions are snapshotted once during the migration using the 
 history from completed owned sessions, but derives active days, streaks and the fixed 30-day series
 from immutable owned `daily_learning_records`. It accepts no browser-controlled user, timezone or
 range and falls back to `Asia/Ho_Chi_Minh` when a profile timezone is invalid.
+
+## Starter catalog provisioning
+
+`starter_provisioning_states` stores durable per-user state (`pending`, `running`, `completed`,
+`partial`, or `failed`), bounded attempt counts and sanitized error codes. The service-role-only
+`provision_starter_sets` RPC serializes work per user with a transaction advisory lock and calls the
+catalog install RPC once per missing starter. Each set clone is atomic; caught per-template failures
+leave a retryable partial state without duplicating successful sets.
+
+Completion is durable even if a user later deletes a cloned starter. This prevents background login
+provisioning from undoing an explicit deletion; a future catalog UI may offer an explicit reinstall.
+Starter cards count toward storage. Legacy accounts near the Free cap receive non-expiring
+`cards.total.max` or `sets.regular.max` floors equal to their post-provision usage, while absolute safety
+ceilings remain 30,000 cards and 200 regular sets.
+
+`get_starter_backfill_batch` is a service-role-only, read-only operator RPC ordered by
+`(auth.users.created_at, auth.users.id)`. It accepts no offset and enforces a maximum page size of 100,
+allowing the operator runner to checkpoint and resume without skipping or duplicating users.

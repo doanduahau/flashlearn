@@ -769,6 +769,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
 
               <CreateSummary
                 key={`sheets-${selectedSheetIndex}-${frontColumn}-${backColumn}`}
+                source="google_sheets"
                 sourceCards={fullCards}
                 sourceMetadata={[
                   { label: "Bảng tính", value: sheetInfo.spreadsheetTitle },

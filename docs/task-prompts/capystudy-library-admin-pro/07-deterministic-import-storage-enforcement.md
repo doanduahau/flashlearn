@@ -2,7 +2,7 @@
 
 ## 0. Metadata
 
-- `Status`: planned
+- `Status`: implemented locally — production remains in `observe` until independent review and staging approval
 - `Difficulty`: 9/10 — rất cao
 - `Risk`: critical; nhiều mutation path, legacy data, concurrent growth và duplicate import
 - `Dependencies`: LP-02
@@ -112,3 +112,25 @@ Không trả SQL/provider detail. Form/draft được giữ để user giảm k�
 5. Progressive production.
 
 Rollback bằng `quota_enforcement_mode=warn|observe`; không rollback ledger/data.
+
+## 11. Implementation record (2026-08-19)
+
+- One typed application source defines Free/Pro storage and per-request import limits.
+- `flashcard_import_commits` makes logical imports idempotent per user; concurrent retries return the
+  original set instead of creating duplicates.
+- Statement-level database triggers plus an advisory lock protect set/card/collection totals against
+  direct and concurrent growth. Card-side constraints enforce a 50,000-character hard ceiling.
+- `legacy_storage_floors` captures existing usage without deleting, archiving or hiding old data.
+- User-callable RPCs do not accept an enforcement-mode or user-id override. The database-owned
+  `quota_runtime_settings` row is service-role-only; this prevents a browser caller from downgrading
+  `block` to `observe`.
+- Deterministic manual, CSV/XLSX, Google Sheets and structured Paste commits record `ai_used=false`
+  and never reserve or debit AI quota.
+- Manual/import, add/edit card, collection creation, shared clone, catalog install and starter
+  provisioning all reach the common database guard. Deletes remain unrestricted by quota.
+- Local verification covers pgTAP boundaries, legacy shrink/delete behavior, user isolation,
+  observe/warn/block, and real concurrent final-slot/idempotent-import races.
+
+Production activation and independent review are intentionally deferred in
+`docs/PRODUCTION_DEFERRED_COSTS.md`; the migration must not be applied directly to production until
+those gates are complete.

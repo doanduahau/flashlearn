@@ -12,11 +12,10 @@ import { Label } from "@/components/ui/label";
 export function PasteImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel }>) {
   const [text, setText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
-  const [previewCards, setPreviewCards] = useState<Array<{
-    front: string;
-    back: string;
-    sourceRow?: number;
-  }> | null>(null);
+  const [preview, setPreview] = useState<{
+    cards: Array<{ front: string; back: string; sourceRow?: number }>;
+    aiUsed: boolean;
+  } | null>(null);
   const [error, setError] = useState("");
 
   async function handleAnalyze(): Promise<void> {
@@ -26,10 +25,10 @@ export function PasteImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel
       const result = await analyzePasteContent(text);
       if ("error" in result) {
         setError(result.error);
-        setPreviewCards(null);
+        setPreview(null);
         return;
       }
-      setPreviewCards(result.cards);
+      setPreview({ cards: result.cards, aiUsed: result.aiUsed });
     } catch {
       setError("Không thể phân tích nội dung. Vui lòng thử lại.");
     } finally {
@@ -49,7 +48,7 @@ export function PasteImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel
           value={text}
           onChange={(e) => {
             setText(e.target.value);
-            setPreviewCards(null);
+            setPreview(null);
             setError("");
           }}
           disabled={analyzing}
@@ -76,10 +75,13 @@ export function PasteImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel
         )}
       </Button>
 
-      {previewCards && (
+      {preview && (
         <CreateSummary
-          key={`paste-${previewCards.length}`}
-          sourceCards={previewCards}
+          key={`paste-${preview.cards.length}-${preview.aiUsed}`}
+          source={preview.aiUsed ? "paste_prose" : "paste_structured"}
+          sourceChars={text.trim().length}
+          aiUsed={preview.aiUsed}
+          sourceCards={preview.cards}
           sourceMetadata={[{ label: "Nguồn", value: "Dán nội dung" }]}
           mascotLevel={mascotLevel}
         />

@@ -40,7 +40,10 @@ export async function installCatalogSet(input: unknown): Promise<InstallCatalogR
   });
   const installed = data?.[0];
   if (error || !installed) {
-    if (error?.message === "catalog_storage_quota_exceeded") {
+    if (
+      error?.message === "catalog_storage_quota_exceeded" ||
+      error?.message === "storage_quota_exceeded"
+    ) {
       return { ok: false, error: "Bạn đã đạt giới hạn bộ hoặc thẻ của gói hiện tại." };
     }
     if (error?.message === "catalog_hard_storage_ceiling") {

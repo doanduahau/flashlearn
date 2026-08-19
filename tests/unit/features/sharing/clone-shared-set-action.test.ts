@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("@/lib/telemetry/feature-flags", () => ({
+  getFeatureFlags: () => ({ quotaEnforcementMode: "observe" }),
+}));
 
 import { cloneSharedSet } from "@/features/sharing/server/actions";
 
@@ -60,9 +63,10 @@ describe("cloneSharedSet", () => {
 
     const result = await cloneSharedSet(TOKEN);
     expect(result).toEqual({ setId: SET_ID, alreadyExists: false });
-    expect(admin.rpc).toHaveBeenCalledWith("clone_shared_set", {
+    expect(admin.rpc).toHaveBeenCalledWith("clone_shared_set_with_quota", {
       p_token: TOKEN,
       p_user_id: "user-a",
+      p_enforcement_mode: "observe",
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/sets");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/sets/library");

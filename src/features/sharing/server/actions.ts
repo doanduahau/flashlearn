@@ -6,6 +6,7 @@ import type { ZodError } from "zod";
 import { cloneSharedSetSchema, shareActionSchema } from "@/features/sharing/schemas/share-schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getFeatureFlags } from "@/lib/telemetry/feature-flags";
 
 type ShareActionResult = { ok: true } | { ok: false; error: string };
 
@@ -96,12 +97,16 @@ export async function cloneSharedSet(
   if (!userId) return { error: "Bạn cần đăng nhập để lưu bộ flashcard này." };
 
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("clone_shared_set", {
+  const { data, error } = await admin.rpc("clone_shared_set_with_quota", {
     p_token: parsed.data.token,
     p_user_id: userId,
+    p_enforcement_mode: getFeatureFlags().quotaEnforcementMode,
   });
 
   if (error || !data?.[0]?.new_set_id) {
+    if (error?.message === "storage_quota_exceeded") {
+      return { error: "Bạn đã đạt giới hạn bộ hoặc thẻ của gói hiện tại." };
+    }
     return { error: "Không thể lưu bộ flashcard này lúc này. Vui lòng thử lại." };
   }
 

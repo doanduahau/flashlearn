@@ -12,6 +12,7 @@ type RateLimitPolicy =
   | "authSignIn"
   | "authSignUp"
   | "import"
+  | "importPro"
   | "aiGeneration"
   | "googleSheets"
   | "learningSubmit"
@@ -28,6 +29,7 @@ const POLICY_CONFIG: Record<RateLimitPolicy, PolicyConfig> = {
   authSignIn: { limit: 5, window: "15 m" },
   authSignUp: { limit: 4, window: "1 h" },
   import: { limit: 12, window: "1 h" },
+  importPro: { limit: 30, window: "1 h" },
   aiGeneration: { limit: 20, window: "1 h" },
   googleSheets: { limit: 30, window: "10 m" },
   learningSubmit: { limit: 30, window: "10 m" },

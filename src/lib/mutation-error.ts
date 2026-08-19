@@ -11,6 +11,12 @@ const FALLBACK_MESSAGE = "Không thể hoàn tất thao tác. Hãy thử lại."
 
 export function mapMutationError(error: MutationError | null | undefined): string {
   if (!error) return FALLBACK_MESSAGE;
+  if (error.message === "storage_quota_exceeded")
+    return "Bạn đã đạt giới hạn dữ liệu của gói hiện tại.";
+  if (error.message === "storage_card_side_limit")
+    return "Một mặt thẻ vượt giới hạn ký tự của gói hiện tại.";
+  if (error.message === "storage_growth_blocked")
+    return "Tài khoản đang vượt giới hạn. Bạn vẫn có thể rút ngắn hoặc xóa dữ liệu cũ.";
   switch (error.code) {
     case "42501":
       return "Bạn không có quyền thực hiện thao tác này.";

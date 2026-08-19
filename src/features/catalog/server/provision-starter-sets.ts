@@ -29,8 +29,9 @@ export async function provisionStarterSetsForAuthenticatedUser(
   if (!getFeatureFlags().starterProvisioningEnabled) return { outcome: "disabled" };
 
   try {
-    const { data, error } = await createAdminClient().rpc("provision_starter_sets", {
+    const { data, error } = await createAdminClient().rpc("provision_starter_sets_with_quota", {
       p_user_id: userId,
+      p_enforcement_mode: getFeatureFlags().quotaEnforcementMode,
     });
     const result = data?.[0];
     if (error || !result) {

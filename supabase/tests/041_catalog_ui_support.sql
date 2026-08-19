@@ -20,7 +20,7 @@ select is(public.claim_starter_onboarding_banner('a2000000-0000-4000-8000-000000
 insert into public.flashcard_sets(id,user_id,name) values('b2000000-0000-4000-8000-000000000002','a2000000-0000-4000-8000-000000000002','Near quota');
 insert into public.flashcards(user_id,set_id,front,back,position)
 select 'a2000000-0000-4000-8000-000000000002','b2000000-0000-4000-8000-000000000002','F'||n,'B'||n,n from generate_series(1,2951)n;
-select throws_ok($$select * from public.install_catalog_set_for_user('a2000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','a2100000-0000-4000-8000-000000000003','block')$$,'P0001','catalog_storage_quota_exceeded','block mode enforces Free card quota');
+select throws_ok($$select * from public.install_catalog_set_for_user('a2000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','a2100000-0000-4000-8000-000000000003','block')$$,'P0001','storage_quota_exceeded','block mode enforces Free card quota');
 select is((select count(*)::integer from public.flashcard_sets where user_id='a2000000-0000-4000-8000-000000000002'),1,'rejected quota install creates no partial set');
 select lives_ok($$select * from public.install_catalog_set_for_user('a2000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','a2100000-0000-4000-8000-000000000004','observe')$$,'observe mode records policy without blocking');
 select is((select count(*)::integer from public.flashcard_sets where user_id='a2000000-0000-4000-8000-000000000002'),2,'observe mode creates one complete clone');

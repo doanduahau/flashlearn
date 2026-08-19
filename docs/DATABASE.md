@@ -760,3 +760,26 @@ The service-role-only `claim_starter_onboarding_banner` RPC atomically claims th
 User-initiated catalog installs use `install_catalog_set_for_user`, which serializes storage decisions
 per user, applies the server-side observe/warn/block mode, enforces absolute 30,000-card/200-set
 ceilings and delegates the atomic clone to `install_catalog_set`.
+
+## Storage quota and deterministic imports
+
+`legacy_storage_floors` snapshots the set/card/collection totals that existed when LP-07 was applied.
+An account above its current plan limit may keep and delete existing data, but cannot grow beyond the
+higher of its entitlement and captured floor after enforcement reaches `block`.
+
+`flashcard_import_commits` stores one result per `(user_id, idempotency_key)`. Clients create one UUID
+for a logical commit and reuse it on retry. `commit_flashcard_import` authenticates with `auth.uid()`,
+serializes storage decisions with a per-user transaction advisory lock, validates deterministic-source
+metadata, and returns the first result for a replay. Original uploaded files are not persisted.
+
+All inserts into `flashcard_sets`, `flashcards`, and `special_collections` pass statement-level quota
+triggers, including service-role batch paths. The triggers count source-of-truth rows inside the locked
+transaction, so there is no projection to reconcile. Card writes also enforce the plan's soft per-side
+limit in `block`; an already oversized legacy value may shrink but not grow. A validated 50,000-character
+constraint is the absolute database ceiling.
+
+`quota_runtime_settings` is service-role-only and defaults to `observe`. User-callable mutation RPCs do
+not accept a mode or user ID, preventing browser callers from forging plan or rollout state. Service-role
+catalog/share/starter wrappers may receive the trusted server rollout mode. Production rollout must move
+through observe, warn, staging block and progressive production block; rollback changes the database mode
+to `warn` or `observe` and never mutates user data.

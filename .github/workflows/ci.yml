@@ -44,6 +44,7 @@ jobs:
       - run: npm ci
       - run: supabase start
       - run: npm run db:test
+      - run: npm run test:storage:local
       - run: npm run fsrs:test:local
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

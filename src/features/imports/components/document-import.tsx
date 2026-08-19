@@ -62,9 +62,11 @@ export function DocumentImport({
   const [generatedCards, setGeneratedCards] = useState<DraftFlashcard[] | null>(null);
   const [genWarnings, setGenWarnings] = useState<string[]>([]);
   const [genLimitExceeded, setGenLimitExceeded] = useState(false);
+  const [generationAiUsed, setGenerationAiUsed] = useState(false);
   const [genKey, setGenKey] = useState(0);
   const [error, setError] = useState("");
   const [fileName, setFileName] = useState("");
+  const [fileSize, setFileSize] = useState(0);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const initialFileRef = useRef(initialFile);
@@ -80,15 +82,18 @@ export function DocumentImport({
     setExtraction(null);
     setAnalysis(null);
     setGeneratedCards(null);
+    setGenerationAiUsed(false);
     setGenWarnings([]);
     setError("");
     setFileName("");
+    setFileSize(0);
     if (inputRef.current) inputRef.current.value = "";
   }
 
   async function handleFile(file: File | undefined): Promise<void> {
     if (!file) return;
     setFileName(file.name);
+    setFileSize(file.size);
     setError("");
     setAnalysis(null);
 
@@ -138,6 +143,7 @@ export function DocumentImport({
           setError(result.error);
         } else {
           setGeneratedCards(result.cards);
+          setGenerationAiUsed(result.metrics.aiInputChars > 0 || result.metrics.aiRequests > 0);
           setGenWarnings(result.warnings);
           setGenLimitExceeded(result.limitExceeded);
           setGenKey((k) => k + 1);
@@ -235,6 +241,10 @@ export function DocumentImport({
           {generatedCards && generatedCards.length > 0 && (
             <CreateSummary
               key={`doc-${genKey}`}
+              source={extraction.sourceType}
+              sourceBytes={fileSize}
+              sourceChars={extraction.totalCharacters}
+              aiUsed={generationAiUsed}
               sourceCards={generatedCards}
               sourceMetadata={[
                 { label: "Tệp", value: fileName },

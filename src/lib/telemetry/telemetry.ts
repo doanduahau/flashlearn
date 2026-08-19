@@ -14,6 +14,7 @@ export type RateLimitTelemetryPolicy =
   | "authSignIn"
   | "authSignUp"
   | "import"
+  | "importPro"
   | "aiGeneration"
   | "googleSheets"
   | "learningSubmit"

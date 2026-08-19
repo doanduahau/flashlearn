@@ -408,6 +408,42 @@ export type Database = {
           },
         ]
       }
+      flashcard_import_commits: {
+        Row: {
+          ai_used: boolean
+          created_at: string
+          idempotency_key: string
+          imported_count: number
+          set_id: string
+          source_bytes: number
+          source_chars: number
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          ai_used: boolean
+          created_at?: string
+          idempotency_key: string
+          imported_count: number
+          set_id: string
+          source_bytes: number
+          source_chars: number
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          ai_used?: boolean
+          created_at?: string
+          idempotency_key?: string
+          imported_count?: number
+          set_id?: string
+          source_bytes?: number
+          source_chars?: number
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       flashcard_sets: {
         Row: {
           created_at: string
@@ -548,6 +584,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legacy_storage_floors: {
+        Row: {
+          captured_at: string
+          cards: number
+          collections: number
+          regular_sets: number
+          user_id: string
+        }
+        Insert: {
+          captured_at?: string
+          cards: number
+          collections: number
+          regular_sets: number
+          user_id: string
+        }
+        Update: {
+          captured_at?: string
+          cards?: number
+          collections?: number
+          regular_sets?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       match_attempts: {
         Row: {
@@ -1040,6 +1100,24 @@ export type Database = {
           },
         ]
       }
+      quota_runtime_settings: {
+        Row: {
+          singleton: boolean
+          storage_enforcement_mode: string
+          updated_at: string
+        }
+        Insert: {
+          singleton?: boolean
+          storage_enforcement_mode: string
+          updated_at?: string
+        }
+        Update: {
+          singleton?: boolean
+          storage_enforcement_mode?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       runner_personal_bests: {
         Row: {
           best_ms: number
@@ -1493,6 +1571,14 @@ export type Database = {
           position: number
         }[]
       }
+      add_flashcard_with_quota: {
+        Args: { p_back: string; p_front: string; p_set_id: string }
+        Returns: {
+          flashcard_id: string
+          position: number
+        }[]
+      }
+      assert_storage_totals: { Args: { p_user_id: string }; Returns: undefined }
       claim_starter_onboarding_banner: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -1502,6 +1588,29 @@ export type Database = {
         Returns: {
           already_exists: boolean
           new_set_id: string
+        }[]
+      }
+      clone_shared_set_with_quota: {
+        Args: { p_enforcement_mode: string; p_token: string; p_user_id: string }
+        Returns: {
+          already_exists: boolean
+          new_set_id: string
+        }[]
+      }
+      commit_flashcard_import: {
+        Args: {
+          p_ai_used: boolean
+          p_cards: Json
+          p_idempotency_key: string
+          p_name: string
+          p_source_bytes: number
+          p_source_chars: number
+          p_source_type: string
+        }
+        Returns: {
+          already_exists: boolean
+          imported_count: number
+          set_id: string
         }[]
       }
       complete_learning_coverage_session: {
@@ -1567,6 +1676,10 @@ export type Database = {
       }
       create_special_collection: {
         Args: { p_color?: string; p_icon?: string; p_name: string }
+        Returns: string
+      }
+      create_special_collection_with_quota: {
+        Args: { p_name: string }
         Returns: string
       }
       finalize_usage: {
@@ -1745,6 +1858,16 @@ export type Database = {
           provisioning_status: string
         }[]
       }
+      provision_starter_sets_with_quota: {
+        Args: { p_enforcement_mode: string; p_user_id: string }
+        Returns: {
+          attempts: number
+          created_sets: number
+          existing_sets: number
+          missing_sets: number
+          provisioning_status: string
+        }[]
+      }
       record_daily_activity: {
         Args: {
           p_correct_answers: number
@@ -1844,6 +1967,7 @@ export type Database = {
         Args: { p_enabled: boolean; p_set_id: string; p_user_id: string }
         Returns: undefined
       }
+      storage_enforcement_mode: { Args: never; Returns: string }
       submit_quiz_answer: {
         Args: { p_question_id: string; p_selected_choice_index: number }
         Returns: {
@@ -1861,6 +1985,15 @@ export type Database = {
           result_best_ms: number
           result_question_count: number
         }[]
+      }
+      update_flashcard_with_quota: {
+        Args: {
+          p_back: string
+          p_card_id: string
+          p_front: string
+          p_set_id: string
+        }
+        Returns: string
       }
       update_profile: {
         Args: { p_display_name: string; p_timezone: string }

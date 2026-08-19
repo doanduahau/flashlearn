@@ -39,7 +39,7 @@ set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
 create temporary table created_coll as
-select public.create_special_collection('  Khó nhớ  ') as id;
+select public.create_special_collection_with_quota('  Khó nhớ  ') as id;
 
 select is(
   (select id from created_coll) is not null,
@@ -59,7 +59,7 @@ select is(
 );
 
 create temporary table created_coll2 as
-select public.create_special_collection('Quan trọng') as id;
+select public.create_special_collection_with_quota('Quan trọng') as id;
 
 select is(
   (select count(*) from public.special_collections where user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
@@ -68,23 +68,23 @@ select is(
 );
 
 select throws_ok(
-  $$select public.create_special_collection('khó NHỚ')$$,
+  $$select public.create_special_collection_with_quota('khó NHỚ')$$,
   '23505', NULL, 'duplicate collection name is rejected case-insensitively'
 );
 
 select throws_ok(
-  $$select public.create_special_collection('   ')$$,
+  $$select public.create_special_collection_with_quota('   ')$$,
   '22023', NULL, 'blank collection name rejected'
 );
 
 select throws_ok(
-  $$select public.create_special_collection(repeat('a', 61))$$,
+  $$select public.create_special_collection_with_quota(repeat('a', 61))$$,
   '22023', NULL, 'collection name over 60 chars rejected'
 );
 
 select throws_ok(
   $$select public.create_special_collection('OK', repeat('i', 33))$$,
-  '22023', NULL, 'collection icon over 32 chars rejected'
+  '42501', NULL, 'legacy collection creation RPC is no longer callable'
 );
 
 -- set_card_collections -----------------------------------------------------------
@@ -231,7 +231,7 @@ select is(
 set local role anon;
 
 select throws_ok(
-  $$select public.create_special_collection('Anon')$$,
+  $$select public.create_special_collection_with_quota('Anon')$$,
   '42501', NULL, 'anonymous create_special_collection denied'
 );
 select throws_ok(

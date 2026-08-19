@@ -65,3 +65,19 @@ the existing-user backfill remain disabled until all of the following exist:
 
 Review this file before opening the product publicly, when any free-tier quota
 is reached, or at the next quarterly recovery drill.
+
+## Deferred LP-07 production enforcement
+
+The LP-07 migration and application paths are implemented and verified against local Supabase. Keep
+production unapplied/observational until all items below are complete:
+
+1. Obtain an independent database/security review of all quota triggers, security-definer RPC grants,
+   idempotency isolation, advisory-lock concurrency and legacy-floor behavior.
+2. Apply LP-05, LP-06 and LP-07 migrations to the dedicated staging project in order; run pgTAP,
+   storage concurrency integration and relevant import/catalog/share E2E there.
+3. Query real production set/card/collection and card-side distributions, then review accounts whose
+   current usage exceeds Free limits. Confirm the captured floors before enabling warnings.
+4. Keep `quota_runtime_settings.storage_enforcement_mode = 'observe'` for the sampling period, then
+   change to `warn` only after warning UI/telemetry is verified. Do not let the public client choose mode.
+5. Obtain a separate owner approval before changing staging or production to `block`; retain the tested
+   rollback procedure that changes the row back to `warn`/`observe` without deleting user data.

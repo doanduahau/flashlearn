@@ -11,6 +11,7 @@ import { validateDocumentFile } from "@/features/imports/utils/document-validati
 import { DOCUMENT_MAX_BYTES, DOCUMENT_MAX_EXTRACTED_CHARS } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
+import { createTelemetryCorrelationId, recordDocumentTelemetry } from "@/lib/telemetry/telemetry";
 
 type ExtractResult = { document: ExtractedDocument } | { error: string };
 
@@ -85,6 +86,7 @@ function logPdfProcessingFailure(error: unknown, fileSizeBytes: number): void {
 }
 
 export async function extractDocument(formData: FormData): Promise<ExtractResult> {
+  const correlationId = createTelemetryCorrelationId();
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims) return { error: "Phiên đăng nhập đã hết hạn." };
@@ -126,6 +128,13 @@ export async function extractDocument(formData: FormData): Promise<ExtractResult
     if (validation.sourceType === "pdf") {
       logPdfProcessingFailure(err, file.size);
     }
+    recordDocumentTelemetry({
+      correlationId,
+      operation: "extract",
+      outcome: "failed",
+      processingPath: "deterministic",
+      inputSize: file.size,
+    });
     return { error: "Không thể đọc tệp này. Hãy kiểm tra tệp chưa bị hỏng." };
   }
 
@@ -142,6 +151,15 @@ export async function extractDocument(formData: FormData): Promise<ExtractResult
       error: "PDF này không có văn bản có thể đọc. CapyStudy hiện chưa hỗ trợ PDF scan/ảnh.",
     };
   }
+
+  recordDocumentTelemetry({
+    correlationId,
+    operation: "extract",
+    outcome: "succeeded",
+    processingPath: "deterministic",
+    inputSize: file.size,
+    outputCount: document.blocks.length,
+  });
 
   return { document };
 }

@@ -18,6 +18,7 @@ import {
 } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { isTestRuntime } from "@/lib/env";
+import { createTelemetryCorrelationId, recordDocumentTelemetry } from "@/lib/telemetry/telemetry";
 
 // ─── Test-only generation mock (env-gated) ─────────────────────────────────
 
@@ -336,6 +337,7 @@ function deduplicateCards(cards: DraftFlashcard[]): DraftFlashcard[] {
 // ─── Main orchestrator ────────────────────────────────────────────────────
 
 export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise<GenerationResult> {
+  const correlationId = createTelemetryCorrelationId();
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims) return { error: "Phiên đăng nhập đã hết hạn." };
@@ -423,7 +425,7 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
   if (deduped.length > IMPORT_MAX_ROWS) {
     metrics.deterministicCards = detCardCount;
     metrics.aiGeneratedCards = aiCardCount;
-    return {
+    const response = {
       cards: deduped,
       metrics,
       warnings: [
@@ -432,6 +434,15 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
       ],
       limitExceeded: true,
     };
+    recordDocumentTelemetry({
+      correlationId,
+      operation: "generate",
+      outcome: "rejected",
+      processingPath: metrics.aiRequests > 0 ? "mixed" : "deterministic",
+      inputSize: metrics.sourceChars,
+      outputCount: deduped.length,
+    });
+    return response;
   }
 
   const validated = validateDraftCards(deduped);
@@ -439,10 +450,19 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
   metrics.deterministicCards = detCardCount;
   metrics.aiGeneratedCards = aiCardCount;
 
-  return {
+  const response = {
     cards: validated.cards,
     metrics,
     warnings: warnings.length > 0 ? warnings : [],
     limitExceeded: false,
   };
+  recordDocumentTelemetry({
+    correlationId,
+    operation: "generate",
+    outcome: "succeeded",
+    processingPath: metrics.aiRequests > 0 ? "mixed" : "deterministic",
+    inputSize: metrics.sourceChars,
+    outputCount: response.cards.length,
+  });
+  return response;
 }

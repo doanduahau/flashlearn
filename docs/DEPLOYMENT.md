@@ -458,7 +458,7 @@ CapyStudy deploys to Vercel via git. The simplest rollback:
 
 - `src/lib/logger.ts`: console-based logger with `info` (non-production only), `warn`, `error`
 - Error boundary: `src/app/error.tsx` — user-friendly retry screen, `console.error(error)` for diagnostics
-- Structured logging, Sentry capture and health/readiness probes are implemented; request IDs and first-party metrics remain future work.
+- Structured logging, Sentry breadcrumbs, correlation IDs and health/readiness probes are implemented. The initial commercial telemetry taxonomy and staged rollout flags are documented in `docs/TELEMETRY.md`; durable first-party usage records remain future work.
 
 ### Adequate for Controlled Smoke
 

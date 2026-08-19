@@ -13,6 +13,7 @@ import {
 } from "@/features/imports/utils/document-classifier";
 import { DOCUMENT_ANALYSIS_MAX_AI_SECTIONS, DOCUMENT_MAX_EXTRACTED_CHARS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
+import { createTelemetryCorrelationId, recordDocumentTelemetry } from "@/lib/telemetry/telemetry";
 
 type AnalyzeResult = { document: AnalyzedDocument } | { error: string };
 
@@ -32,6 +33,7 @@ function sectionText(section: BuiltSection): string {
 }
 
 export async function analyzeDocument(extracted: ExtractedDocument): Promise<AnalyzeResult> {
+  const correlationId = createTelemetryCorrelationId();
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims) return { error: "Phiên đăng nhập đã hết hạn." };
@@ -124,18 +126,27 @@ export async function analyzeDocument(extracted: ExtractedDocument): Promise<Ana
     }
   }
 
-  return {
-    document: {
-      sourceType: extracted.sourceType,
-      title: extracted.title,
-      sections,
-      totalCharacters: extracted.totalCharacters,
-      analysis: {
-        deterministicSections: deterministicCount,
-        aiSections: aiCallCount,
-        sourceChars,
-        aiInputChars,
-      },
+  const document: AnalyzedDocument = {
+    sourceType: extracted.sourceType,
+    title: extracted.title,
+    sections,
+    totalCharacters: extracted.totalCharacters,
+    analysis: {
+      deterministicSections: deterministicCount,
+      aiSections: aiCallCount,
+      sourceChars,
+      aiInputChars,
     },
   };
+
+  recordDocumentTelemetry({
+    correlationId,
+    operation: "analyze",
+    outcome: "succeeded",
+    processingPath: aiCallCount > 0 ? "mixed" : "deterministic",
+    inputSize: extracted.totalCharacters,
+    outputCount: sections.length,
+  });
+
+  return { document };
 }

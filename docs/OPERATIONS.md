@@ -10,6 +10,7 @@ The production owner is responsible for Vercel, Supabase, Upstash, Sentry and Go
 - Poll `GET /api/health/ready` with `Authorization: Bearer $HEALTHCHECK_TOKEN` for dependency readiness.
 - Alert on health/readiness failure, Sentry new issue or error-rate spike, Gemini/Google Sheets failure spike, circuit breaker opening, and rate-limit spikes.
 - Inspect structured events in Sentry by `event`, `service`, environment and trace.
+- Use the fixed event taxonomy and baseline queries in `docs/TELEMETRY.md`; never search for or export raw learning content while investigating an incident.
 
 ## Incident response
 
@@ -24,5 +25,6 @@ The production owner is responsible for Vercel, Supabase, Upstash, Sentry and Go
 
 1. Merge only after CI passes. Deploy the exact commit to staging with separate Supabase/Redis/Sentry projects and secrets.
 2. Run `npm run smoke:staging`, verify Sentry events, health probes and no mock/test environment flags.
-3. Promote the same commit to production through CI/CD. The owner verifies the post-deploy smoke matrix in `DEPLOYMENT.md`.
-4. Roll back Vercel immediately when smoke checks fail. Stop and investigate if migration state differs from the expected head.
+3. Keep new CapyStudy feature flags disabled by default; enable one flag in staging, review the matching telemetry for seven days where practical, then promote the same configuration through CI/CD.
+4. Promote the same commit to production through CI/CD. The owner verifies the post-deploy smoke matrix in `DEPLOYMENT.md`.
+5. Roll back Vercel immediately when smoke checks fail. Stop and investigate if migration state differs from the expected head.

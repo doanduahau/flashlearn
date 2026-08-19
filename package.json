@@ -12,6 +12,7 @@
     "format:check": "prettier --check .",
     "sbom": "cyclonedx-npm --ignore-npm-errors --output-file reports/sbom.cdx.json",
     "smoke:staging": "node scripts/smoke-environment.mjs",
+    "baseline:usage": "tsx scripts/report-usage-baseline.ts",
     "icons": "node scripts/generate-pwa-icons.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { logger } from "@/lib/logger";
 import { env } from "@/lib/env";
 import { getManagedRedis } from "@/lib/security/managed-redis";
+import { recordRateLimitTelemetry } from "@/lib/telemetry/telemetry";
 
 type RateLimitPolicy =
   | "authSignIn"
@@ -89,6 +90,10 @@ export async function consumeRateLimit(
   const limiter = getLimiter(policy);
   if (!limiter) {
     if (isProductionRuntime()) logger.error("rate_limit.unavailable", { policy, production: true });
+    recordRateLimitTelemetry({
+      policy,
+      outcome: isProductionRuntime() ? "unavailable" : "allowed",
+    });
     return isProductionRuntime()
       ? { ok: false, retryAfterSeconds: 60, unavailable: true }
       : { ok: true };
@@ -96,12 +101,21 @@ export async function consumeRateLimit(
 
   try {
     const result = await limiter.limit(identifier);
-    if (result.success) return { ok: true };
+    if (result.success) {
+      recordRateLimitTelemetry({ policy, outcome: "allowed" });
+      return { ok: true };
+    }
     const retryAfterSeconds = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
     logger.warn("rate_limit.exceeded", { policy, retryAfterSeconds });
+    recordRateLimitTelemetry({ policy, outcome: "limited", retryAfterSeconds });
     return { ok: false, retryAfterSeconds, unavailable: false };
   } catch (error) {
     if (isProductionRuntime()) logger.exception("rate_limit.check_failed", error, { policy });
+    recordRateLimitTelemetry({
+      policy,
+      outcome: isProductionRuntime() ? "unavailable" : "allowed",
+      retryAfterSeconds: 60,
+    });
     return isProductionRuntime()
       ? { ok: false, retryAfterSeconds: 60, unavailable: true }
       : { ok: true };

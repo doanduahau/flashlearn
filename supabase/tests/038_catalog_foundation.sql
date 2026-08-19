@@ -16,8 +16,8 @@ select is(has_table_privilege('authenticated','public.catalog_sets','insert'),fa
 select is(has_function_privilege('authenticated','public.install_catalog_set(uuid,uuid,uuid)','execute'),false,'browser cannot call install RPC');
 select is(has_function_privilege('service_role','public.install_catalog_set(uuid,uuid,uuid)','execute'),true,'service role can call install RPC');
 set local role authenticated; set local request.jwt.claim.sub='aaaaaaaa-cccc-cccc-cccc-cccccccccccc';
-select is((select count(*)::integer from public.catalog_sets),1,'authenticated reads only published catalog sets');
-select is((select count(*)::integer from public.catalog_cards),2,'authenticated reads cards of published catalog sets');
+select is((select count(*)::integer from public.catalog_sets where id in ('22222222-cccc-cccc-cccc-cccccccccccc','33333333-cccc-cccc-cccc-cccccccccccc')),1,'authenticated reads published fixture but not draft fixture');
+select is((select count(*)::integer from public.catalog_cards where catalog_set_id='22222222-cccc-cccc-cccc-cccccccccccc'),2,'authenticated reads cards of published fixture');
 reset role;
 
 select lives_ok($$select * from public.install_catalog_set('aaaaaaaa-cccc-cccc-cccc-cccccccccccc','22222222-cccc-cccc-cccc-cccccccccccc','44444444-cccc-4ccc-8ccc-cccccccccccc')$$,'installs published set');

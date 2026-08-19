@@ -452,6 +452,45 @@ CapyStudy deploys to Vercel via git. The simplest rollback:
 
 ---
 
+## 11A. Production Deployment Record — 2026-08-20
+
+**Ngày triển khai:** 2026-08-20
+**Production branch:** `main`
+**Production commit:** `dcdca5c` (`ops: add production backup workflow`)
+**Staging URL:** https://flashlearn-git-staging-pham-van-doans-projects.vercel.app
+**Production URL:** https://flashlearn-six.vercel.app
+
+### Migration Status
+
+- Remote head: `20260819220000`
+- Remote migrations applied: 46 (full set, no pending)
+- Local migration head matches remote: YES
+- RLS verified: YES (all public tables `rowsecurity = true`)
+
+### Storage Preflight
+
+- Storage preflight: PASS
+- Maximum card-side characters: 81
+- Card sides > 50,000: 0
+- `storage_enforcement_mode` = `observe` (kept at observe; no warn/block)
+
+### Smoke / Readiness
+
+- Production `/api/health/ready` = 204
+- Staging Sentry verified with `environment=staging`
+- Production backup workflow (`npm run backup:production`) ran successfully (roles/schema/data + manifest)
+
+### Rollback Decision
+
+- Not required.
+
+### Deferred
+
+- Restore drill on an isolated Supabase project to demonstrate RTO <= 4h.
+- Custom domain / email branding (not yet deployed).
+
+---
+
 ## 12. Observability Readiness
 
 ### Current State

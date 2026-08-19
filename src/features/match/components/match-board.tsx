@@ -46,7 +46,14 @@ export function MatchBoard({ batches, questionCount, isPaused, onComplete }: Mat
         wrongCardIds: state.wrongCardIds,
       });
     }
-  }, [phase, onComplete, state.completedPairCount, state.incorrectAttemptCount, batches]);
+  }, [
+    phase,
+    onComplete,
+    state.completedPairCount,
+    state.incorrectAttemptCount,
+    state.correctCardIds,
+    state.wrongCardIds,
+  ]);
 
   if (phase === "completed") {
     return null;

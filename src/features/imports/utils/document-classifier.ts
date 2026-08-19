@@ -1,4 +1,3 @@
-import type { ExtractedDocumentBlock } from "../types/document-types";
 import type { SectionKind } from "../types/document-types";
 import type { BuiltSection } from "./section-builder";
 

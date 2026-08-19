@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SignInForm } from "@/features/auth/components/sign-in-form";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 export const metadata: Metadata = {
   title: "Đăng nhập",
@@ -11,7 +12,7 @@ export default function SignInPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6">
       <div className="flex items-center gap-2 font-heading text-lg font-bold">
-        <img src="/mascot/logo.png" alt="" aria-hidden="true" className="size-6 object-contain" />
+        <BrandLogo className="size-6 object-contain" />
         CapyStudy
       </div>
 

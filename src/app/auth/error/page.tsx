@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { MascotImage } from "@/features/mascot/components/mascot-image";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 export const metadata: Metadata = {
   title: "Lỗi xác thực",
@@ -12,7 +13,7 @@ export default function AuthErrorPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6">
       <div className="flex items-center gap-2 font-heading text-lg font-bold">
-        <img src="/mascot/logo.png" alt="" aria-hidden="true" className="size-6 object-contain" />
+        <BrandLogo className="size-6 object-contain" />
         CapyStudy
       </div>
 

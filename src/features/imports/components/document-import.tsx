@@ -12,7 +12,6 @@ import type {
 } from "@/features/imports/types/document-types";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { CreateSummary } from "@/features/imports/components/create-summary";
-import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { DOCUMENT_MAX_BYTES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";

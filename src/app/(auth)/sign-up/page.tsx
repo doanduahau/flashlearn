@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SignUpErrorDisplay } from "@/features/auth/components/sign-up-error-display";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 import { signUp } from "@/features/auth/server/actions";
 
@@ -85,7 +86,7 @@ export default function SignUpPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6">
       <div className="flex items-center gap-2 font-heading text-lg font-bold">
-        <img src="/mascot/logo.png" alt="" aria-hidden="true" className="size-6 object-contain" />
+        <BrandLogo className="size-6 object-contain" />
         CapyStudy
       </div>
 

@@ -34,7 +34,7 @@ function supabaseFor(
         data: userId ? { claims: { sub: userId } } : null,
       }),
     },
-    from: vi.fn((table: string) => ({
+    from: vi.fn(() => ({
       select: vi.fn(() => {
         const builder = {
           in: vi.fn().mockResolvedValue({ data: cards ?? [], error: null }),

@@ -1,4 +1,4 @@
-import type { GoogleSheetMeta, SheetData } from "../adapters/google-sheets-adapter";
+import type { GoogleSheetMeta } from "../adapters/google-sheets-adapter";
 import { GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
 
 export type SheetMetaJson = {
@@ -76,15 +76,4 @@ export function parseColumnBodies(json: unknown, columns: number[]): ColumnBodie
   }
 
   return { headers, rows, rowCount: rows.length };
-}
-
-export function parseSheetValues(json: unknown, _sheetTitle: string): SheetData {
-  const values = (json as { values?: unknown }).values;
-  const rows: string[][] = Array.isArray(values)
-    ? (values as unknown[][]).map((row) => (Array.isArray(row) ? row.map(String) : []))
-    : [];
-  const limited = rows.slice(0, IMPORT_MAX_ROWS + 1);
-  const headers = (limited[0] ?? []).map((cell) => String(cell ?? ""));
-  const dataRows = limited.slice(1);
-  return { headers, rows: dataRows, rowCount: Math.max(0, rows.length - 1) };
 }

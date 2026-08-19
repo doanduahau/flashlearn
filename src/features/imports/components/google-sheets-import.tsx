@@ -138,7 +138,6 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
   const [selectedSheetIndex, setSelectedSheetIndex] = useState(0);
   const [frontColumn, setFrontColumn] = useState(0);
   const [backColumn, setBackColumn] = useState(1);
-  const [needsMapping, setNeedsMapping] = useState(false);
   const [meaningfulColumns, setMeaningfulColumns] = useState<MeaningfulColumn[]>([]);
   const [spreadsheetId, setSpreadsheetId] = useState("");
   const [accessToken, setAccessToken] = useState("");
@@ -218,7 +217,6 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
       });
       setFrontColumn(fallbackMapping.frontColumn);
       setBackColumn(fallbackMapping.backColumn);
-      setNeedsMapping(false);
       setMode("loaded");
       return;
     }
@@ -245,7 +243,6 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
     });
     setFrontColumn(analysis.mapping.frontColumn);
     setBackColumn(analysis.mapping.backColumn);
-    setNeedsMapping(false);
     setMode("loaded");
   }
 

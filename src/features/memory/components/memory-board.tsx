@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 
 import type { MemoryBatch, MemoryTile } from "@/features/memory/types/memory-types";
 import {
@@ -140,7 +141,7 @@ export function MemoryBoard({ batches, questionCount, isPaused, onComplete }: Me
   const preview = previewTile(state);
   const completed = state.completedCount;
 
-  function handleTap(tile: MemoryTile, now: number): void {
+  function handleTap(tile: MemoryTile): void {
     if (state.matchedKeys.has(tile.key)) return;
     const next = tapTile(state, tile.key);
     setState(next);
@@ -209,7 +210,7 @@ export function MemoryBoard({ batches, questionCount, isPaused, onComplete }: Me
             disabled={state.matchedKeys.has(tile.key) || isPaused === true}
             onTap={() => {
               if (isPaused) return;
-              handleTap(tile, Date.now());
+              handleTap(tile);
             }}
           />
         ))}
@@ -266,11 +267,13 @@ function MemoryTileButton({
           aria-hidden="true"
           className="absolute inset-0 flex h-full w-full items-center justify-center rounded-xl border-2 border-primary bg-primary-soft [backface-visibility:hidden] [transform:rotateY(180deg)] sm:rounded-2xl"
         >
-          <img
+          <Image
             src="/mascot/logo.png"
             alt=""
             aria-hidden="true"
             className="h-4/5 w-4/5 object-contain"
+            width={96}
+            height={96}
           />
         </span>
       </button>

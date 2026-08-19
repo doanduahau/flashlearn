@@ -245,7 +245,7 @@ describe("generateDocumentCards — malformed cards", () => {
     mockGenerateCards.mockImplementation(async () => {
       const { GeminiFlashcardGenerationProvider } =
         await import("@/features/imports/adapters/gemini-provider");
-      const provider = new GeminiFlashcardGenerationProvider();
+      new GeminiFlashcardGenerationProvider();
       // The provider class is mocked; fall back to returning valid cards.
       return [{ front: "Q", back: "A" }];
     });

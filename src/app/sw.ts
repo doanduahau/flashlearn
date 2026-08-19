@@ -13,11 +13,6 @@ declare const self: ServiceWorkerGlobalScope & {
   __SW_MANIFEST: (PrecacheEntry | string)[] | undefined;
 };
 
-// Read-mostly pages we want to keep viewable offline once visited. The HTML
-// is keyed by URL: on a shared device a later account could see the previous
-// account's cached page when offline. Accepted for this personal-PWA MVP.
-const OFFLINE_PAGES = ["/dashboard", "/sets", "/sets/library"];
-
 // App routes that are fully dynamic (server-rendered per request). They must
 // NEVER be served from cache — always hit the network. This prevents the SW
 // from causing FetchEvent rejections (no-response) when there is no cached

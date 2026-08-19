@@ -14,10 +14,6 @@ function p(text: string): ExtractedDocumentBlock {
   return { type: "paragraph", text };
 }
 
-function h(text: string, level = 1): ExtractedDocumentBlock {
-  return { type: "heading", text, level };
-}
-
 describe("classifySection — deterministic", () => {
   describe("flashcard_like — high confidence, zero AI", () => {
     it("explicit Question/Answer 2-column table", () => {

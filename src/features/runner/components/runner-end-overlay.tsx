@@ -1,4 +1,5 @@
 import { BackButton } from "@/components/shared/back-button";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { LoadingDots } from "@/components/shared/loading-dots";
 import type { MascotLevel, MascotState } from "@/features/mascot/types/mascot-types";
@@ -43,11 +44,13 @@ export function RunnerEndOverlay({
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-surface/95 px-6 text-center">
-      <img
+      <Image
         src={mascotAssetPath(level, mascotState)}
         alt=""
         className="size-36"
         aria-hidden="true"
+        width={144}
+        height={144}
       />
       <h2 className="text-xl font-bold sm:text-2xl">{heading}</h2>
       {status === "completed" ? (

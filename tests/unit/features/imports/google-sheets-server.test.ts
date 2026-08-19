@@ -23,7 +23,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function okFetch(url: string) {
+function okFetch() {
   mocks.fetch.mockImplementation(async (input: string) => {
     const u = String(input);
     if (u.includes(":batchGet")) {
@@ -70,7 +70,7 @@ describe("openGoogleSheet (private flow) — header discovery", () => {
 
   it("uses the access token via Bearer header, never a browser API key", async () => {
     mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
-    okFetch("http://x");
+    okFetch();
     vi.stubGlobal("fetch", mocks.fetch);
 
     const result = await openGoogleSheet({
@@ -92,7 +92,7 @@ describe("openGoogleSheet (private flow) — header discovery", () => {
 
   it("requests a header scan across the full sheet and discovery width", async () => {
     mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
-    okFetch("http://x");
+    okFetch();
     vi.stubGlobal("fetch", mocks.fetch);
 
     await openGoogleSheet({
@@ -133,7 +133,7 @@ describe("openGoogleSheet (private flow) — header discovery", () => {
 describe("loadPrivateSheetValues — adaptive column body", () => {
   it("requests only the selected columns via batchGet, bounded to 2001 rows", async () => {
     mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
-    okFetch("http://x");
+    okFetch();
     vi.stubGlobal("fetch", mocks.fetch);
 
     await loadPrivateSheetValues({
@@ -152,7 +152,7 @@ describe("loadPrivateSheetValues — adaptive column body", () => {
 
   it("reconstructs rows from selected column bodies", async () => {
     mocks.getClaims.mockResolvedValue({ data: { claims: {} } });
-    okFetch("http://x");
+    okFetch();
     vi.stubGlobal("fetch", mocks.fetch);
 
     const result = await loadPrivateSheetValues({

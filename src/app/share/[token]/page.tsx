@@ -8,6 +8,7 @@ import { SharedCardsList } from "@/features/sharing/components/shared-cards-list
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { consumeRateLimit, requestRateLimitKey } from "@/lib/security/rate-limit";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 export const metadata: Metadata = { title: "Bộ flashcard chia sẻ" };
 
@@ -55,12 +56,7 @@ export default async function SharedSetPreviewPage({
       <header className="flex items-center gap-2 font-heading text-lg font-bold">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex size-10 items-center justify-center rounded-2xl bg-primary-soft">
-            <img
-              src="/mascot/logo.png"
-              alt=""
-              aria-hidden="true"
-              className="size-6 object-contain"
-            />
+            <BrandLogo className="size-6 object-contain" />
           </span>
           CapyStudy
         </Link>

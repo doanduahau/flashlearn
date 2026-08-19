@@ -1,4 +1,10 @@
 import "@testing-library/jest-dom/vitest";
+import { createElement, type ImgHTMLAttributes } from "react";
+import { vi } from "vitest";
+
+vi.mock("next/image", () => ({
+  default: (props: ImgHTMLAttributes<HTMLImageElement>) => createElement("img", props),
+}));
 
 // jsdom does not implement HTMLDialogElement.showModal / close.
 // Polyfill minimally so components that call these methods don't throw.

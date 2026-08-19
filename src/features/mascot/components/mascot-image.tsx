@@ -1,5 +1,6 @@
 import type { MascotLevel, MascotState } from "../types/mascot-types";
 import { mascotAssetPath } from "../utils/mascot-asset";
+import Image from "next/image";
 
 export function MascotImage({
   level,
@@ -15,7 +16,7 @@ export function MascotImage({
   loading?: "eager" | "lazy";
 }>) {
   return (
-    <img
+    <Image
       src={mascotAssetPath(level, state)}
       alt=""
       aria-hidden="true"

@@ -20,6 +20,8 @@ const child = spawn(
     "tests/integration/transition-queue.integration.test.ts",
     "tests/integration/cutover-transition.integration.test.ts",
     "tests/integration/new-cards.integration.test.ts",
+    "tests/integration/card-scope-mismatch.integration.test.ts",
+    "tests/integration/direct-due-cutover.integration.test.ts",
   ],
   {
     stdio: "inherit",

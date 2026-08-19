@@ -2,10 +2,7 @@
 
 import { readFileSync, appendFileSync, existsSync } from "node:fs";
 
-import type {
-  DraftFlashcard,
-  FlashcardGenerationProvider,
-} from "@/features/imports/types/import-types";
+import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import type {
   AnalyzedDocument,
   AnalyzedDocumentSection,
@@ -50,6 +47,7 @@ const genCounter = {
 };
 
 async function mockGenerateCards(_input: { text: string }): Promise<DraftFlashcard[]> {
+  void _input;
   genCounter.increment();
   const failPath = process.env.CAPYSTUDY_GENERATION_MOCK_FAIL_FILE;
   const shouldFail =

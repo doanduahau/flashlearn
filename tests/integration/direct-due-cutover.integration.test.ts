@@ -9,7 +9,7 @@ import type { Database } from "@/lib/supabase/types";
 
 vi.mock("server-only", () => ({}));
 
-const { countDueCards, findDueCandidates, loadDueCandidateResult } =
+const { countDueCards, loadDueCandidateResult } =
   await import("@/features/spaced-repetition/server/due-repository");
 
 type Supabase = SupabaseClient<Database>;

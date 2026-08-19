@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TrashIcon } from "lucide-react";
 
-import { MascotImage } from "@/features/mascot/components/mascot-image";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { importFlashcards } from "@/features/imports/server/actions";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
@@ -84,7 +83,7 @@ export function CreateSummary({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" data-mascot-level={mascotLevel}>
       {sourceMetadata && sourceMetadata.length > 0 && (
         <div className="flex flex-col text-sm">
           {sourceMetadata.map((meta, i) => (

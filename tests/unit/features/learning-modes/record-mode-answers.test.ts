@@ -69,7 +69,7 @@ describe("recordModeAnswers", () => {
   });
 
   it("rejects more than 200 answers", async () => {
-    const many = Array.from({ length: 201 }, (_, index) => ({
+    const many = Array.from({ length: 201 }, () => ({
       flashcardId: "11111111-1111-4111-8111-111111111111",
       isCorrect: true,
     }));

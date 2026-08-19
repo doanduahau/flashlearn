@@ -147,14 +147,3 @@ export async function fetchPublicSheetValues(
     },
   };
 }
-
-export function parseSheetValues(json: unknown, sheetTitle: string): SheetData {
-  const values = (json as { values?: unknown }).values;
-  const rows: string[][] = Array.isArray(values)
-    ? (values as unknown[][]).map((row) => (Array.isArray(row) ? row.map(String) : []))
-    : [];
-  const limited = rows.slice(0, IMPORT_MAX_ROWS + 1);
-  const headers = (limited[0] ?? []).map((cell) => String(cell ?? ""));
-  const dataRows = limited.slice(1);
-  return { headers, rows: dataRows, rowCount: Math.max(0, rows.length - 1) };
-}

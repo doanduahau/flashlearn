@@ -7,12 +7,7 @@ export function BrandLoading({ title }: Readonly<{ title?: string }>) {
     >
       <span className="sr-only">{title || "Đang tải"}</span>
       <div className="splash-in flex items-center justify-center rounded-2xl bg-primary-soft p-3">
-        <img
-          src="/mascot/logo.png"
-          alt=""
-          aria-hidden="true"
-          className="size-10 object-contain sm:size-12"
-        />
+        <BrandLogo className="size-10 object-contain sm:size-12" />
       </div>
       <div className="flex items-center gap-1.5" aria-hidden="true">
         <span className="splash-dot size-2 rounded-full bg-primary" />
@@ -22,3 +17,4 @@ export function BrandLoading({ title }: Readonly<{ title?: string }>) {
     </div>
   );
 }
+import { BrandLogo } from "@/components/shared/brand-logo";

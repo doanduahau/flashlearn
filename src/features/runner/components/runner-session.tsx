@@ -196,7 +196,7 @@ export function RunnerSession({
     if (recordErrorRef.current) {
       setPersistenceError(recordErrorRef.current);
     }
-  }, [coverageSessionId, saveBest]);
+  }, [coverageSessionId, router, saveBest]);
 
   useEffect(() => {
     if (

@@ -7,12 +7,7 @@ export function BrandSplash({ title }: Readonly<{ title?: string }>) {
     >
       <span className="sr-only">{title || "Đang tải trang..."}</span>
       <div className="splash-in flex items-center justify-center rounded-full bg-primary-soft p-6 sm:p-7">
-        <img
-          src="/mascot/logo.png"
-          alt=""
-          aria-hidden="true"
-          className="size-24 object-contain sm:size-28"
-        />
+        <BrandLogo className="size-24 object-contain sm:size-28" />
       </div>
       <div className="flex items-center gap-2" aria-hidden="true">
         <span className="splash-dot size-2.5 rounded-full bg-primary" />
@@ -22,3 +17,4 @@ export function BrandSplash({ title }: Readonly<{ title?: string }>) {
     </main>
   );
 }
+import { BrandLogo } from "@/components/shared/brand-logo";

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { buildSections } from "@/features/imports/utils/section-builder";
 import type { ExtractedDocumentBlock } from "@/features/imports/types/document-types";

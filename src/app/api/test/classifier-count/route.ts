@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { mockClassifierCount } from "@/features/imports/adapters/gemini-classifier";
+import { isTestRuntime } from "@/lib/env";
 
 const MOCK_ENABLED =
-  (process.env.CAPYSTUDY_CLASSIFIER_MOCK ?? "").trim() === "1" &&
-  (process.env.NODE_ENV === "test" || process.env.FLASHLEARN_ENVIRONMENT === "test");
+  (process.env.CAPYSTUDY_CLASSIFIER_MOCK ?? "").trim() === "1" && isTestRuntime();
 
 export async function GET(req: Request) {
   if (!MOCK_ENABLED) {

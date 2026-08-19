@@ -33,7 +33,7 @@ const localEnv = {
   NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
   SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
-  FLASHLEARN_ENVIRONMENT: "test",
+  CAPYSTUDY_ENVIRONMENT: "test",
   MAILPIT_URL: mailpitUrl,
   // Use the test-only classifier mock so E2E never calls real Gemini.
   CAPYSTUDY_CLASSIFIER_MOCK: "1",

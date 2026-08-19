@@ -2,7 +2,7 @@
 
 ## Context
 
-FlashLearn is entering a small non-commercial beta phase for several dozen users.
+CapyStudy is entering a small non-commercial beta phase for several dozen users.
 The product needs a reliable, low-cost deployment that can be set up quickly and
 maintained with minimal operational overhead. The team must decide on the hosting
 and infrastructure stack for the beta period.

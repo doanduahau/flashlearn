@@ -7,6 +7,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GEMINI_RETRY_ATTEMPTS } from "@/features/imports/adapters/gemini-retry-policy";
 import { getGeminiApiKey } from "@/lib/env";
 import { withCircuitBreaker, withTimeout } from "@/lib/resilience";
+import { isTestRuntime } from "@/lib/env";
 
 const MODEL_ID = "gemini-flash-lite-latest";
 
@@ -15,9 +16,7 @@ const MODEL_ID = "gemini-flash-lite-latest";
 // after normalization, and increments a file-backed counter so E2E tests can
 // assert AI-reviewer usage without hitting the real API. A file is used (not
 // module state) because Next.js bundles server actions into separate chunks.
-const MOCK_ENABLED =
-  (process.env.CAPYSTUDY_TYPING_AI_MOCK ?? "").trim() === "1" &&
-  (process.env.NODE_ENV === "test" || process.env.FLASHLEARN_ENVIRONMENT === "test");
+const MOCK_ENABLED = (process.env.CAPYSTUDY_TYPING_AI_MOCK ?? "").trim() === "1" && isTestRuntime();
 
 function mockCountFile(): string | null {
   const path = process.env.CAPYSTUDY_TYPING_AI_COUNT_FILE;

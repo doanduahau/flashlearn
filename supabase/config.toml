@@ -35,7 +35,7 @@ additional_redirect_urls = [
 enable_confirmations = true
 
 [auth.email.template.confirmation]
-subject = "Xác nhận email của bạn | FlashLearn"
+subject = "Xác nhận email của bạn | CapyStudy"
 content_path = "./supabase/templates/confirm-email.html"
 
 [analytics]

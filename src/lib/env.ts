@@ -19,7 +19,15 @@ const envSchema = z.object({
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   SENTRY_DSN: z.preprocess(emptyToUndefined, z.string().url().optional()),
   NEXT_PUBLIC_SENTRY_DSN: z.preprocess(emptyToUndefined, z.string().url().optional()),
-  FLASHLEARN_ENVIRONMENT: z.enum(["development", "test", "staging", "production"]).optional(),
+  CAPYSTUDY_ENVIRONMENT: z.preprocess(
+    emptyToUndefined,
+    z.enum(["development", "test", "staging", "production"]).optional(),
+  ),
+  /** @deprecated Use CAPYSTUDY_ENVIRONMENT. */
+  FLASHLEARN_ENVIRONMENT: z.preprocess(
+    emptyToUndefined,
+    z.enum(["development", "test", "staging", "production"]).optional(),
+  ),
 });
 
 const parsed = envSchema.safeParse({
@@ -37,6 +45,7 @@ const parsed = envSchema.safeParse({
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
   SENTRY_DSN: process.env.SENTRY_DSN,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  CAPYSTUDY_ENVIRONMENT: process.env.CAPYSTUDY_ENVIRONMENT,
   FLASHLEARN_ENVIRONMENT: process.env.FLASHLEARN_ENVIRONMENT,
 });
 
@@ -44,7 +53,25 @@ if (!parsed.success) {
   throw new Error(`Invalid environment variables: ${parsed.error.message}`);
 }
 
-export const env = parsed.data;
+if (
+  parsed.data.CAPYSTUDY_ENVIRONMENT &&
+  parsed.data.FLASHLEARN_ENVIRONMENT &&
+  parsed.data.CAPYSTUDY_ENVIRONMENT !== parsed.data.FLASHLEARN_ENVIRONMENT
+) {
+  throw new Error(
+    "CAPYSTUDY_ENVIRONMENT and legacy FLASHLEARN_ENVIRONMENT must match when both are set",
+  );
+}
+
+export const env = {
+  ...parsed.data,
+  runtimeEnvironment:
+    parsed.data.CAPYSTUDY_ENVIRONMENT ?? parsed.data.FLASHLEARN_ENVIRONMENT ?? process.env.NODE_ENV,
+};
+
+export function isTestRuntime(): boolean {
+  return process.env.NODE_ENV === "test" || env.runtimeEnvironment === "test";
+}
 
 export interface SupabaseConfig {
   url: string;

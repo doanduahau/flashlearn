@@ -8,6 +8,7 @@ import { GEMINI_RETRY_ATTEMPTS } from "./gemini-retry-policy";
 import type { SectionKind } from "../types/document-types";
 import { getGeminiApiKey } from "@/lib/env";
 import { withCircuitBreaker, withTimeout } from "@/lib/resilience";
+import { isTestRuntime } from "@/lib/env";
 
 const MODEL_ID = "gemini-flash-lite-latest";
 
@@ -62,8 +63,7 @@ export interface DocumentClassifier {
 // actions and route handlers into separate chunks that do not share module
 // instances.
 const MOCK_ENABLED =
-  (process.env.CAPYSTUDY_CLASSIFIER_MOCK ?? "").trim() === "1" &&
-  (process.env.NODE_ENV === "test" || process.env.FLASHLEARN_ENVIRONMENT === "test");
+  (process.env.CAPYSTUDY_CLASSIFIER_MOCK ?? "").trim() === "1" && isTestRuntime();
 
 export const mockClassifierCount = {
   get calls(): number {

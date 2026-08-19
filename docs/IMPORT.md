@@ -1,6 +1,6 @@
 # Import CSV and Excel
 
-FlashLearn imports `.csv` and `.xlsx` files in browser memory only. The uploaded source file is never sent to storage or persisted; only the set name and normalized front/back text are saved.
+CapyStudy imports `.csv` and `.xlsx` files in browser memory only. The uploaded source file is never sent to storage or persisted; only the set name and normalized front/back text are saved.
 
 ## Guided flow
 
@@ -103,7 +103,7 @@ Sheets, and DOCX do not initialize `pdfjs-dist`.
 
 `@napi-rs/canvas` is an explicit production dependency of the text-extraction
 runtime. `pdfjs-dist` uses it to provide the Node DOM geometry globals it needs
-when a PDF is actually parsed. FlashLearn does not render PDF pages and does not
+when a PDF is actually parsed. CapyStudy does not render PDF pages and does not
 install global PDF polyfills for unrelated routes.
 
 ## Common document model
@@ -343,7 +343,7 @@ Document ────────────┤
 
 ## Validation architecture
 
-FlashLearn uses a **single canonical validation chain** with no duplicate enforcement:
+CapyStudy uses a **single canonical validation chain** with no duplicate enforcement:
 
 | Layer                                | What                                                        | Limits enforced                                                                       |
 | ------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -406,7 +406,7 @@ reliability, AI cost/bounds, performance, mobile, privacy, DB test debt, observa
 | R29         | RPC migration hardcodes `2000` vs. `IMPORT_MAX_ROWS` constant — drift risk                                                                                  |
 | R35         | No server-side idempotency key on import; slight double-submit risk via React batching race                                                                 |
 | P15/P16/P17 | `UnifiedDraftEditor` renders all cards simultaneously, no `React.memo` — unusable on mobile at 2000 cards; add virtualization/react-window when count > 100 |
-| T1          | Mock env vars (`FLASHLEARN_CLASSIFIER_MOCK`, `FLASHLEARN_GENERATION_MOCK`) not documented in `.env.example`                                                 |
+| T1          | Mock env vars (`CAPYSTUDY_CLASSIFIER_MOCK`, `CAPYSTUDY_GENERATION_MOCK`) are documented in `.env.example`                                                   |
 | L1          | No dev-vs-production guard: connecting to production Supabase from local dev has no warning                                                                 |
 
 ### WHEN SCALE DEMANDS (9 findings)
@@ -444,7 +444,7 @@ Subscriptions, billing, content-hash cross-session dedup, production event parti
 - Local development refuses the configured production Supabase project by default. The non-secret
   `NEXT_PUBLIC_ALLOW_PRODUCTION_SUPABASE_FROM_LOCAL=1` override exists only for deliberate local diagnostics;
   production deployments and local Supabase E2E are unaffected.
-- The E2E-only `FLASHLEARN_CLASSIFIER_*` and `FLASHLEARN_GENERATION_*` variables are documented in
+- The E2E-only `CAPYSTUDY_CLASSIFIER_*` and `CAPYSTUDY_GENERATION_*` variables are documented in
   `.env.example`. The instrumentation routes return 404 unless their matching server environment
   mock flag is `1`; their file paths always come from trusted server environment variables.
 - The 2,000-card guard remains a mirrored TypeScript/Zod/database RPC invariant. Invalid editable

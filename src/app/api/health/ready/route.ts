@@ -27,7 +27,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const missing = [
     !env.NEXT_PUBLIC_SUPABASE_URL && "supabase_url",
     !env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY && "supabase_key",
-    process.env.FLASHLEARN_ENVIRONMENT === "production" && !getManagedRedis() && "managed_redis",
+    env.runtimeEnvironment === "production" && !getManagedRedis() && "managed_redis",
   ].filter(Boolean);
   if (missing.length > 0) {
     logger.error("health.readiness_failed", { missing });

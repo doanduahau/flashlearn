@@ -1,7 +1,7 @@
 <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto">
   <h2>Xác nhận email của bạn</h2>
   <p>Chào {{ .Email }},</p>
-  <p>Bấm vào nút bên dưới để xác nhận email và hoàn tất đăng ký FlashLearn.</p>
+  <p>Bấm vào nút bên dưới để xác nhận email và hoàn tất đăng ký CapyStudy.</p>
   <p>
     <a
       href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email"
@@ -19,5 +19,5 @@
   </p>
   <p>Nếu nút không hoạt động, hãy dán liên kết sau vào trình duyệt:</p>
   <p>{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email</p>
-  <p>Nếu bạn không tạo tài khoản FlashLearn, bạn có thể bỏ qua email này.</p>
+  <p>Nếu bạn không tạo tài khoản CapyStudy, bạn có thể bỏ qua email này.</p>
 </div>

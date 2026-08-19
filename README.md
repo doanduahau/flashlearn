@@ -1,8 +1,8 @@
-# FlashLearn
+# CapyStudy
 
 ## Import CSV/XLSX
 
-The import page accepts `.csv` and `.xlsx` files up to 5 MB. Parsing happens in browser memory and FlashLearn never stores the original source file. Users select a worksheet and two distinct columns, review normalized rows, then confirm one atomic set import. Blank and partial pairs are excluded; exact normalized duplicates retain only their first occurrence; imports reject more than 2,000 valid rows.
+The import page accepts `.csv` and `.xlsx` files up to 5 MB. Parsing happens in browser memory and CapyStudy never stores the original source file. Users select a worksheet and two distinct columns, review normalized rows, then confirm one atomic set import. Blank and partial pairs are excluded; exact normalized duplicates retain only their first occurrence; imports reject more than 2,000 valid rows.
 
 ## Quiz
 

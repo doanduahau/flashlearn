@@ -5,7 +5,7 @@
 
 ## Context
 
-FlashLearn lets users create flashcard sets (from Excel/CSV imports), collect individual
+CapyStudy lets users create flashcard sets (from Excel/CSV imports), collect individual
 flashcards into special collections, and later run quizzes over a chosen scope. All of
 that data belongs to a single user and must never leak across users.
 

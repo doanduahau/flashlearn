@@ -2,7 +2,7 @@
 
 ## Auth Architecture
 
-FlashLearn uses Supabase Auth with email and password authentication. The authentication flow is built on top of the existing Supabase SSR client infrastructure (`@supabase/ssr`) and cookie-based session management.
+CapyStudy uses Supabase Auth with email and password authentication. The authentication flow is built on top of the existing Supabase SSR client infrastructure (`@supabase/ssr`) and cookie-based session management.
 
 ### Key Principles
 

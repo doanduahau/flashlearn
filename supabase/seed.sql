@@ -1,4 +1,4 @@
--- Development seed data for FlashLearn.
+-- Development seed data for CapyStudy.
 --
 -- Every core table (profiles, flashcard_sets, flashcards, special_collections,
 -- special_collection_items) is owned by an Auth user, and row-level security

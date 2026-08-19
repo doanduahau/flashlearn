@@ -112,7 +112,7 @@ boundaries as the other features:
 
 ## Scope
 
-This document describes the architecture decisions that underpin the FlashLearn
+This document describes the architecture decisions that underpin the CapyStudy
 application. The application is a Next.js App Router app backed by Supabase; see
 `AGENTS.md` for the full product blueprint and `docs/DATABASE.md` for the schema details.
 

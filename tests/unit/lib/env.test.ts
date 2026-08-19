@@ -12,6 +12,32 @@ afterEach(() => {
 });
 
 describe("env validation", () => {
+  it("prefers the CapyStudy runtime environment", async () => {
+    vi.stubEnv("CAPYSTUDY_ENVIRONMENT", "staging");
+    vi.stubEnv("FLASHLEARN_ENVIRONMENT", "staging");
+
+    const envModule = await loadEnv();
+
+    expect(envModule.env.runtimeEnvironment).toBe("staging");
+  });
+
+  it("supports the legacy environment name during the transition", async () => {
+    vi.stubEnv("CAPYSTUDY_ENVIRONMENT", "");
+    vi.stubEnv("FLASHLEARN_ENVIRONMENT", "test");
+
+    const envModule = await loadEnv();
+
+    expect(envModule.env.runtimeEnvironment).toBe("test");
+    expect(envModule.isTestRuntime()).toBe(true);
+  });
+
+  it("rejects conflicting runtime environment names", async () => {
+    vi.stubEnv("CAPYSTUDY_ENVIRONMENT", "staging");
+    vi.stubEnv("FLASHLEARN_ENVIRONMENT", "production");
+
+    await expect(loadEnv()).rejects.toThrow(/must match when both are set/);
+  });
+
   it("parses the Supabase publishable key configuration", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_test_key");

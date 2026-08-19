@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
+import { isTestRuntime } from "@/lib/env";
+
 const MOCK_ENABLED =
-  (process.env.CAPYSTUDY_GENERATION_MOCK ?? "").trim() === "1" &&
-  (process.env.NODE_ENV === "test" || process.env.FLASHLEARN_ENVIRONMENT === "test");
+  (process.env.CAPYSTUDY_GENERATION_MOCK ?? "").trim() === "1" && isTestRuntime();
 
 function readCount(): number {
   const path = process.env.CAPYSTUDY_GENERATION_COUNT_FILE;

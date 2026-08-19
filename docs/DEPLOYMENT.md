@@ -1,8 +1,8 @@
 # Production Deployment
 
-> **2026-08-19 operational addendum:** production releases require a separate staging deployment first. Set `FLASHLEARN_ENVIRONMENT=staging` in staging and `FLASHLEARN_ENVIRONMENT=production` in production. Production requires `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` and `HEALTHCHECK_TOKEN`. The legacy `CAPYSTUDY_*_MOCK` variables are accepted only when `FLASHLEARN_ENVIRONMENT=test`; they are inert in production.
+> **2026-08-19 operational addendum:** production releases require a separate staging deployment first. Set `CAPYSTUDY_ENVIRONMENT=staging` in staging and `CAPYSTUDY_ENVIRONMENT=production` in production. `FLASHLEARN_ENVIRONMENT` remains a deprecated compatibility alias and must match if both are set. Production requires `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` and `HEALTHCHECK_TOKEN`. The `CAPYSTUDY_*_MOCK` variables are accepted only when the runtime environment is `test`; they are inert in production.
 
-FlashLearn Phase 3 production readiness documentation.
+CapyStudy Phase 3 production readiness documentation.
 See `docs/DECISIONS/002-free-tier-beta-deployment.md` for the free-tier beta ADR.
 
 ---
@@ -33,13 +33,13 @@ All environment variables classified by production role.
 
 ### C. Local/Test Only (must NOT be set in production)
 
-| Variable                               | Production Value             | Purpose                                         |
-| -------------------------------------- | ---------------------------- | ----------------------------------------------- |
-| `FLASHLEARN_CLASSIFIER_MOCK`           | **must be absent** (not `1`) | Enables mocked document classifier in E2E tests |
-| `FLASHLEARN_GENERATION_MOCK`           | **must be absent** (not `1`) | Enables mocked Gemini generation in E2E tests   |
-| `FLASHLEARN_CLASSIFIER_COUNT_FILE`     | absent                       | Test-only counter file path                     |
-| `FLASHLEARN_GENERATION_COUNT_FILE`     | absent                       | Test-only counter file path                     |
-| `FLASHLEARN_GENERATION_MOCK_FAIL_FILE` | absent                       | Test-only failure flag file path                |
+| Variable                              | Production Value             | Purpose                                         |
+| ------------------------------------- | ---------------------------- | ----------------------------------------------- |
+| `CAPYSTUDY_CLASSIFIER_MOCK`           | **must be absent** (not `1`) | Enables mocked document classifier in E2E tests |
+| `CAPYSTUDY_GENERATION_MOCK`           | **must be absent** (not `1`) | Enables mocked Gemini generation in E2E tests   |
+| `CAPYSTUDY_CLASSIFIER_COUNT_FILE`     | absent                       | Test-only counter file path                     |
+| `CAPYSTUDY_GENERATION_COUNT_FILE`     | absent                       | Test-only counter file path                     |
+| `CAPYSTUDY_GENERATION_MOCK_FAIL_FILE` | absent                       | Test-only failure flag file path                |
 
 **RELEASE BLOCKER:** If any mock flag is `1` in production, `/api/test/*` routes become active (bypassing the 404 guard). Verify before every deployment.
 
@@ -47,8 +47,8 @@ All environment variables classified by production role.
 
 | Variable                                           | Purpose                                                                |
 | -------------------------------------------------- | ---------------------------------------------------------------------- |
-| `FLASHLEARN_PRODUCTION_SUPABASE_URL`               | Used by read-only FSRS diagnostics scripts only                        |
-| `FLASHLEARN_PRODUCTION_PROJECT_REF`                | Used by production identity guard in diagnostics scripts               |
+| `CAPYSTUDY_PRODUCTION_SUPABASE_URL`                | Used by read-only FSRS diagnostics scripts only                        |
+| `CAPYSTUDY_PRODUCTION_PROJECT_REF`                 | Used by production identity guard in diagnostics scripts               |
 | `NEXT_PUBLIC_ALLOW_PRODUCTION_SUPABASE_FROM_LOCAL` | Set to `1` only for deliberate local development against production DB |
 
 ### E. Deprecated / Unused
@@ -380,7 +380,7 @@ All cases run against the deployed production URL after deployment.
 
 ### Application Rollback
 
-FlashLearn deploys to Vercel via git. The simplest rollback:
+CapyStudy deploys to Vercel via git. The simplest rollback:
 
 1. In Vercel dashboard → Deployments → select previous successful deployment → "Promote to Production"
 2. Or: `git revert` the deployment commit and push.
@@ -458,7 +458,7 @@ FlashLearn deploys to Vercel via git. The simplest rollback:
 
 - `src/lib/logger.ts`: console-based logger with `info` (non-production only), `warn`, `error`
 - Error boundary: `src/app/error.tsx` — user-friendly retry screen, `console.error(error)` for diagnostics
-- No structured logging, request IDs, or metrics
+- Structured logging, Sentry capture and health/readiness probes are implemented; request IDs and first-party metrics remain future work.
 
 ### Adequate for Controlled Smoke
 
@@ -468,7 +468,7 @@ Yes — console output from server actions is sufficient for diagnosing failures
 
 - Server-side import success/failure logging (source type, card count, error type — never raw content)
 - Gemini call counting / AI avoidance ratio
-- No Sentry or commercial monitoring unless post-beta requirements justify it
+- Request correlation IDs and latency dashboards
 
 ---
 
@@ -476,7 +476,7 @@ Yes — console output from server actions is sufficient for diagnosing failures
 
 ### FIX BEFORE THIS PRODUCTION RELEASE
 
-- Ensure no `FLASHLEARN_*_MOCK=1` in production env
+- Ensure no `CAPYSTUDY_*_MOCK=1` in production env
 - Ensure all required env vars are set
 - Verify Google Cloud external configuration before enabling Sheets import
 

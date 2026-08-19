@@ -1,4 +1,4 @@
-# AGENTS.md — FlashLearn Project Blueprint
+# AGENTS.md — CapyStudy Project Blueprint
 
 > Đây là nguồn sự thật chính dành cho mọi AI coding agent làm việc trong dự án.  
 > Agent phải đọc toàn bộ file này trước khi phân tích, sửa code, tạo migration hoặc cài dependency.
@@ -7,9 +7,9 @@
 
 ## 1. Tổng quan sản phẩm
 
-**Tên làm việc:** FlashLearn
+**Tên làm việc:** CapyStudy
 
-FlashLearn là nền tảng giúp người dùng biến bất kỳ file Excel có hai cột thành một hệ thống học bằng flashcard và bài kiểm tra.
+CapyStudy là nền tảng giúp người dùng biến bất kỳ file Excel có hai cột thành một hệ thống học bằng flashcard và bài kiểm tra.
 
 Mỗi dòng dữ liệu tạo thành một flashcard:
 
@@ -1231,7 +1231,7 @@ Khi dự án chưa tồn tại, agent bắt đầu bằng task sau:
 ```text
 Read AGENTS.md completely before making changes.
 
-Initialize the FlashLearn project using Next.js App Router, TypeScript strict mode,
+Initialize the CapyStudy project using Next.js App Router, TypeScript strict mode,
 Tailwind CSS, shadcn/ui, Supabase client foundations, ESLint, Prettier, Vitest,
 React Testing Library, Playwright, Husky and lint-staged.
 
@@ -1258,7 +1258,7 @@ Before completing:
 
 Then stage only files created for this task and commit:
 
-chore: initialize FlashLearn project
+chore: initialize CapyStudy project
 
 Report files changed, dependencies installed, commands executed, environment
 variables, verification results, remaining issues and commit hash.

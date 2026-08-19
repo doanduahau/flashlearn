@@ -69,6 +69,7 @@ export async function withCircuitBreaker<T>(
   const redis = getManagedRedis();
   if (!redis) return operation();
 
+  // Stable legacy namespace preserves an open circuit across the brand deploy.
   const keyPrefix = `flashlearn:circuit:${service}`;
   const openUntil = await redis.get<number>(`${keyPrefix}:open-until`);
   if (typeof openUntil === "number" && openUntil > Date.now()) {

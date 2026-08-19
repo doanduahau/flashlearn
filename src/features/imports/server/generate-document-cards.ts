@@ -17,12 +17,12 @@ import {
   IMPORT_MAX_ROWS,
 } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
+import { isTestRuntime } from "@/lib/env";
 
 // ─── Test-only generation mock (env-gated) ─────────────────────────────────
 
 const GEN_MOCK_ENABLED =
-  (process.env.CAPYSTUDY_GENERATION_MOCK ?? "").trim() === "1" &&
-  (process.env.NODE_ENV === "test" || process.env.FLASHLEARN_ENVIRONMENT === "test");
+  (process.env.CAPYSTUDY_GENERATION_MOCK ?? "").trim() === "1" && isTestRuntime();
 
 const genCounter = {
   get calls(): number {

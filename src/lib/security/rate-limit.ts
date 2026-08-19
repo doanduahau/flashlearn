@@ -4,6 +4,7 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { headers } from "next/headers";
 
 import { logger } from "@/lib/logger";
+import { env } from "@/lib/env";
 import { getManagedRedis } from "@/lib/security/managed-redis";
 
 type RateLimitPolicy =
@@ -47,6 +48,8 @@ function getLimiter(policy: RateLimitPolicy): Ratelimit | null {
     redis,
     limiter: Ratelimit.slidingWindow(config.limit, config.window),
     analytics: true,
+    // Keep the established key namespace during the brand transition so an
+    // active rate-limit window cannot be bypassed by deploying a rename.
     prefix: `flashlearn:rate-limit:${policy}`,
   });
   limiters.set(policy, limiter);
@@ -54,7 +57,7 @@ function getLimiter(policy: RateLimitPolicy): Ratelimit | null {
 }
 
 function isProductionRuntime(): boolean {
-  return process.env.NODE_ENV === "production" && process.env.FLASHLEARN_ENVIRONMENT !== "test";
+  return process.env.NODE_ENV === "production" && env.runtimeEnvironment !== "test";
 }
 
 function fingerprint(value: string): string {

@@ -1,4 +1,4 @@
-# FlashLearn Work Log
+# CapyStudy Work Log
 
 ## Session: Finalize Authentication Deployment Foundation
 

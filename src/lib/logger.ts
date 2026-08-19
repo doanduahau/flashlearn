@@ -1,5 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 
+import { env } from "@/lib/env";
+
 type LogContext = Record<string, unknown>;
 type LogLevel = "info" | "warn" | "error";
 
@@ -30,8 +32,8 @@ function write(level: LogLevel, event: string, context: LogContext = {}): void {
     timestamp: new Date().toISOString(),
     level,
     event,
-    service: "flashlearn",
-    environment: process.env.FLASHLEARN_ENVIRONMENT ?? process.env.NODE_ENV ?? "unknown",
+    service: "capystudy",
+    environment: env.runtimeEnvironment ?? "unknown",
     ...sanitizeContext(context),
   });
   if (level === "error") console.error(entry);

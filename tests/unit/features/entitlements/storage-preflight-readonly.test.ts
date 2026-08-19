@@ -11,6 +11,8 @@ describe("storage production preflight safety", () => {
     );
 
     expect(source).not.toMatch(/\.(?:insert|update|delete|upsert|rpc)\s*\(/);
+    expect(source).not.toMatch(/^\s*await\s+main\(\)/m);
+    expect(source).toContain("void main().catch");
     expect(source).toContain("resolveProductionIdentity");
     expect(source).toContain("READ-ONLY — NO WRITES PERFORMED");
   });

@@ -131,4 +131,7 @@ async function main(): Promise<void> {
   if (report.migrationBlockedByHardLength) process.exitCode = 2;
 }
 
-await main();
+void main().catch(() => {
+  console.error("Storage preflight failed.");
+  process.exitCode = 1;
+});

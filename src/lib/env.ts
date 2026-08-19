@@ -15,6 +15,11 @@ const envSchema = z.object({
   NEXT_PUBLIC_GOOGLE_PICKER_API_KEY: z.string().optional(),
   NEXT_PUBLIC_GOOGLE_DRIVE_APP_ID: z.string().optional(),
   NEXT_PUBLIC_ALLOW_PRODUCTION_SUPABASE_FROM_LOCAL: z.string().optional(),
+  UPSTASH_REDIS_REST_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+  SENTRY_DSN: z.preprocess(emptyToUndefined, z.string().url().optional()),
+  NEXT_PUBLIC_SENTRY_DSN: z.preprocess(emptyToUndefined, z.string().url().optional()),
+  FLASHLEARN_ENVIRONMENT: z.enum(["development", "test", "staging", "production"]).optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -28,6 +33,11 @@ const parsed = envSchema.safeParse({
   NEXT_PUBLIC_GOOGLE_DRIVE_APP_ID: process.env.NEXT_PUBLIC_GOOGLE_DRIVE_APP_ID,
   NEXT_PUBLIC_ALLOW_PRODUCTION_SUPABASE_FROM_LOCAL:
     process.env.NEXT_PUBLIC_ALLOW_PRODUCTION_SUPABASE_FROM_LOCAL,
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+  SENTRY_DSN: process.env.SENTRY_DSN,
+  NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  FLASHLEARN_ENVIRONMENT: process.env.FLASHLEARN_ENVIRONMENT,
 });
 
 if (!parsed.success) {

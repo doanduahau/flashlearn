@@ -7,6 +7,7 @@ import { CloneSetButton } from "@/features/sharing/components/clone-set-button";
 import { SharedCardsList } from "@/features/sharing/components/shared-cards-list";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { consumeRateLimit, requestRateLimitKey } from "@/lib/security/rate-limit";
 
 export const metadata: Metadata = { title: "Bộ flashcard chia sẻ" };
 
@@ -16,6 +17,11 @@ export default async function SharedSetPreviewPage({
   params: Promise<{ token: string }>;
 }>) {
   const { token } = await params;
+  const rateLimit = await consumeRateLimit(
+    "publicShare",
+    await requestRateLimitKey("public-share", token),
+  );
+  if (!rateLimit.ok) return <MissingLinkState />;
 
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();

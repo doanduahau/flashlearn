@@ -23,7 +23,9 @@ import { createClient } from "@/lib/supabase/server";
 
 // ─── Test-only generation mock (env-gated) ─────────────────────────────────
 
-const GEN_MOCK_ENABLED = (process.env.CAPYSTUDY_GENERATION_MOCK ?? "").trim() === "1";
+const GEN_MOCK_ENABLED =
+  (process.env.CAPYSTUDY_GENERATION_MOCK ?? "").trim() === "1" &&
+  (process.env.NODE_ENV === "test" || process.env.FLASHLEARN_ENVIRONMENT === "test");
 
 const genCounter = {
   get calls(): number {

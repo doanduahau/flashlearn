@@ -13,6 +13,8 @@ import {
 } from "@/features/notifications/schemas/notification-schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
+import { consumeRateLimit, rateLimitMessage, subjectRateLimitKey } from "@/lib/security/rate-limit";
 
 export type NotificationActionResult = { ok: true } | { ok: false; error: string };
 
@@ -41,6 +43,11 @@ export async function saveNotificationPreferences(
   if (!userId) {
     return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
   }
+  const rateLimit = await consumeRateLimit(
+    "learningSubmit",
+    subjectRateLimitKey("notification-preferences", userId),
+  );
+  if (!rateLimit.ok) return { ok: false, error: rateLimitMessage(rateLimit) };
 
   const admin = createAdminClient();
   const { error } = await admin.from("notification_preferences").upsert(
@@ -57,7 +64,7 @@ export async function saveNotificationPreferences(
   );
 
   if (error) {
-    console.error("[saveNotificationPreferences error]", error);
+    logger.exception("notifications.save_preferences_failed", error, { userId });
     return { ok: false, error: "Không thể lưu cài đặt nhắc nhở lúc này." };
   }
 
@@ -78,6 +85,11 @@ export async function savePushSubscription(
   if (!userId) {
     return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
   }
+  const rateLimit = await consumeRateLimit(
+    "learningSubmit",
+    subjectRateLimitKey("push-subscription", userId),
+  );
+  if (!rateLimit.ok) return { ok: false, error: rateLimitMessage(rateLimit) };
 
   const admin = createAdminClient();
   const { error } = await admin.from("push_subscriptions").upsert(
@@ -93,7 +105,7 @@ export async function savePushSubscription(
   );
 
   if (error) {
-    console.error("[savePushSubscription error]", error);
+    logger.exception("notifications.save_push_subscription_failed", error, { userId });
     return { ok: false, error: "Không thể đăng ký nhận thông báo lúc này." };
   }
 

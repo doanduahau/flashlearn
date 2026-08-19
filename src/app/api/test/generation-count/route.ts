@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
-const MOCK_ENABLED = (process.env.CAPYSTUDY_GENERATION_MOCK ?? "").trim() === "1";
+const MOCK_ENABLED =
+  (process.env.CAPYSTUDY_GENERATION_MOCK ?? "").trim() === "1" &&
+  (process.env.NODE_ENV === "test" || process.env.FLASHLEARN_ENVIRONMENT === "test");
 
 function readCount(): number {
   const path = process.env.CAPYSTUDY_GENERATION_COUNT_FILE;
@@ -40,5 +42,5 @@ export async function GET(req: Request) {
   if (url.searchParams.get("reset") === "1") resetCount();
   if (url.searchParams.get("fail") === "1") setFailFlag(true);
   if (url.searchParams.get("fail") === "0") setFailFlag(false);
-  return NextResponse.json({ calls: readCount() });
+  return NextResponse.json({ calls: readCount() }, { headers: { "Cache-Control": "no-store" } });
 }

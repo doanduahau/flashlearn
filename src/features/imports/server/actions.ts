@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { importPayloadSchema } from "@/features/imports/schemas/import-schema";
 import { createClient } from "@/lib/supabase/server";
+import { consumeRateLimit, rateLimitMessage, subjectRateLimitKey } from "@/lib/security/rate-limit";
 
 export async function importFlashcards(
   input: unknown,
@@ -20,7 +21,11 @@ export async function importFlashcards(
   }
 
   const { data: claims } = await supabase.auth.getClaims();
-  if (!claims?.claims) return { error: "Phiên đăng nhập đã hết hạn." };
+  const userId = claims?.claims?.sub;
+  if (typeof userId !== "string") return { error: "Phiên đăng nhập đã hết hạn." };
+
+  const rateLimit = await consumeRateLimit("import", subjectRateLimitKey("import", userId));
+  if (!rateLimit.ok) return { error: rateLimitMessage(rateLimit) };
 
   try {
     const { data, error } = await supabase.rpc("import_flashcard_set", {

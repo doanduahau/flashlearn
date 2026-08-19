@@ -1,5 +1,7 @@
 # Production Deployment
 
+> **2026-08-19 operational addendum:** production releases require a separate staging deployment first. Set `FLASHLEARN_ENVIRONMENT=staging` in staging and `FLASHLEARN_ENVIRONMENT=production` in production. Production requires `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` and `HEALTHCHECK_TOKEN`. The legacy `CAPYSTUDY_*_MOCK` variables are accepted only when `FLASHLEARN_ENVIRONMENT=test`; they are inert in production.
+
 FlashLearn Phase 3 production readiness documentation.
 See `docs/DECISIONS/002-free-tier-beta-deployment.md` for the free-tier beta ADR.
 

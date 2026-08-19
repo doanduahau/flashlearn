@@ -14,6 +14,8 @@ import { seededShuffle } from "@/features/study/utils/shuffle";
 import { reconcileCardSchedule } from "@/features/spaced-repetition/server/reconcile-card-schedule";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
+import { consumeRateLimit, rateLimitMessage, subjectRateLimitKey } from "@/lib/security/rate-limit";
 
 type Result =
   | {
@@ -65,6 +67,12 @@ export async function startQuiz(input: unknown): Promise<Result> {
   const supabase = await createClient();
   const userId = await authenticatedUserId(supabase);
   if (!userId) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+
+  const rateLimit = await consumeRateLimit(
+    "learningSubmit",
+    subjectRateLimitKey("quiz-start", userId),
+  );
+  if (!rateLimit.ok) return { ok: false, error: rateLimitMessage(rateLimit) };
 
   try {
     const poolIds = await collectStudyCardIds(supabase, {
@@ -147,6 +155,12 @@ export async function submitQuizAnswer(input: unknown): Promise<Result> {
   const userId = await authenticatedUserId(supabase);
   if (!userId) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
 
+  const rateLimit = await consumeRateLimit(
+    "learningSubmit",
+    subjectRateLimitKey("quiz-answer", userId),
+  );
+  if (!rateLimit.ok) return { ok: false, error: rateLimitMessage(rateLimit) };
+
   const { data, error } = await supabase.rpc("submit_quiz_answer", {
     p_question_id: parsed.data.questionId,
     p_selected_choice_index: parsed.data.selectedChoiceIndex,
@@ -175,10 +189,10 @@ export async function submitQuizAnswer(input: unknown): Promise<Result> {
     try {
       await reconcileCardSchedule(supabase, userId, answer.flashcard_id as string);
     } catch (reason: unknown) {
-      console.error(
-        `[fsrs_shadow] reconciliation failed category=${shadowFailureCategory(reason)} ` +
-          `quiz_question=${parsed.data.questionId} flashcard=${answer.flashcard_id}`,
-      );
+      logger.error(`fsrs_shadow.reconciliation_failed category=${shadowFailureCategory(reason)}`, {
+        quizQuestionId: parsed.data.questionId,
+        flashcardId: answer.flashcard_id,
+      });
     }
   }
 

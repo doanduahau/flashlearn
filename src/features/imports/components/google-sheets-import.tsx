@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
+import * as Sentry from "@sentry/nextjs";
 
 import {
   analyzeSheetText,
@@ -307,7 +308,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
       }
       applyAnalysis(meta, result.sheetData, preferredMapping);
     } catch (err) {
-      console.error("Google Sheets values fetch failed", err);
+      Sentry.captureException(err, { tags: { event: "google_sheets.values_fetch_failed" } });
       setError("Không thể đọc dữ liệu bảng tính. Vui lòng thử lại.");
       setMode("loaded");
     }
@@ -449,7 +450,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
       }
       handleDiscovered(result.meta, result.headers, result.sheetTitle);
     } catch (err) {
-      console.error("Google Sheets open failed", err);
+      Sentry.captureException(err, { tags: { event: "google_sheets.open_failed" } });
       setError("Không thể mở bảng tính.");
       setMode("init");
     }
@@ -475,7 +476,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
       }
       handleDiscovered(result.meta, result.headers, result.sheetTitle);
     } catch (err) {
-      console.error("Google Sheets header discovery failed", err);
+      Sentry.captureException(err, { tags: { event: "google_sheets.header_discovery_failed" } });
       setError("Không thể mở sheet.");
       setMode("loaded");
     }
@@ -501,7 +502,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
       }
       handleDiscovered(result.meta, result.headers, result.sheetTitle);
     } catch (err) {
-      console.error("Google Sheets public open failed", err);
+      Sentry.captureException(err, { tags: { event: "google_sheets.public_open_failed" } });
       setError("Không thể mở sheet.");
       setMode("loaded");
     }
@@ -545,7 +546,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
       setIsPublicFlow(true);
       handleDiscovered(result.meta, result.headers, result.sheetTitle);
     } catch (err) {
-      console.error("Google Sheets paste URL failed", err);
+      Sentry.captureException(err, { tags: { event: "google_sheets.paste_url_failed" } });
       setError("Không thể đọc bảng tính.");
       setMode("init");
     }

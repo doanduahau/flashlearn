@@ -18,6 +18,7 @@ import {
 } from "@/features/practice-coverage/server/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { consumeRateLimit, rateLimitMessage, subjectRateLimitKey } from "@/lib/security/rate-limit";
 
 async function authenticatedUserId(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -132,6 +133,12 @@ export async function saveMatchAttempt(input: unknown): Promise<SaveMatchAttempt
   const supabase = await createClient();
   const userId = await authenticatedUserId(supabase);
   if (!userId) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+
+  const rateLimit = await consumeRateLimit(
+    "learningSubmit",
+    subjectRateLimitKey("match-save", userId),
+  );
+  if (!rateLimit.ok) return { ok: false, error: rateLimitMessage(rateLimit) };
 
   try {
     const admin = createAdminClient();

@@ -2,6 +2,7 @@
 
 import { loadNewCardCandidateResult } from "@/features/spaced-repetition/server/new-cards-repository";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 
 const NEW_CARDS_BATCH_SIZE = 10;
@@ -29,7 +30,7 @@ export async function startNewCardsLearning(): Promise<StartNewCardsResult> {
   try {
     result = await loadNewCardCandidateResult(supabase, NEW_CARDS_BATCH_SIZE);
   } catch {
-    console.error("[new_cards] start new cards load failed");
+    logger.warn("new_cards.load_candidates_failed");
     return { ok: false, error: GENERIC_ERROR };
   }
 

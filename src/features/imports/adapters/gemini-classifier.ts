@@ -7,6 +7,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GEMINI_RETRY_ATTEMPTS } from "./gemini-retry-policy";
 import type { SectionKind } from "../types/document-types";
 import { getGeminiApiKey } from "@/lib/env";
+import { withCircuitBreaker, withTimeout } from "@/lib/resilience";
 
 const MODEL_ID = "gemini-flash-lite-latest";
 
@@ -60,7 +61,9 @@ export interface DocumentClassifier {
 // API. A file is used (rather than module state) because Next.js bundles server
 // actions and route handlers into separate chunks that do not share module
 // instances.
-const MOCK_ENABLED = (process.env.CAPYSTUDY_CLASSIFIER_MOCK ?? "").trim() === "1";
+const MOCK_ENABLED =
+  (process.env.CAPYSTUDY_CLASSIFIER_MOCK ?? "").trim() === "1" &&
+  (process.env.NODE_ENV === "test" || process.env.FLASHLEARN_ENVIRONMENT === "test");
 
 export const mockClassifierCount = {
   get calls(): number {
@@ -113,15 +116,20 @@ export class GeminiDocumentClassifier implements DocumentClassifier {
     const genAI = new GoogleGenAI({ apiKey });
     const prompt = buildClassificationPrompt(text);
 
-    const result = await genAI.models.generateContent({
-      model: MODEL_ID,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: CLASSIFICATION_SCHEMA,
-        httpOptions: { retryOptions: { attempts: GEMINI_RETRY_ATTEMPTS } },
-      },
-    });
+    const result = await withCircuitBreaker("gemini", () =>
+      withTimeout(
+        "gemini",
+        genAI.models.generateContent({
+          model: MODEL_ID,
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: CLASSIFICATION_SCHEMA,
+            httpOptions: { retryOptions: { attempts: GEMINI_RETRY_ATTEMPTS } },
+          },
+        }),
+      ),
+    );
 
     const raw = result.text;
     if (!raw) throw new Error("No AI response.");

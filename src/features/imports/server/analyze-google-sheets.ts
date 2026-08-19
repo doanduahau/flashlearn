@@ -13,6 +13,9 @@ import {
 } from "@/features/imports/utils/sheets-parser";
 import { GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
+import { fetchWithTimeout } from "@/lib/resilience";
+import { consumeRateLimit, rateLimitMessage, subjectRateLimitKey } from "@/lib/security/rate-limit";
+import { logger } from "@/lib/logger";
 
 const SHEETS_API_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
 
@@ -38,14 +41,26 @@ type SemanticResult =
     }
   | { kind: "error"; message: string };
 
-async function requireAuth(): Promise<boolean> {
+async function requireAuth(): Promise<string | null> {
   try {
     const supabase = await createClient();
     const { data: claims } = await supabase.auth.getClaims();
-    return Boolean(claims?.claims);
+    const userId = claims?.claims?.sub;
+    return typeof userId === "string" ? userId : claims?.claims ? "authenticated" : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+async function requireGoogleSheetsLimit(): Promise<{ userId: string } | { error: string }> {
+  const userId = await requireAuth();
+  if (!userId) return { error: "Phiên đăng nhập đã hết hạn." };
+  const rateLimit = await consumeRateLimit(
+    "googleSheets",
+    subjectRateLimitKey("google-sheets", userId),
+  );
+  if (!rateLimit.ok) return { error: rateLimitMessage(rateLimit) };
+  return { userId };
 }
 
 function authHeaders(accessToken: string): Record<string, string> {
@@ -64,7 +79,7 @@ async function fetchErrorDetail(res: Response): Promise<string> {
 async function logSheetApiError(res: Response, detail: string): Promise<void> {
   // Log only the HTTP status and Google's message — never the sheet id, token
   // or cell contents (avoid sensitive data in server logs).
-  console.error("Google Sheets API error", { status: res.status, detail });
+  logger.warn("google_sheets.api_error", { status: res.status, detail });
 }
 
 async function fetchSheetMetadata(
@@ -72,7 +87,9 @@ async function fetchSheetMetadata(
   accessToken: string,
 ): Promise<GoogleSheetMeta | { error: string; status: number; detail?: string }> {
   const metaUrl = `${SHEETS_API_BASE}/${spreadsheetId}?fields=properties.title,sheets.properties(sheetId,title,index)`;
-  const metaRes = await fetch(metaUrl, { headers: authHeaders(accessToken) });
+  const metaRes = await fetchWithTimeout("google-sheets", metaUrl, {
+    headers: authHeaders(accessToken),
+  });
   if (!metaRes.ok) {
     const detail = await fetchErrorDetail(metaRes);
     if (metaRes.status === 401 || metaRes.status === 403) {
@@ -92,7 +109,7 @@ async function fetchHeaderScan(
 ): Promise<string[] | { error: string; status: number; detail?: string }> {
   const range = buildHeaderScanRange(sheetTitle, GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS);
   const url = `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}`;
-  const res = await fetch(url, { headers: authHeaders(accessToken) });
+  const res = await fetchWithTimeout("google-sheets", url, { headers: authHeaders(accessToken) });
   if (!res.ok) {
     const detail = await fetchErrorDetail(res);
     if (res.status === 401 || res.status === 403) {
@@ -114,7 +131,7 @@ async function fetchColumnBodies(
   const ranges = columns.map((col) => buildDataColumnRange(sheetTitle, col, IMPORT_MAX_ROWS));
   const rangesParam = ranges.map((r) => `ranges=${encodeURIComponent(r)}`).join("&");
   const url = `${SHEETS_API_BASE}/${spreadsheetId}/values:batchGet?${rangesParam}&majorDimension=ROWS`;
-  const res = await fetch(url, { headers: authHeaders(accessToken) });
+  const res = await fetchWithTimeout("google-sheets", url, { headers: authHeaders(accessToken) });
   if (!res.ok) {
     const detail = await fetchErrorDetail(res);
     if (res.status === 401 || res.status === 403) {
@@ -158,7 +175,8 @@ function sanitizeColumns(value: unknown): number[] {
 }
 
 export async function openGoogleSheet(rawInput: unknown): Promise<SheetOpenResult> {
-  if (!(await requireAuth())) return { kind: "error", message: "Phiên đăng nhập đã hết hạn." };
+  const access = await requireGoogleSheetsLimit();
+  if ("error" in access) return { kind: "error", message: access.error };
 
   if (!rawInput || typeof rawInput !== "object") {
     return { kind: "error", message: "Dữ liệu không hợp lệ." };
@@ -216,7 +234,8 @@ export async function openGoogleSheet(rawInput: unknown): Promise<SheetOpenResul
 }
 
 export async function discoverPrivateSheetHeaders(rawInput: unknown): Promise<SheetOpenResult> {
-  if (!(await requireAuth())) return { kind: "error", message: "Phiên đăng nhập đã hết hạn." };
+  const access = await requireGoogleSheetsLimit();
+  if ("error" in access) return { kind: "error", message: access.error };
 
   if (!rawInput || typeof rawInput !== "object") {
     return { kind: "error", message: "Dữ liệu không hợp lệ." };
@@ -261,7 +280,8 @@ export async function discoverPrivateSheetHeaders(rawInput: unknown): Promise<Sh
 }
 
 export async function loadPrivateSheetValues(rawInput: unknown): Promise<SheetValuesResult> {
-  if (!(await requireAuth())) return { kind: "error", message: "Phiên đăng nhập đã hết hạn." };
+  const access = await requireGoogleSheetsLimit();
+  if ("error" in access) return { kind: "error", message: access.error };
 
   if (!rawInput || typeof rawInput !== "object") {
     return { kind: "error", message: "Dữ liệu không hợp lệ." };
@@ -304,7 +324,14 @@ export async function loadPrivateSheetValues(rawInput: unknown): Promise<SheetVa
 }
 
 export async function analyzeSheetText(rawInput: unknown): Promise<SemanticResult> {
-  if (!(await requireAuth())) return { kind: "error", message: "Phiên đăng nhập đã hết hạn." };
+  const access = await requireGoogleSheetsLimit();
+  if ("error" in access) return { kind: "error", message: access.error };
+
+  const aiLimit = await consumeRateLimit(
+    "aiGeneration",
+    subjectRateLimitKey("google-sheets-ai", access.userId),
+  );
+  if (!aiLimit.ok) return { kind: "error", message: rateLimitMessage(aiLimit) };
 
   if (!rawInput || typeof rawInput !== "object") {
     return { kind: "error", message: "Dữ liệu không hợp lệ." };

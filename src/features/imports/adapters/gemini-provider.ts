@@ -7,6 +7,7 @@ import type { DraftFlashcard } from "../types/import-types";
 import type { FlashcardGenerationProvider } from "../types/import-types";
 import { CARD_TEXT_MAX_LENGTH, GEMINI_MAX_OUTPUT_CARDS } from "@/lib/constants";
 import { getGeminiApiKey } from "@/lib/env";
+import { withCircuitBreaker, withTimeout } from "@/lib/resilience";
 
 const MODEL_ID = "gemini-flash-lite-latest";
 
@@ -67,17 +68,22 @@ export class GeminiFlashcardGenerationProvider implements FlashcardGenerationPro
 
     const prompt = buildPrompt(input.text);
 
-    const result = await genAI.models.generateContent({
-      model: MODEL_ID,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: GEMINI_RESPONSE_SCHEMA,
-        httpOptions: {
-          retryOptions: { attempts: GEMINI_RETRY_ATTEMPTS },
-        },
-      },
-    });
+    const result = await withCircuitBreaker("gemini", () =>
+      withTimeout(
+        "gemini",
+        genAI.models.generateContent({
+          model: MODEL_ID,
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: GEMINI_RESPONSE_SCHEMA,
+            httpOptions: {
+              retryOptions: { attempts: GEMINI_RETRY_ATTEMPTS },
+            },
+          },
+        }),
+      ),
+    );
 
     const responseText = result.text;
     if (!responseText) {

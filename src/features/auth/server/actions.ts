@@ -8,6 +8,8 @@ import { env } from "@/lib/env";
 import { validateSignUp, validateSignIn } from "@/features/auth/schemas/auth-schema";
 import { sanitizeRedirect } from "@/features/auth/utils/safe-redirect";
 import { mapAuthError } from "@/features/auth/utils/auth-error";
+import { consumeRateLimit, rateLimitMessage, requestRateLimitKey } from "@/lib/security/rate-limit";
+import { logger } from "@/lib/logger";
 
 export async function signUp(formData: FormData): Promise<void> {
   const raw = {
@@ -27,6 +29,14 @@ export async function signUp(formData: FormData): Promise<void> {
 
   const { displayName, email, password } = validated.data;
 
+  const rateLimit = await consumeRateLimit(
+    "authSignUp",
+    await requestRateLimitKey("auth-sign-up", email.trim().toLowerCase()),
+  );
+  if (!rateLimit.ok) {
+    redirect(`/sign-up?error=${encodeURIComponent(rateLimitMessage(rateLimit))}`);
+  }
+
   let redirectTo = "/sign-up?error=" + encodeURIComponent(mapAuthError("unknown_error"));
 
   try {
@@ -44,7 +54,7 @@ export async function signUp(formData: FormData): Promise<void> {
     });
 
     if (error) {
-      console.error("[signUp] Supabase error:", error.message);
+      logger.warn("auth.sign_up_failed", { reason: error.message });
       redirectTo = "/sign-up?error=" + encodeURIComponent(mapAuthError("sign_up_failed"));
     } else if (data.session) {
       redirectTo = "/dashboard";
@@ -52,7 +62,7 @@ export async function signUp(formData: FormData): Promise<void> {
       redirectTo = "/check-email";
     }
   } catch (error) {
-    console.error("[signUp] Unexpected error:", error);
+    logger.exception("auth.sign_up_unexpected", error);
     redirectTo = "/sign-up?error=" + encodeURIComponent(mapAuthError("unknown_error"));
   }
 
@@ -75,6 +85,14 @@ export async function signIn(formData: FormData): Promise<void> {
 
   const { email, password } = validated.data;
 
+  const rateLimit = await consumeRateLimit(
+    "authSignIn",
+    await requestRateLimitKey("auth-sign-in", email.trim().toLowerCase()),
+  );
+  if (!rateLimit.ok) {
+    redirect(`/sign-in?error=${encodeURIComponent(rateLimitMessage(rateLimit))}`);
+  }
+
   let redirectTo = `/sign-in?error=${encodeURIComponent(mapAuthError("sign_in_failed"))}`;
 
   try {
@@ -86,13 +104,13 @@ export async function signIn(formData: FormData): Promise<void> {
     });
 
     if (error) {
-      console.error("[signIn] Supabase error:", error.message);
+      logger.warn("auth.sign_in_failed", { reason: error.message });
       redirectTo = `/sign-in?error=${encodeURIComponent(mapAuthError("invalid_credentials"))}`;
     } else {
       redirectTo = sanitizeRedirect(formData.get("next") as string | null, "/dashboard");
     }
   } catch (error) {
-    console.error("[signIn] Unexpected error:", error);
+    logger.exception("auth.sign_in_unexpected", error);
     redirectTo = `/sign-in?error=${encodeURIComponent(mapAuthError("sign_in_failed"))}`;
   }
 
@@ -106,10 +124,10 @@ export async function signOut(): Promise<void> {
     const { error } = await supabase.auth.signOut({ scope: "local" });
 
     if (error) {
-      console.error("[signOut] Supabase error:", error.message);
+      logger.warn("auth.sign_out_failed", { reason: error.message });
     }
   } catch (error) {
-    console.error("[signOut] Unexpected error:", error);
+    logger.exception("auth.sign_out_unexpected", error);
   }
 
   revalidatePath("/", "layout");

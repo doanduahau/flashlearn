@@ -6,6 +6,7 @@ import {
   smartReviewTargetCardIds,
 } from "@/features/smart-review/utils/smart-review-session";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 
 type StartSmartReviewResult =
@@ -42,7 +43,7 @@ export async function startSmartReview(): Promise<StartSmartReviewResult> {
       SMART_REVIEW_BATCH_SIZE,
     );
   } catch {
-    console.error("[smart_review] start due candidate load failed");
+    logger.warn("smart_review.load_due_candidates_failed");
     return { ok: false, error: GENERIC_ERROR };
   }
 

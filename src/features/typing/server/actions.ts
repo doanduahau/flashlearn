@@ -28,6 +28,7 @@ import { fetchStudyCards } from "@/features/study/server/load-study-cards";
 import { seededShuffle } from "@/features/study/utils/shuffle";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { consumeRateLimit, rateLimitMessage, subjectRateLimitKey } from "@/lib/security/rate-limit";
 
 const generic = "Không thể xử lý bài kiểm tra. Vui lòng thử lại.";
 const TYPING_QUICK_COUNTS = [10, 20, 30, 50];
@@ -158,6 +159,12 @@ export async function submitTypingAttempt(input: unknown): Promise<SubmitTypingR
   const supabase = await createClient();
   const userId = await authenticatedUserId(supabase);
   if (!userId) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+
+  const rateLimit = await consumeRateLimit(
+    "aiGeneration",
+    subjectRateLimitKey("typing-submit", userId),
+  );
+  if (!rateLimit.ok) return { ok: false, error: rateLimitMessage(rateLimit) };
 
   try {
     // Load the correct answers (backs) for the submitted cards. RLS limits

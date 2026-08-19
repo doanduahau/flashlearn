@@ -5,6 +5,8 @@ import { parseColumnBodies, parseHeaderScan, parseSpreadsheetMeta } from "../uti
 import { GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS, IMPORT_MAX_ROWS } from "@/lib/constants";
 
 const SHEETS_API_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
+const CLIENT_REQUEST_INTERVAL_MS = 500;
+let nextRequestAt = 0;
 
 export type PublicSheetOpenResult =
   | { kind: "success"; meta: GoogleSheetMeta; headers: string[]; sheetTitle: string }
@@ -24,9 +26,21 @@ function googleErrorDetail(json: unknown): string {
 }
 
 async function sheetsJson(url: string): Promise<{ json: unknown; status: number }> {
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  const json = await res.json().catch(() => null);
-  return { json, status: res.status };
+  const waitMs = Math.max(0, nextRequestAt - Date.now());
+  if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+  nextRequestAt = Date.now() + CLIENT_REQUEST_INTERVAL_MS;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    const json = await res.json().catch(() => null);
+    return { json, status: res.status };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export function validatePublicSpreadsheetUrl(

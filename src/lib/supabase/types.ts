@@ -198,6 +198,48 @@ export type Database = {
         }
         Relationships: []
       }
+      entitlement_overrides: {
+        Row: {
+          boolean_value: boolean | null
+          created_at: string
+          created_by: string | null
+          entitlement_key: string
+          expires_at: string | null
+          id: string
+          integer_value: number | null
+          reason: string
+          text_value: string | null
+          user_id: string
+          value_type: string
+        }
+        Insert: {
+          boolean_value?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          entitlement_key: string
+          expires_at?: string | null
+          id?: string
+          integer_value?: number | null
+          reason: string
+          text_value?: string | null
+          user_id: string
+          value_type: string
+        }
+        Update: {
+          boolean_value?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          entitlement_key?: string
+          expires_at?: string | null
+          id?: string
+          integer_value?: number | null
+          reason?: string
+          text_value?: string | null
+          user_id?: string
+          value_type?: string
+        }
+        Relationships: []
+      }
       flashcard_coverage: {
         Row: {
           appearance_count: number
@@ -464,6 +506,133 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_entitlements: {
+        Row: {
+          boolean_value: boolean | null
+          created_at: string
+          effective_version: number
+          entitlement_key: string
+          integer_value: number | null
+          plan_id: string
+          text_value: string | null
+          updated_at: string
+          value_type: string
+        }
+        Insert: {
+          boolean_value?: boolean | null
+          created_at?: string
+          effective_version?: number
+          entitlement_key: string
+          integer_value?: number | null
+          plan_id: string
+          text_value?: string | null
+          updated_at?: string
+          value_type: string
+        }
+        Update: {
+          boolean_value?: boolean | null
+          created_at?: string
+          effective_version?: number
+          entitlement_key?: string
+          integer_value?: number | null
+          plan_id?: string
+          text_value?: string | null
+          updated_at?: string
+          value_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_entitlements_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      processing_jobs: {
+        Row: {
+          correlation_id: string
+          created_at: string
+          error_code: string | null
+          finished_at: string | null
+          id: string
+          idempotency_key: string
+          job_kind: string
+          provider: string | null
+          provider_request_id: string | null
+          reservation_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          correlation_id: string
+          created_at?: string
+          error_code?: string | null
+          finished_at?: string | null
+          id?: string
+          idempotency_key: string
+          job_kind: string
+          provider?: string | null
+          provider_request_id?: string | null
+          reservation_id?: string | null
+          started_at?: string | null
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          correlation_id?: string
+          created_at?: string
+          error_code?: string | null
+          finished_at?: string | null
+          id?: string
+          idempotency_key?: string
+          job_kind?: string
+          provider?: string | null
+          provider_request_id?: string | null
+          reservation_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_jobs_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "quota_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -658,6 +827,68 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      quota_reservations: {
+        Row: {
+          actual_amount: number | null
+          correlation_id: string
+          created_at: string
+          expires_at: string
+          finalized_at: string | null
+          id: string
+          idempotency_key: string
+          period_id: string | null
+          refund_reason: string | null
+          refunded_at: string | null
+          requested_amount: number
+          status: string
+          updated_at: string
+          usage_key: string
+          user_id: string
+        }
+        Insert: {
+          actual_amount?: number | null
+          correlation_id: string
+          created_at?: string
+          expires_at: string
+          finalized_at?: string | null
+          id?: string
+          idempotency_key: string
+          period_id?: string | null
+          refund_reason?: string | null
+          refunded_at?: string | null
+          requested_amount: number
+          status: string
+          updated_at?: string
+          usage_key: string
+          user_id: string
+        }
+        Update: {
+          actual_amount?: number | null
+          correlation_id?: string
+          created_at?: string
+          expires_at?: string
+          finalized_at?: string | null
+          id?: string
+          idempotency_key?: string
+          period_id?: string | null
+          refund_reason?: string | null
+          refunded_at?: string | null
+          requested_amount?: number
+          status?: string
+          updated_at?: string
+          usage_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quota_reservations_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "usage_periods"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       runner_personal_bests: {
         Row: {
@@ -862,6 +1093,151 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_ledger: {
+        Row: {
+          amount: number
+          created_at: string
+          entry_type: string
+          id: string
+          idempotency_key: string
+          period_id: string | null
+          reservation_id: string | null
+          usage_key: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          entry_type: string
+          id?: string
+          idempotency_key: string
+          period_id?: string | null
+          reservation_id?: string | null
+          usage_key: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          entry_type?: string
+          id?: string
+          idempotency_key?: string
+          period_id?: string | null
+          reservation_id?: string | null
+          usage_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_ledger_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "usage_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_ledger_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "quota_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_periods: {
+        Row: {
+          created_at: string
+          id: string
+          period_end: string
+          period_kind: string
+          period_start: string
+          plan_id: string
+          usage_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period_end: string
+          period_kind: string
+          period_start: string
+          plan_id: string
+          usage_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period_end?: string
+          period_kind?: string
+          period_start?: string
+          plan_id?: string
+          usage_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_periods_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          grace_ends_at: string | null
+          id: string
+          plan_id: string
+          provider: string | null
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          grace_ends_at?: string | null
+          id?: string
+          plan_id: string
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          grace_ends_at?: string | null
+          id?: string
+          plan_id?: string
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -946,6 +1322,32 @@ export type Database = {
         Args: { p_color?: string; p_icon?: string; p_name: string }
         Returns: string
       }
+      finalize_usage: {
+        Args: { p_actual_amount: number; p_reservation_id: string }
+        Returns: {
+          actual_amount: number | null
+          correlation_id: string
+          created_at: string
+          expires_at: string
+          finalized_at: string | null
+          id: string
+          idempotency_key: string
+          period_id: string | null
+          refund_reason: string | null
+          refunded_at: string | null
+          requested_amount: number
+          status: string
+          updated_at: string
+          usage_key: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quota_reservations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_dashboard_counts: {
         Args: never
         Returns: {
@@ -957,6 +1359,11 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      get_effective_entitlement: {
+        Args: { p_entitlement_key: string; p_user_id: string }
+        Returns: Json
+      }
+      get_effective_plan: { Args: { p_user_id: string }; Returns: string }
       get_learning_statistics: { Args: never; Returns: Json }
       get_quiz_scope_sets: {
         Args: {
@@ -1053,6 +1460,32 @@ export type Database = {
         Args: { p_answers: Json; p_mode: string; p_user_id: string }
         Returns: undefined
       }
+      refund_usage: {
+        Args: { p_reason: string; p_reservation_id: string }
+        Returns: {
+          actual_amount: number | null
+          correlation_id: string
+          created_at: string
+          expires_at: string
+          finalized_at: string | null
+          id: string
+          idempotency_key: string
+          period_id: string | null
+          refund_reason: string | null
+          refunded_at: string | null
+          requested_amount: number
+          status: string
+          updated_at: string
+          usage_key: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quota_reservations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       register_set_membership: {
         Args: {
           p_clone_set_id: string
@@ -1060,6 +1493,21 @@ export type Database = {
           p_token: string
         }
         Returns: string
+      }
+      reserve_usage: {
+        Args: {
+          p_correlation_id: string
+          p_idempotency_key: string
+          p_requested_amount: number
+          p_usage_key: string
+          p_user_id: string
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          reservation_id: string
+          reservation_status: string
+        }[]
       }
       revoke_set_share_token: {
         Args: { p_set_id: string; p_user_id: string }

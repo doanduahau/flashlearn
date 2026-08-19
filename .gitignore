@@ -54,3 +54,6 @@ next-env.d.ts
 # supabase cli transient state
 /supabase/.branches/
 /supabase/.temp/
+
+# local production database backups (never commit dumps or user data)
+/backups/

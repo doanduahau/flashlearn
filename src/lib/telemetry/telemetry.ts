@@ -17,6 +17,8 @@ export type RateLimitTelemetryPolicy =
   | "aiGeneration"
   | "googleSheets"
   | "learningSubmit"
+  | "catalogInstallFree"
+  | "catalogInstallPro"
   | "publicShare";
 
 type TelemetryEvent =

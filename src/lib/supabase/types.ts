@@ -1212,6 +1212,7 @@ export type Database = {
           installed_count: number
           last_attempt_at: string | null
           last_error_code: string | null
+          onboarding_announced_at: string | null
           started_at: string | null
           status: string
           updated_at: string
@@ -1224,6 +1225,7 @@ export type Database = {
           installed_count?: number
           last_attempt_at?: string | null
           last_error_code?: string | null
+          onboarding_announced_at?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -1236,6 +1238,7 @@ export type Database = {
           installed_count?: number
           last_attempt_at?: string | null
           last_error_code?: string | null
+          onboarding_announced_at?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -1490,6 +1493,10 @@ export type Database = {
           position: number
         }[]
       }
+      claim_starter_onboarding_banner: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       clone_shared_set: {
         Args: { p_token: string; p_user_id: string }
         Returns: {
@@ -1676,6 +1683,20 @@ export type Database = {
       install_catalog_set: {
         Args: {
           p_catalog_set_id: string
+          p_idempotency_key: string
+          p_user_id: string
+        }
+        Returns: {
+          already_exists: boolean
+          card_count: number
+          catalog_version: number
+          set_id: string
+        }[]
+      }
+      install_catalog_set_for_user: {
+        Args: {
+          p_catalog_set_id: string
+          p_enforcement_mode: string
           p_idempotency_key: string
           p_user_id: string
         }

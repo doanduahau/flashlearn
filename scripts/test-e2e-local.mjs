@@ -5,7 +5,10 @@ import { resolveLocalSupabaseEnv } from "./lib/local-supabase-env.mjs";
 const npmCliPath = process.env.npm_execpath;
 if (!npmCliPath) throw new Error("npm_execpath is required for the local E2E runner.");
 const starterProvisioningEnabled = process.argv.includes("--starter-provisioning");
-const playwrightArgs = process.argv.slice(2).filter((arg) => arg !== "--starter-provisioning");
+const catalogEnabled = process.argv.includes("--catalog");
+const playwrightArgs = process.argv
+  .slice(2)
+  .filter((arg) => arg !== "--starter-provisioning" && arg !== "--catalog");
 
 function runNpm(args, env) {
   return new Promise((resolve, reject) => {
@@ -37,6 +40,7 @@ const localEnv = {
   SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
   CAPYSTUDY_ENVIRONMENT: "test",
   CAPYSTUDY_STARTER_PROVISIONING_ENABLED: starterProvisioningEnabled ? "true" : "false",
+  CAPYSTUDY_CATALOG_ENABLED: catalogEnabled ? "true" : "false",
   MAILPIT_URL: mailpitUrl,
   // Use the test-only classifier mock so E2E never calls real Gemini.
   CAPYSTUDY_CLASSIFIER_MOCK: "1",

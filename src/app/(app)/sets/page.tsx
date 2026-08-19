@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { OfflineBanner } from "@/components/shared/offline-banner";
+import { StarterOnboardingBanner } from "@/features/catalog/components/starter-onboarding-banner";
+import { claimStarterOnboardingBanner } from "@/features/catalog/server/onboarding";
 import { SetLauncherCard } from "@/features/flashcard-sets/components/set-launcher-card";
 import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import type { RouteSearchParams } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
+import { getFeatureFlags } from "@/lib/telemetry/feature-flags";
 
 export const metadata: Metadata = { title: "Bộ flashcard" };
 
@@ -50,13 +53,22 @@ export default async function SetsPage({
   redirectForLegacyParams(raw);
 
   const supabase = await createClient();
-  const mascotLevel = await loadMascotLevel(supabase);
+  const [mascotLevel, claimsResult] = await Promise.all([
+    loadMascotLevel(supabase),
+    supabase.auth.getClaims(),
+  ]);
+  const flags = getFeatureFlags();
+  const showOnboarding =
+    flags.starterProvisioningEnabled && claimsResult.data?.claims.sub
+      ? await claimStarterOnboardingBanner(claimsResult.data.claims.sub)
+      : false;
 
   return (
     <main className="mx-auto w-full max-w-4xl p-3 sm:p-8">
       <OfflineBanner />
       <h1 className="text-2xl font-bold sm:text-3xl">Bộ flashcard</h1>
-      <div className="mt-4 grid min-h-[calc(100dvh-16rem)] grid-rows-2 gap-4 sm:mt-6 sm:min-h-0 sm:grid-cols-2 sm:grid-rows-none sm:items-stretch">
+      {showOnboarding ? <StarterOnboardingBanner /> : null}
+      <div className="mt-4 grid gap-4 sm:mt-6 sm:grid-cols-2 sm:items-stretch lg:grid-cols-3">
         <SetLauncherCard
           href="/sets/create"
           mascotState="point-right"
@@ -71,6 +83,15 @@ export default async function SetsPage({
           description="Bộ thường và bộ đặc biệt"
           mascotLevel={mascotLevel}
         />
+        {flags.catalogEnabled ? (
+          <SetLauncherCard
+            href="/sets/catalog"
+            mascotState="normal"
+            title="Thư viện Flashcard"
+            description="Khám phá các bộ do CapyStudy chuẩn bị"
+            mascotLevel={mascotLevel}
+          />
+        ) : null}
       </div>
     </main>
   );

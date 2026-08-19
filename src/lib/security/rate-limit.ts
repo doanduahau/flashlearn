@@ -15,6 +15,8 @@ type RateLimitPolicy =
   | "aiGeneration"
   | "googleSheets"
   | "learningSubmit"
+  | "catalogInstallFree"
+  | "catalogInstallPro"
   | "publicShare";
 
 type PolicyConfig = Readonly<{
@@ -29,6 +31,8 @@ const POLICY_CONFIG: Record<RateLimitPolicy, PolicyConfig> = {
   aiGeneration: { limit: 20, window: "1 h" },
   googleSheets: { limit: 30, window: "10 m" },
   learningSubmit: { limit: 30, window: "10 m" },
+  catalogInstallFree: { limit: 10, window: "1 h" },
+  catalogInstallPro: { limit: 30, window: "1 h" },
   publicShare: { limit: 120, window: "1 m" },
 };
 

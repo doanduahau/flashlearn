@@ -2,7 +2,7 @@
 
 ## 0. Metadata
 
-- `Status`: planned
+- `Status`: implemented — production rollout remains behind `CAPYSTUDY_CATALOG_ENABLED`
 - `Difficulty`: 7/10 — cao
 - `Risk`: medium; navigation conflict, async install UX, accessibility/responsive
 - `Dependencies`: LP-03, LP-04; LP-05 cho onboarding banner hoàn chỉnh

@@ -754,3 +754,9 @@ ceilings remain 30,000 cards and 200 regular sets.
 `get_starter_backfill_batch` is a service-role-only, read-only operator RPC ordered by
 `(auth.users.created_at, auth.users.id)`. It accepts no offset and enforces a maximum page size of 100,
 allowing the operator runner to checkpoint and resume without skipping or duplicating users.
+
+LP-06 adds `onboarding_announced_at` as acknowledgement state independent from provisioning status.
+The service-role-only `claim_starter_onboarding_banner` RPC atomically claims that message once.
+User-initiated catalog installs use `install_catalog_set_for_user`, which serializes storage decisions
+per user, applies the server-side observe/warn/block mode, enforces absolute 30,000-card/200-set
+ceilings and delegates the atomic clone to `install_catalog_set`.

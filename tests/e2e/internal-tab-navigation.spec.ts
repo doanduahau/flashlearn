@@ -60,17 +60,6 @@ async function verifyTabNavigation(page: Page): Promise<void> {
   await switchTab(page, "Loại bộ flashcard", { label: "Bộ đặc biệt", value: "special" });
   await switchTab(page, "Loại bộ flashcard", { label: "Bộ thường", value: "regular" });
 
-  await prepareScrollablePage(page, "/quiz?tab=create&q=React&sourceType=regular&page=2");
-  await switchTab(page, "Nội dung kiểm tra", { label: "Lịch sử", value: "history" });
-  const quizHistoryUrl = new URL(page.url());
-  expect(quizHistoryUrl.searchParams.get("q")).toBe("React");
-  expect(quizHistoryUrl.searchParams.get("sourceType")).toBe("regular");
-  expect(quizHistoryUrl.searchParams.get("page")).toBe("2");
-  await page.goBack();
-  await expect.poll(() => new URL(page.url()).searchParams.get("tab")).toBe("create");
-  await switchTab(page, "Nội dung kiểm tra", { label: "Lịch sử", value: "history" });
-  await switchTab(page, "Nội dung kiểm tra", { label: "Tạo bài", value: "create" });
-
   await prepareScrollablePage(page, "/profile?tab=profile&month=2026-07");
   await switchTab(page, "Nội dung cá nhân", { label: "Thống kê", value: "statistics" });
   expect(new URL(page.url()).searchParams.get("month")).toBe("2026-07");

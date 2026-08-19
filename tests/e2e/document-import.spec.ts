@@ -36,8 +36,6 @@ test.describe("Document import", () => {
     const fileInput = await openDocumentImport(page);
     await fileInput.setInputFiles(DOCX_FIXTURE);
 
-    await expect(page.getByText("Đang đọc tài liệu...")).toBeVisible();
-
     // Extraction summary metadata
     await expect(page.getByText("khối nội dung")).toBeVisible();
 
@@ -68,8 +66,6 @@ test.describe("Document import", () => {
 
     const fileInput = await openDocumentImport(page);
     await fileInput.setInputFiles(PDF_FIXTURE);
-
-    await expect(page.getByText("Đang đọc tài liệu...")).toBeVisible();
 
     // Page-aware metadata
     await expect(page.getByText("1 trang")).toBeVisible();

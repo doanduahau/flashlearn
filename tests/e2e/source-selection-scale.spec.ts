@@ -54,11 +54,18 @@ test("Study and Quiz source selection scales across pages on mobile", async ({ p
 
   // Mode filter and count are inline (no bottom sheet). With 13 cards
   // (Chưa làm): 10 + Tất cả 13 offered, 20/30/50 not shown.
-  await expect(page.getByText(/13 thẻ hợp lệ/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "10" })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "13", exact: true })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "20" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "30" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "50" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Bắt đầu kiểm tra" })).toBeVisible();
+  await page.getByRole("button", { name: "Bắt đầu kiểm tra" }).click();
+  await expect(page).toHaveURL(/\/quiz\/mode\?all=1/);
+  await expect(page.getByRole("heading", { name: "Trắc nghiệm" })).toBeVisible();
+  const quizCard = page.locator("article").filter({
+    has: page.getByRole("heading", { name: "Trắc nghiệm" }),
+  });
+  await expect(quizCard.getByText("13 thẻ", { exact: true })).toBeVisible();
+  await page.getByLabel("Bắt đầu Trắc nghiệm").click();
+  const questionCount = page.getByRole("group", { name: "Chọn số câu" }).first();
+  await expect(questionCount.getByRole("button", { name: "10" })).toBeEnabled();
+  await expect(questionCount.getByRole("button", { name: "13", exact: true })).toBeEnabled();
+  await expect(questionCount.getByRole("button", { name: "20" })).toHaveCount(0);
+  await expect(questionCount.getByRole("button", { name: "30" })).toHaveCount(0);
+  await expect(questionCount.getByRole("button", { name: "50" })).toHaveCount(0);
 });

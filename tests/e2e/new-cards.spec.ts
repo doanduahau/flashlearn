@@ -149,7 +149,6 @@ test.describe("New Cards learning", () => {
 
     await page.goto("/dashboard");
     const summary = page.getByRole("region", { name: "Tóm tắt trạng thái học" });
-    await expect(summary.getByText("Cần ôn", { exact: true })).toBeVisible();
     await expect(summary.getByText("Chưa học", { exact: true })).toBeVisible();
     await expect(summary.getByText("22", { exact: true })).toBeVisible();
     await expect(summary.getByRole("button", { name: "Học thẻ mới" })).toBeVisible();

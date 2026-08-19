@@ -20,6 +20,7 @@ test.describe("Set and card management", () => {
 
     await page.goto("/sets/create?source=file");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(IMPORT_CSV);
+    await page.getByRole("button", { name: "Phân tích" }).click();
     await page.getByLabel("Tên bộ").fill(SET_NAME);
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
 
@@ -70,7 +71,7 @@ test.describe("Set and card management", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(renamedSetName);
 
     await deleteSet(page);
-    await expect(page).toHaveURL(/\/sets$/);
+    await expect(page).toHaveURL(/\/sets\/library$/);
     await expect(page.getByText(renamedSetName)).toHaveCount(0);
 
     const response = await page.goto(`/sets/${setId}`);

@@ -106,7 +106,7 @@ test.describe("Primary application navigation", () => {
     await page.goto("/dashboard");
 
     const mobileHeader = page.locator("header");
-    await expect(mobileHeader.locator('img[src="/mascot/logo.png"]')).toBeVisible();
+    await expect(mobileHeader.locator('img[src*="logo.png"]')).toBeVisible();
     await expect(mobileHeader).toContainText("CapyStudy");
     await expect(mobileHeader.locator('a[href="/profile?tab=statistics"]')).toBeVisible();
 
@@ -116,7 +116,7 @@ test.describe("Primary application navigation", () => {
     // Desktop Viewport
     await page.setViewportSize({ width: 1280, height: 800 });
     const sidebar = page.locator("aside");
-    await expect(sidebar.locator('img[src="/mascot/logo.png"]')).toBeVisible();
+    await expect(sidebar.locator('img[src*="logo.png"]')).toBeVisible();
     await expect(sidebar).toContainText("CapyStudy");
   });
 });

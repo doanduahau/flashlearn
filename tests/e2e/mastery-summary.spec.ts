@@ -35,7 +35,7 @@ test.describe("Mastery summary", () => {
     const motivation = page.getByRole("region", { name: "Động lực hằng ngày" });
     await expect(motivation.locator("img")).toHaveAttribute(
       "src",
-      "/mascot/level-1/point-right.png",
+      /url=%2Fmascot%2Flevel-1%2Fpoint-right\.png/,
     );
 
     const summary = page.getByRole("region", { name: "Tóm tắt trạng thái học" });
@@ -80,6 +80,7 @@ test.describe("Mastery summary", () => {
 
     await page.goto("/sets/create?source=file");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(PAGINATION_CSV);
+    await page.getByRole("button", { name: "Phân tích" }).click();
     await page.getByLabel("Tên bộ").fill("Bộ phân trang");
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);

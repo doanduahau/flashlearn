@@ -33,13 +33,14 @@ export default async function CollectionDetailPage({
   const requestedPage = parsePage(raw.page);
 
   const supabase = await createClient();
-  const mascotLevel = await loadMascotLevel(supabase);
   const { data: collection } = await supabase
     .from("special_collections")
     .select("id, name")
     .eq("id", collectionId)
     .maybeSingle();
   if (!collection) notFound();
+
+  const mascotLevel = await loadMascotLevel(supabase);
 
   const { count: total } = await supabase
     .from("special_collection_items")

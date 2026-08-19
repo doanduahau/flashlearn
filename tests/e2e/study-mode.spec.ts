@@ -59,7 +59,7 @@ test.describe("Study mode", () => {
 
     await page.goto("/quiz");
     const header = page.locator("header");
-    await expect(header.locator('img[src="/mascot/logo.png"]')).toBeVisible();
+    await expect(header.locator('img[src*="logo.png"]')).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,

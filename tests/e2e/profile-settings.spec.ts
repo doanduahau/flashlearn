@@ -32,18 +32,18 @@ test.describe("Profile settings", () => {
 
     await page.getByLabel("Tên hiển thị").fill(A_DISPLAY_NAME);
     await page.getByRole("button", { name: /Lưu thay đổi/ }).click();
-    await expect(page.getByRole("status")).toContainText("Đã lưu thay đổi.");
+    await expect(page.getByText("Đã lưu thay đổi.", { exact: true })).toBeVisible();
 
     await page.goto("/profile?tab=settings");
     await page.getByLabel("Múi giờ").selectOption(A_TIMEZONE);
     await page.getByRole("button", { name: /Lưu thay đổi/ }).click();
-    await expect(page.getByRole("status")).toContainText("Đã lưu thay đổi.");
+    await expect(page.getByText("Đã lưu thay đổi.", { exact: true })).toBeVisible();
     await expect(page.getByText(/Có thể đổi múi giờ lại sau/)).toBeVisible();
     await expect(page.getByLabel("Múi giờ")).toBeDisabled();
 
     await page.getByLabel("Tên hiển thị").fill(A_DISPLAY_NAME_DURING_COOLDOWN);
     await page.getByRole("button", { name: /Lưu thay đổi/ }).click();
-    await expect(page.getByRole("status")).toContainText("Đã lưu thay đổi.");
+    await expect(page.getByText("Đã lưu thay đổi.", { exact: true })).toBeVisible();
 
     await page.reload();
     await expect(page.getByLabel("Tên hiển thị")).toHaveValue(A_DISPLAY_NAME_DURING_COOLDOWN);

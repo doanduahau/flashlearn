@@ -151,7 +151,7 @@ export function CardCollectionsControl({
           className={cn(
             "rounded-2xl border border-border-soft p-4",
             isIcon
-              ? "absolute right-0 top-12 z-20 max-h-[min(28rem,calc(100dvh-10rem))] max-w-[calc(100vw-2rem)] w-72 overflow-y-auto bg-surface shadow-soft-card"
+              ? "fixed inset-x-4 bottom-4 z-50 max-h-[calc(100dvh-2rem)] overflow-y-auto bg-surface shadow-soft-card sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-auto sm:right-0 sm:top-12 sm:z-20 sm:max-h-[min(28rem,calc(100dvh-10rem))] sm:w-72"
               : "bg-surface-subtle",
           )}
         >

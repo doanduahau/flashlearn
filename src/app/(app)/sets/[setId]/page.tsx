@@ -47,13 +47,14 @@ export default async function SetDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
   const userId = user?.id;
-  const mascotLevel = await loadMascotLevel(supabase);
   const { data: set } = await supabase
     .from("flashcard_sets")
     .select("id, name, share_token, share_classroom_enabled")
     .eq("id", setId)
     .maybeSingle();
   if (!set) notFound();
+
+  const mascotLevel = await loadMascotLevel(supabase);
 
   const { data: members } =
     set.share_classroom_enabled && userId

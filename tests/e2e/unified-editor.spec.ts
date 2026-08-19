@@ -18,6 +18,7 @@ test.describe("Quick-create import (3G)", () => {
 
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles(IMPORT_CSV);
+    await page.getByRole("button", { name: "Phân tích" }).click();
 
     // No review editor: the quick-create summary appears after parsing.
     await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible({
@@ -43,6 +44,7 @@ test.describe("Quick-create import (3G)", () => {
 
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles(COLUMN_MAPPING_CSV);
+    await page.getByRole("button", { name: "Phân tích" }).click();
 
     await expect(page.getByRole("button", { name: /Tạo bộ flashcard/i })).toBeVisible({
       timeout: 10000,
@@ -51,12 +53,12 @@ test.describe("Quick-create import (3G)", () => {
     // Default mapping (front=0, back=1) yields 3 valid cards.
     await expect(page.getByText("3 thẻ hợp lệ")).toBeVisible();
 
-    // Column 2 (index 1) has no header → labelled "B" via A1 notation.
-    await expect(page.getByLabel("2. Mặt trước")).toContainText("B");
+    // Column 2 (index 1) uses its first populated value as the display label.
+    await expect(page.getByLabel("Mặt trước")).toContainText("One");
 
     // Pick column 3 (index 2) as front and column 2 (index 1) as back.
-    await page.getByLabel("2. Mặt trước").selectOption("2");
-    await page.getByLabel("3. Mặt sau").selectOption("1");
+    await page.getByLabel("Mặt trước").selectOption("2");
+    await page.getByLabel("Mặt sau").selectOption("1");
 
     // The third data row has an empty front cell under this mapping → 2 valid cards.
     await expect(page.getByText("2 thẻ hợp lệ")).toBeVisible();

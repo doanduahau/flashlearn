@@ -234,11 +234,9 @@ test.describe("Mobile-first UI — Quiz page", () => {
 
     await page.goto("/quiz?tab=create");
 
-    // Shared mode filter and count are inline, above the source list.
-    await expect(page.getByRole("button", { name: "Ch\u01b0a l\u00e0m" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "C\u00e2u sai" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Ng\u1eabu nhi\u00ean" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "10" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /Ch\u1ecdn m\u1ed9t ho\u1eb7c nhi\u1ec1u ngu\u1ed3n/ }),
+    ).toBeVisible();
 
     // Scroll deep into source list (to bottom); the sticky Start CTA stays.
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -246,6 +244,14 @@ test.describe("Mobile-first UI — Quiz page", () => {
     await expect(startBtn).toBeVisible();
     const startBox = await startBtn.boundingBox();
     expect((startBox?.y ?? 0) + (startBox?.height ?? 0)).toBeLessThanOrEqual(MOBILE.height);
+
+    await startBtn.click();
+    await expect(page).toHaveURL(/\/quiz\/mode\?all=1/);
+    await expect(page.getByRole("heading", { name: "Tr\u1eafc nghi\u1ec7m" })).toBeVisible();
+    await page.getByLabel("B\u1eaft \u0111\u1ea7u Tr\u1eafc nghi\u1ec7m").click();
+    await expect(
+      page.getByRole("group", { name: "Ch\u1ecdn s\u1ed1 c\u00e2u" }).first(),
+    ).toBeVisible();
   });
 
   test("quiz start button remains in viewport on mobile regardless of scroll position", async ({
@@ -290,8 +296,8 @@ test.describe("Mobile-first UI — Quiz page", () => {
     const barBottom = (barBox?.y ?? 0) + (barBox?.height ?? 0);
     expect(Math.abs(barBottom - (navBox?.y ?? 0))).toBeLessThanOrEqual(2);
 
-    // Question count and eligible card count are fully visible (not truncated)
-    await expect(bar.getByText("10 c\u00e2u \u00b7 13 th\u1ebb")).toBeVisible();
+    // The selected-source total is fully visible (not truncated).
+    await expect(bar.getByText("13 th\u1ebb", { exact: true })).toBeVisible();
 
     // Start button stays above the bottom nav
     const startBox = await startBtn.boundingBox();
@@ -305,10 +311,12 @@ test.describe("Mobile-first UI — Quiz page", () => {
     await signUpAndConfirm(page, uniqueEmail("quiz_desk"));
     await page.goto("/quiz?tab=create");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    // Shared mode filter is always inline (no separate bottom sheet trigger).
-    await expect(page.getByRole("button", { name: "Ch\u01b0a l\u00e0m" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "C\u00e2u sai" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Ng\u1eabu nhi\u00ean" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /Ch\u1ecdn m\u1ed9t ho\u1eb7c nhi\u1ec1u ngu\u1ed3n/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "B\u1eaft \u0111\u1ea7u ki\u1ec3m tra" }),
+    ).toBeDisabled();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,

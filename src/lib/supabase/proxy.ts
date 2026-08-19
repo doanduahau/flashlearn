@@ -11,7 +11,7 @@ export async function updateSession(request: NextRequest) {
   try {
     config = getSupabasePublishableConfig();
   } catch {
-    return { response: supabaseResponse, claims: null };
+    return { response: supabaseResponse, claims: null, supabase: null };
   }
 
   const supabase = createServerClient<Database>(config.url, config.publishableKey, {
@@ -32,7 +32,7 @@ export async function updateSession(request: NextRequest) {
   const { data: claimsData } = await supabase.auth.getClaims();
 
   if (claimsData) {
-    return { response: supabaseResponse, claims: claimsData };
+    return { response: supabaseResponse, claims: claimsData, supabase };
   }
 
   const {
@@ -40,8 +40,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    return { response: supabaseResponse, claims: { claims: user } };
+    return { response: supabaseResponse, claims: { claims: user }, supabase };
   }
 
-  return { response: supabaseResponse, claims: null };
+  return { response: supabaseResponse, claims: null, supabase };
 }

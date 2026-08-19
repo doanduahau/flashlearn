@@ -22,6 +22,7 @@ test.describe("Classroom stats leaderboard", () => {
 
     await page.goto("/sets/create?source=file");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(IMPORT_CSV);
+    await page.getByRole("button", { name: "Phân tích" }).click();
     await page.getByLabel("Tên bộ").fill(CLASSROOM_SET_NAME);
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);
@@ -42,6 +43,7 @@ test.describe("Classroom stats leaderboard", () => {
 
     await page.goto("/sets/create?source=file");
     await page.getByLabel(/CSV\/XLSX/i).setInputFiles(IMPORT_CSV);
+    await page.getByRole("button", { name: "Phân tích" }).click();
     await page.getByLabel("Tên bộ").fill(PLAIN_SET_NAME);
     await page.getByRole("button", { name: /Tạo bộ flashcard/i }).click();
     await expect(page).toHaveURL(/\/sets\/[0-9a-f-]+$/);

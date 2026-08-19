@@ -778,8 +778,22 @@ transaction, so there is no projection to reconcile. Card writes also enforce th
 limit in `block`; an already oversized legacy value may shrink but not grow. A validated 50,000-character
 constraint is the absolute database ceiling.
 
-`quota_runtime_settings` is service-role-only and defaults to `observe`. User-callable mutation RPCs do
-not accept a mode or user ID, preventing browser callers from forging plan or rollout state. Service-role
-catalog/share/starter wrappers may receive the trusted server rollout mode. Production rollout must move
-through observe, warn, staging block and progressive production block; rollback changes the database mode
-to `warn` or `observe` and never mutates user data.
+`quota_runtime_settings` is service-role-only and defaults to `observe`. It is the sole storage
+enforcement source: neither browser RPCs nor service-role catalog/share/starter wrappers accept a mode.
+The storage mode function deliberately ignores request GUCs, preventing rollout downgrade through a
+PostgREST request. The environment quota flag remains only for non-storage usage reservations.
+
+In `observe` and `warn`, would-block totals, card-side growth and per-request import limits are upserted
+into `storage_quota_observations` by user/resource/operation/mode/hour. Each write prunes that user's
+observations older than 35 days, bounding durable rollout data. Raw rows are service-role-only;
+authenticated users can read only the boolean warning status through `get_my_storage_quota_status()`.
+Warn mode displays an application banner after a recent would-block event; observe remains silent.
+
+Legacy floors are fixed captured ceilings, not high-water marks that decay. If a legacy account captured
+at 30 sets deletes down to 10, it may refill to 30 but not 31. This prevents unexpected loss of prior
+capacity while preserving a deterministic enforcement boundary.
+
+Production rollout must move through observe, warn, staging block and progressive production block.
+Rollback changes the database row to `warn` or `observe` and never mutates user data. Before applying the
+50,000-character constraints, run `npm run storage:preflight:production`; the allowlisted read-only runner
+prints only aggregate distributions and exits non-zero when an existing card side would block migration.

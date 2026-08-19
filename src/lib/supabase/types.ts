@@ -1324,6 +1324,45 @@ export type Database = {
         }
         Relationships: []
       }
+      storage_quota_observations: {
+        Row: {
+          current_value: number
+          enforcement_mode: string
+          first_observed_at: string
+          last_observed_at: string
+          limit_value: number
+          observed_hour: string
+          occurrence_count: number
+          operation: string
+          resource_key: string
+          user_id: string
+        }
+        Insert: {
+          current_value: number
+          enforcement_mode: string
+          first_observed_at?: string
+          last_observed_at?: string
+          limit_value: number
+          observed_hour: string
+          occurrence_count?: number
+          operation: string
+          resource_key: string
+          user_id: string
+        }
+        Update: {
+          current_value?: number
+          enforcement_mode?: string
+          first_observed_at?: string
+          last_observed_at?: string
+          limit_value?: number
+          observed_hour?: string
+          occurrence_count?: number
+          operation?: string
+          resource_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       typing_attempts: {
         Row: {
           completed_at: string | null
@@ -1591,7 +1630,7 @@ export type Database = {
         }[]
       }
       clone_shared_set_with_quota: {
-        Args: { p_enforcement_mode: string; p_token: string; p_user_id: string }
+        Args: { p_token: string; p_user_id: string }
         Returns: {
           already_exists: boolean
           new_set_id: string
@@ -1725,6 +1764,14 @@ export type Database = {
       }
       get_effective_plan: { Args: { p_user_id: string }; Returns: string }
       get_learning_statistics: { Args: never; Returns: Json }
+      get_my_storage_quota_status: {
+        Args: never
+        Returns: {
+          enforcement_mode: string
+          has_recent_warning: boolean
+          last_warning_at: string
+        }[]
+      }
       get_quiz_scope_sets: {
         Args: {
           p_all: boolean
@@ -1809,7 +1856,6 @@ export type Database = {
       install_catalog_set_for_user: {
         Args: {
           p_catalog_set_id: string
-          p_enforcement_mode: string
           p_idempotency_key: string
           p_user_id: string
         }
@@ -1859,7 +1905,7 @@ export type Database = {
         }[]
       }
       provision_starter_sets_with_quota: {
-        Args: { p_enforcement_mode: string; p_user_id: string }
+        Args: { p_user_id: string }
         Returns: {
           attempts: number
           created_sets: number
@@ -1879,6 +1925,17 @@ export type Database = {
       }
       record_mode_answers: {
         Args: { p_answers: Json; p_mode: string; p_user_id: string }
+        Returns: undefined
+      }
+      record_storage_quota_observation: {
+        Args: {
+          p_current_value: number
+          p_limit_value: number
+          p_mode: string
+          p_operation: string
+          p_resource_key: string
+          p_user_id: string
+        }
         Returns: undefined
       }
       refund_usage: {

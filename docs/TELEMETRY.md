@@ -24,7 +24,7 @@ Correlation IDs connect stages inside an action now. LP-08 will preserve the sam
 | ---------------------------------------- | --------- | ----------------------------------------------------------------------------------------- |
 | `CAPYSTUDY_CATALOG_ENABLED`              | `false`   | Enables catalog routes/UI after staging validation.                                       |
 | `CAPYSTUDY_STARTER_PROVISIONING_ENABLED` | `false`   | Enables account provisioning and the controlled backfill.                                 |
-| `CAPYSTUDY_QUOTA_ENFORCEMENT_MODE`       | `observe` | `observe` logs only; `warn` adds UI messaging; only `block` can reject a heavy operation. |
+| `CAPYSTUDY_QUOTA_ENFORCEMENT_MODE`       | `observe` | Controls non-storage usage reservations. Storage uses the service-role-only database row. |
 | `CAPYSTUDY_ADMIN_CONSOLE_ENABLED`        | `false`   | Enables the internal admin console after role/RLS validation.                             |
 | `CAPYSTUDY_BILLING_ENABLED`              | `false`   | Enables provider checkout/webhooks only after LP-13.                                      |
 
@@ -41,4 +41,6 @@ For each staging rollout, inspect Sentry/structured logs over at least seven day
 3. Track `capystudy.rate_limit.decided` limited/unavailable ratios by policy.
 4. Before moving quota from `observe`, estimate monthly resource use from the event buckets and compare it with provider cost and error rate.
 
-The initial telemetry is intentionally not a first-party event table. LP-02/LP-08 may add durable quota/job records once their data model exists.
+Storage quota rollout uses the bounded first-party `storage_quota_observations` table for would-block
+events. Other application telemetry remains external/structured; LP-08 may add durable job records for
+heavy processing.

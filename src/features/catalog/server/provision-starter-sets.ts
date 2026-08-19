@@ -31,7 +31,6 @@ export async function provisionStarterSetsForAuthenticatedUser(
   try {
     const { data, error } = await createAdminClient().rpc("provision_starter_sets_with_quota", {
       p_user_id: userId,
-      p_enforcement_mode: getFeatureFlags().quotaEnforcementMode,
     });
     const result = data?.[0];
     if (error || !result) {

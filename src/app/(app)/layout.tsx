@@ -3,6 +3,7 @@ import { after } from "next/server";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { provisionStarterSetsForAuthenticatedUser } from "@/features/catalog/server/provision-starter-sets";
+import { hasStorageQuotaWarning } from "@/features/entitlements/server/storage-quota-status";
 import { loadCachedStreakSummary } from "@/features/statistics/server/load-cached-statistics";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,10 +20,17 @@ export default async function AppLayout({ children }: Readonly<{ children: React
     await provisionStarterSetsForAuthenticatedUser(data.claims.sub);
   });
 
-  const streak = await loadCachedStreakSummary(supabase);
+  const [streak, storageQuotaWarning] = await Promise.all([
+    loadCachedStreakSummary(supabase),
+    hasStorageQuotaWarning(supabase),
+  ]);
 
   return (
-    <AppShell streak={streak?.currentStreak ?? 0} completedToday={streak?.completedToday ?? false}>
+    <AppShell
+      streak={streak?.currentStreak ?? 0}
+      completedToday={streak?.completedToday ?? false}
+      storageQuotaWarning={storageQuotaWarning}
+    >
       {children}
     </AppShell>
   );

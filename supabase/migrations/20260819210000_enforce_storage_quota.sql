@@ -284,8 +284,6 @@ $$;
 
 revoke all on function public.import_flashcard_set(text,jsonb), public.add_flashcard(uuid,text,text),
   public.create_special_collection(text,text,text) from authenticated;
-revoke update(front,back) on public.flashcards from authenticated;
-grant update(front,back) on public.flashcards to authenticated;
 revoke all on function public.commit_flashcard_import(text,jsonb,uuid,text,bigint,bigint,boolean),
   public.add_flashcard_with_quota(uuid,text,text),
   public.update_flashcard_with_quota(uuid,uuid,text,text),

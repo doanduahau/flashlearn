@@ -73,4 +73,23 @@ describe("AppShell", () => {
       expect(link).toHaveAttribute("href", "/profile?tab=statistics");
     });
   });
+
+  it("shows the storage warning only when warn-mode observations exist", () => {
+    const { rerender } = render(
+      <AppShell storageQuotaWarning>
+        <div>Page content</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Bạn đang dùng vượt một giới hạn sắp được áp dụng",
+    );
+
+    rerender(
+      <AppShell storageQuotaWarning={false}>
+        <div>Page content</div>
+      </AppShell>,
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
 });

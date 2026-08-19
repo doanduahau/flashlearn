@@ -36,7 +36,6 @@ export async function installCatalogSet(input: unknown): Promise<InstallCatalogR
     p_user_id: userId,
     p_catalog_set_id: parsed.data,
     p_idempotency_key: randomUUID(),
-    p_enforcement_mode: getFeatureFlags().quotaEnforcementMode,
   });
   const installed = data?.[0];
   if (error || !installed) {

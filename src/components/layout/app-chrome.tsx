@@ -25,10 +25,12 @@ export function AppChrome({
   children,
   sidebarFooter,
   mobileHeaderRight,
+  contentNotice,
 }: Readonly<{
   children: ReactNode;
   sidebarFooter: ReactNode;
   mobileHeaderRight: ReactNode;
+  contentNotice?: ReactNode;
 }>) {
   const pathname = usePathname();
 
@@ -63,6 +65,7 @@ export function AppChrome({
           <div className="flex min-w-0 items-center gap-2">{mobileHeaderRight}</div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:px-8 md:py-10">
+          {contentNotice}
           {children}
         </main>
 

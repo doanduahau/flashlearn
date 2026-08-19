@@ -3,16 +3,19 @@ import Link from "next/link";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
 import { CurrentUser } from "@/features/auth/components/current-user";
+import { StorageQuotaWarning } from "@/features/entitlements/components/storage-quota-warning";
 import { StreakIndicator } from "@/features/statistics/components/streak-indicator";
 
 export function AppShell({
   children,
   streak = 0,
   completedToday = false,
+  storageQuotaWarning = false,
 }: Readonly<{
   children: React.ReactNode;
   streak?: number;
   completedToday?: boolean;
+  storageQuotaWarning?: boolean;
 }>) {
   return (
     <AppChrome
@@ -46,6 +49,7 @@ export function AppShell({
           </Link>
         </>
       }
+      contentNotice={storageQuotaWarning ? <StorageQuotaWarning /> : null}
     >
       {children}
     </AppChrome>

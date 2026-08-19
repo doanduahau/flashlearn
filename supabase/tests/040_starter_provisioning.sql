@@ -1,16 +1,19 @@
 begin;
-select plan(29);
+select plan(33);
 
 insert into auth.users(instance_id,id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','a1000000-0000-4000-8000-000000000001','authenticated','authenticated','starter.new@example.test',now(),'{}','{}','2026-01-01 00:00:00+00',now()),
 ('00000000-0000-0000-0000-000000000000','a1000000-0000-4000-8000-000000000002','authenticated','authenticated','starter.partial@example.test',now(),'{}','{}','2026-01-02 00:00:00+00',now()),
 ('00000000-0000-0000-0000-000000000000','a1000000-0000-4000-8000-000000000003','authenticated','authenticated','starter.legacy@example.test',now(),'{}','{}','2026-01-03 00:00:00+00',now()),
-('00000000-0000-0000-0000-000000000000','a1000000-0000-4000-8000-000000000004','authenticated','authenticated','starter.unconfirmed@example.test',null,'{}','{}','2026-01-04 00:00:00+00',now());
+('00000000-0000-0000-0000-000000000000','a1000000-0000-4000-8000-000000000004','authenticated','authenticated','starter.unconfirmed@example.test',null,'{}','{}','2026-01-04 00:00:00+00',now()),
+('00000000-0000-0000-0000-000000000000','a1000000-0000-4000-8000-000000000005','authenticated','authenticated','starter.block@example.test',now(),'{}','{}','2026-01-05 00:00:00+00',now());
 
 select ok((select relrowsecurity from pg_class where oid='public.starter_provisioning_states'::regclass),'provisioning state has RLS');
 select is(has_function_privilege('authenticated','public.provision_starter_sets(uuid)','execute'),false,'browser cannot provision starters');
 select is(has_function_privilege('service_role','public.provision_starter_sets(uuid)','execute'),true,'service role can provision starters');
 select is(has_function_privilege('authenticated','public.get_starter_backfill_batch(timestamptz,uuid,integer)','execute'),false,'browser cannot enumerate backfill candidates');
+select is(has_function_privilege('authenticated','public.provision_starter_sets_with_quota(uuid)','execute'),false,'browser cannot execute starter quota wrapper');
+select is(has_function_privilege('service_role','public.provision_starter_sets_with_quota(uuid)','execute'),true,'service role can execute starter quota wrapper');
 
 select is((select provisioning_status from public.provision_starter_sets('a1000000-0000-4000-8000-000000000001')),'completed','new confirmed user completes provisioning');
 select is((select count(*)::integer from public.flashcard_sets where user_id='a1000000-0000-4000-8000-000000000001'),3,'new user receives exactly three sets');
@@ -60,7 +63,7 @@ select is((
     cross join lateral public.get_starter_backfill_batch(c.user_created_at,c.user_id,2) b
   ), combined as (select user_id from first_page union all select user_id from second_page)
   select count(*)::integer from combined
-),3,'cursor resume visits every eligible confirmed user');
+),4,'cursor resume visits every eligible confirmed user');
 select is((
   with first_page as (select * from public.get_starter_backfill_batch(null,null,2)),
   cursor_row as (select user_created_at,user_id from first_page order by user_created_at desc,user_id desc limit 1),
@@ -69,13 +72,20 @@ select is((
     cross join lateral public.get_starter_backfill_batch(c.user_created_at,c.user_id,2) b
   ), combined as (select user_id from first_page union all select user_id from second_page)
   select count(distinct user_id)::integer from combined
-),3,'cursor resume never duplicates a user');
+),4,'cursor resume never duplicates a user');
 select throws_ok($$select * from public.get_starter_backfill_batch(null,null,101)$$,'22023','backfill batch limit must be between 1 and 100','backfill hard max is enforced');
 
 set local role authenticated;
 set local request.jwt.claim.sub='a1000000-0000-4000-8000-000000000001';
 select is((select count(*)::integer from public.starter_provisioning_states),1,'RLS exposes only own provisioning state');
 reset role;
+
+insert into public.flashcard_sets(id,user_id,name) values('b1000000-0000-4000-8000-000000000005','a1000000-0000-4000-8000-000000000005','Near block cap');
+insert into public.flashcards(user_id,set_id,front,back,position)
+select 'a1000000-0000-4000-8000-000000000005','b1000000-0000-4000-8000-000000000005','F'||n,'B'||n,n from generate_series(1,2990)n;
+update public.quota_runtime_settings set storage_enforcement_mode='block';
+select is((select provisioning_status from public.provision_starter_sets_with_quota('a1000000-0000-4000-8000-000000000005')),'failed','starter wrapper obeys the DB-owned block mode');
+select is((select count(*)::integer from public.flashcards where user_id='a1000000-0000-4000-8000-000000000005'),2990,'blocked starter provisioning leaves storage unchanged');
 
 select * from finish();
 rollback;

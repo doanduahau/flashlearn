@@ -106,8 +106,14 @@ Sau khi staging redeploy thành công:
    Nếu Vercel/GitHub free tier không đáp ứng, xem `PRODUCTION_DEFERRED_COSTS.md`.
 4. Cập nhật Supabase Auth URL Configuration bằng production URL và
    `{PRODUCTION_URL}/auth/confirm`.
-5. Redeploy `main`, chạy smoke test production với tài khoản test riêng.
-6. Xóa dữ liệu/tài khoản smoke test sau khi hoàn tất.
+5. Trước LP-07, chạy `npm run storage:preflight:production` bằng bộ biến production
+   đã allowlist. Nếu có card side vượt 50.000 ký tự, dừng migration và lập phương án
+   remediation được review riêng. Không sao chép nội dung hoặc user ID vào báo cáo.
+6. Xác nhận database là nguồn duy nhất cho storage mode và giữ
+   `quota_runtime_settings.storage_enforcement_mode = 'observe'`. Không bật `warn`
+   hoặc `block` khi chưa có re-review và owner approval riêng.
+7. Redeploy `main`, chạy smoke test production với tài khoản test riêng.
+8. Xóa dữ liệu/tài khoản smoke test sau khi hoàn tất.
 
 ## 9. Backup, restore và domain
 

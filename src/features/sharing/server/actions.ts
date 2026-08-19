@@ -6,7 +6,6 @@ import type { ZodError } from "zod";
 import { cloneSharedSetSchema, shareActionSchema } from "@/features/sharing/schemas/share-schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { getFeatureFlags } from "@/lib/telemetry/feature-flags";
 
 type ShareActionResult = { ok: true } | { ok: false; error: string };
 
@@ -100,7 +99,6 @@ export async function cloneSharedSet(
   const { data, error } = await admin.rpc("clone_shared_set_with_quota", {
     p_token: parsed.data.token,
     p_user_id: userId,
-    p_enforcement_mode: getFeatureFlags().quotaEnforcementMode,
   });
 
   if (error || !data?.[0]?.new_set_id) {

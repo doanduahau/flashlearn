@@ -21,6 +21,7 @@
     "test:e2e:starters": "node scripts/test-e2e-local.mjs --starter-provisioning tests/e2e/starter-provisioning.spec.ts",
     "test:e2e:catalog": "node scripts/test-e2e-local.mjs --catalog tests/e2e/catalog.spec.ts",
     "test:storage:local": "node scripts/test-storage-quota-local.mjs",
+    "storage:preflight:production": "tsx scripts/storage-preflight-production.ts",
     "test:pdf-runtime-isolation": "node scripts/test-production-pdf-isolation.mjs",
     "test:pdf-worker-runtime": "node scripts/test-production-pdf-worker.mjs",
     "fsrs:test:local": "node scripts/test-fsrs-local.mjs",

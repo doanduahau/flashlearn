@@ -2,7 +2,7 @@
 
 ## 0. Metadata
 
-- `Status`: implemented locally — production remains in `observe` until independent review and staging approval
+- `Status`: follow-up implemented locally — second independent review and staging approval still required
 - `Difficulty`: 9/10 — rất cao
 - `Risk`: critical; nhiều mutation path, legacy data, concurrent growth và duplicate import
 - `Dependencies`: LP-02
@@ -134,3 +134,20 @@ Rollback bằng `quota_enforcement_mode=warn|observe`; không rollback ledger/da
 Production activation and independent review are intentionally deferred in
 `docs/PRODUCTION_DEFERRED_COSTS.md`; the migration must not be applied directly to production until
 those gates are complete.
+
+## 12. Independent-review follow-up
+
+The first independent review (`reports/LP07_INDEPENDENT_REVIEW_2026-08-19.md`) approved staging with
+conditions and found no Critical/High issue. Its M1–M3 conditions are addressed as follows:
+
+- Observe/warn now persist bounded would-block storage observations; warn surfaces an authenticated UI
+  notice, while observe remains silent.
+- The service-role-only database row is the sole storage mode for browser and service-role paths. Request
+  GUC and environment drift cannot downgrade a storage mutation.
+- `storage:preflight:production` performs an allowlisted, aggregate-only, read-only distribution and hard
+  length check before migration.
+- Regression coverage includes GUC downgrade, observation/status behavior, direct RLS growth, catalog,
+  shared clone, starter provisioning, hard card-side length and fixed legacy-floor refill semantics.
+
+Warn/block and production remain prohibited until the follow-up receives an independent re-review and all
+staging, backup/restore and owner-approval gates are satisfied.

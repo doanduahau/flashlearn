@@ -282,8 +282,11 @@ begin
   if char_length(v_reason) = 0 or char_length(v_reason) > 500 then raise exception using errcode = '22023', message = 'reason required (1-500 chars)'; end if;
   v_idem := coalesce(p_idempotency_key, md5(p_actor_user_id::text || p_target_user_id::text || p_usage_key || p_amount::text || v_reason)::uuid);
   if exists(select 1 from public.usage_ledger ul where ul.idempotency_key = v_idem) then return; end if;
+  -- Use credit/debit entry types so quota calculation works correctly:
+  -- positive adjustment → credit (reduces consumption = gives budget)
+  -- negative adjustment → debit (increases consumption = takes budget)
   insert into public.usage_ledger(user_id, entry_type, usage_key, amount, reason, idempotency_key, created_by)
-  values (p_target_user_id, 'admin_adjust', p_usage_key, abs(p_amount), v_reason, v_idem, p_actor_user_id);
+  values (p_target_user_id, case when p_amount > 0 then 'credit' else 'debit' end, p_usage_key, abs(p_amount), v_reason, v_idem, p_actor_user_id);
   insert into public.admin_audit_logs(actor, action, target_type, target_id, reason, after_summary)
   values (p_actor_user_id, 'usage.adjust', 'user', p_target_user_id::text, v_reason,
     jsonb_build_object('usage_key', p_usage_key, 'amount', p_amount));

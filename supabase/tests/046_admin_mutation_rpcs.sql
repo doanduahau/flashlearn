@@ -211,7 +211,7 @@ select lives_ok(
   'idempotent adjust'
 );
 reset role;
-select is((select count(*)::integer from public.usage_ledger where user_id = '44444444-4444-4444-4444-444444444444' and entry_type = 'admin_adjust'), 1, 'idempotent: 1 ledger row');
+select is((select count(*)::integer from public.usage_ledger where user_id = '44444444-4444-4444-4444-444444444444' and entry_type = 'credit'), 1, 'idempotent: 1 ledger row');
 
 set local role service_role;
 select throws_ok(
@@ -231,7 +231,7 @@ select lives_ok(
   'negative adjustment works'
 );
 reset role;
-select is((select count(*)::integer from public.usage_ledger where user_id = '44444444-4444-4444-4444-444444444444' and entry_type = 'admin_adjust'), 2, 'negative created 2nd entry');
+select is((select count(*)::integer from public.usage_ledger where user_id = '44444444-4444-4444-4444-444444444444'), 2, 'two ledger entries (credit + debit)');
 
 -- ============================================================
 -- SECTION 6: ENTITLEMENT OVERRIDE (5 assertions)

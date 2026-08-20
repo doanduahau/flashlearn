@@ -7,6 +7,7 @@ import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { DocumentImport } from "@/features/imports/components/document-import";
 import { ImportWizard } from "@/features/imports/components/import-wizard";
 import { Label } from "@/components/ui/label";
+import type { AiPlanTier } from "@/features/entitlements/ai-job-limits";
 
 const SUPPORTED_TYPES = ".xlsx,.csv,.docx,.pdf";
 
@@ -15,7 +16,10 @@ function fileKind(fileName: string): "spreadsheet" | "document" {
   return extension === "xlsx" || extension === "csv" ? "spreadsheet" : "document";
 }
 
-export function FileImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel }>) {
+export function FileImport({
+  mascotLevel,
+  planTier,
+}: Readonly<{ mascotLevel: MascotLevel; planTier: AiPlanTier }>) {
   const [selection, setSelection] = useState<{ file: File; key: string } | null>(null);
   const [error, setError] = useState("");
 
@@ -29,7 +33,12 @@ export function FileImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel 
     return fileKind(selection.file.name) === "spreadsheet" ? (
       <ImportWizard key={selection.key} initialFile={selection.file} mascotLevel={mascotLevel} />
     ) : (
-      <DocumentImport key={selection.key} initialFile={selection.file} mascotLevel={mascotLevel} />
+      <DocumentImport
+        key={selection.key}
+        initialFile={selection.file}
+        mascotLevel={mascotLevel}
+        planTier={planTier}
+      />
     );
   }
 
@@ -45,7 +54,7 @@ export function FileImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel 
         Chọn hoặc kéo tệp CSV/XLSX, Word (.docx) hoặc PDF vào đây
       </Label>
       <p className="text-sm text-text-secondary">
-        Hệ thống tự nhận diện loại tệp. Tệp chỉ được đọc trong trình duyệt và không được lưu.
+        Hệ thống tự nhận diện loại tệp. Tệp được xử lý tạm thời và không lưu bản gốc.
       </p>
       <input
         id="file-import-input"

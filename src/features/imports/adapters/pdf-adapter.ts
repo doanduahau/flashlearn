@@ -75,7 +75,10 @@ function detectScanOnly(pageTexts: string[]): boolean {
   return pageTexts.every((p) => p.replace(/\s/g, "").length < 10);
 }
 
-export async function extractPdf(fileBuffer: ArrayBuffer): Promise<ExtractedDocument> {
+export async function extractPdf(
+  fileBuffer: ArrayBuffer,
+  maximumPages = PDF_MAX_PAGES,
+): Promise<ExtractedDocument> {
   const { runtime, workerConfigured } = await loadPdfRuntime();
   const { PDFParse, PasswordException } = runtime;
   const data = new Uint8Array(fileBuffer);
@@ -99,9 +102,15 @@ export async function extractPdf(fileBuffer: ArrayBuffer): Promise<ExtractedDocu
     throw new PdfProcessingError("pdf.document_load", err, { workerConfigured });
   }
 
+  const totalPages = typeof info.total === "number" ? info.total : undefined;
+  if (totalPages !== undefined && totalPages > maximumPages) {
+    await destroyParser(parser);
+    throw new PDFPageLimitError(maximumPages);
+  }
+
   try {
     textResult = await parser.getText({
-      first: PDF_MAX_PAGES,
+      first: maximumPages,
       disableNormalization: true,
     });
   } catch (err) {
@@ -130,7 +139,7 @@ export async function extractPdf(fileBuffer: ArrayBuffer): Promise<ExtractedDocu
       title: info?.info?.Title,
       blocks: [],
       totalCharacters: 0,
-      pageCount: pages.length || undefined,
+      pageCount: (totalPages ?? pages.length) || undefined,
       extractedPageCount: 0,
       pagesWithoutText: pages.length,
     };
@@ -164,8 +173,8 @@ export async function extractPdf(fileBuffer: ArrayBuffer): Promise<ExtractedDocu
     sourceType: "pdf",
     title: info?.info?.Title,
     blocks,
-    totalCharacters: Math.min(totalChars, DOCUMENT_MAX_EXTRACTED_CHARS),
-    pageCount: pages.length || undefined,
+    totalCharacters: totalChars,
+    pageCount: (totalPages ?? pages.length) || undefined,
     extractedPageCount: pagesWithText,
     pagesWithoutText,
   };
@@ -175,5 +184,12 @@ export class PDFEncryptedError extends Error {
   constructor() {
     super("PDF_ENCRYPTED");
     this.name = "PDFEncryptedError";
+  }
+}
+
+export class PDFPageLimitError extends Error {
+  constructor(readonly maximumPages: number) {
+    super("PDF_PAGE_LIMIT");
+    this.name = "PDFPageLimitError";
   }
 }

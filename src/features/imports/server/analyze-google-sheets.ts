@@ -1,9 +1,10 @@
 "use server";
 
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
-import { GeminiFlashcardGenerationProvider } from "@/features/imports/adapters/gemini-provider";
-import { semanticSheetToCards } from "@/features/imports/adapters/google-sheets-adapter";
 import type { GoogleSheetMeta, SheetData } from "@/features/imports/adapters/google-sheets-adapter";
+import { runMeteredFlashcardGeneration } from "@/features/entitlements/server/metered-ai-generation";
+import { getEffectivePlan } from "@/features/entitlements/server/entitlement-service";
+import { IMPORT_REQUEST_LIMITS, storagePlanTier } from "@/features/entitlements/storage-limits";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
 import { buildDataColumnRange, buildHeaderScanRange } from "@/features/imports/utils/sheets-a1";
 import {
@@ -327,26 +328,39 @@ export async function analyzeSheetText(rawInput: unknown): Promise<SemanticResul
   const access = await requireGoogleSheetsLimit();
   if ("error" in access) return { kind: "error", message: access.error };
 
-  const aiLimit = await consumeRateLimit(
-    "aiGeneration",
-    subjectRateLimitKey("google-sheets-ai", access.userId),
-  );
-  if (!aiLimit.ok) return { kind: "error", message: rateLimitMessage(aiLimit) };
-
   if (!rawInput || typeof rawInput !== "object") {
     return { kind: "error", message: "Dữ liệu không hợp lệ." };
   }
 
   const input = rawInput as Record<string, unknown>;
   const text = typeof input.text === "string" ? input.text.trim() : "";
+  const idempotencyKey =
+    typeof input.idempotencyKey === "string" ? input.idempotencyKey.trim() : "";
 
   if (!text) return { kind: "error", message: "Không có nội dung để phân tích." };
-  if (text.length > 50_000) return { kind: "error", message: "Nội dung quá dài." };
+  if (!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(idempotencyKey)) {
+    return { kind: "error", message: "Mã tác vụ không hợp lệ. Vui lòng thử lại." };
+  }
+  const plan = await getEffectivePlan(access.userId);
+  const limits = IMPORT_REQUEST_LIMITS.paste_prose[storagePlanTier(plan)];
+  if (limits.sourceChars !== undefined && text.length > limits.sourceChars) {
+    return {
+      kind: "error",
+      message: `Nội dung tối đa ${limits.sourceChars.toLocaleString("vi-VN")} ký tự với gói hiện tại.`,
+    };
+  }
 
-  const provider = new GeminiFlashcardGenerationProvider();
   try {
-    const aiCards = await semanticSheetToCards(text, provider);
-    const validation = validateDraftCards(aiCards.slice(0, IMPORT_MAX_ROWS));
+    const generated = await runMeteredFlashcardGeneration({
+      userId: access.userId,
+      kind: "google_sheets_generate",
+      source: "google_sheets_semantic",
+      text,
+      maximumCards: limits.cards,
+      idempotencyKey,
+      correlationId: crypto.randomUUID(),
+    });
+    const validation = validateDraftCards(generated.cards.slice(0, limits.cards));
     return {
       kind: "success",
       cards: validation.cards,
@@ -356,7 +370,11 @@ export async function analyzeSheetText(rawInput: unknown): Promise<SemanticResul
       duplicate: validation.duplicate,
       aiUsed: true,
     };
-  } catch {
-    return { kind: "error", message: "Không thể phân tích nội dung bảng tính bằng AI." };
+  } catch (error) {
+    return {
+      kind: "error",
+      message:
+        error instanceof Error ? error.message : "Không thể phân tích nội dung bảng tính bằng AI.",
+    };
   }
 }

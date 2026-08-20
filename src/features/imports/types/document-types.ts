@@ -24,6 +24,10 @@ export type ExtractedDocument = {
   pageCount?: number;
   extractedPageCount?: number;
   pagesWithoutText?: number;
+  processingJob?: {
+    id: string;
+    correlationId: string;
+  };
 };
 
 export type SectionKind = "flashcard_like" | "prose" | "mixed" | "empty";
@@ -51,4 +55,9 @@ export type AnalyzedDocument = {
     sourceChars: number;
     aiInputChars: number;
   };
+  processingJob?: {
+    id: string;
+    correlationId: string;
+  };
+  warnings?: string[];
 };

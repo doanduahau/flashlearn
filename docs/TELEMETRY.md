@@ -16,7 +16,10 @@ Telemetry is observational. A failed log or Sentry breadcrumb never rejects an a
 | `capystudy.catalog.*`          | LP-06 lists or installs catalog content                                  | result code, category/level, set count bucket, correlation ID                   |
 | `capystudy.typing_ai.*`        | LP-08 uses AI feedback                                                   | result code, usage bucket, correlation ID                                       |
 
-Correlation IDs connect stages inside an action now. LP-08 will preserve the same ID through asynchronous reservation/provider/job stages when those stages are introduced.
+Correlation IDs connect reservation, provider and durable job stages. LP-08 stores plan/source, input
+characters, physical calls, provider input/output tokens, output count, heartbeat and sanitized error
+codes in `processing_jobs`; raw prompts, responses, filenames and card/document content are never stored
+there or attached to Sentry.
 
 ## Server-only rollout flags
 
@@ -42,5 +45,5 @@ For each staging rollout, inspect Sentry/structured logs over at least seven day
 4. Before moving quota from `observe`, estimate monthly resource use from the event buckets and compare it with provider cost and error rate.
 
 Storage quota rollout uses the bounded first-party `storage_quota_observations` table for would-block
-events. Other application telemetry remains external/structured; LP-08 may add durable job records for
-heavy processing.
+events. Other application telemetry remains external/structured. LP-08 durable job records are the source
+for heavy-job reconciliation and cost distributions; Redis leases are never the source of truth.

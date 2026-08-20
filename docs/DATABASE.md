@@ -797,3 +797,16 @@ Production rollout must move through observe, warn, staging block and progressiv
 Rollback changes the database row to `warn` or `observe` and never mutates user data. Before applying the
 50,000-character constraints, run `npm run storage:preflight:production`; the allowlisted read-only runner
 prints only aggregate distributions and exits non-zero when an existing card side would block migration.
+
+## AI-heavy processing jobs
+
+LP-08 extends `processing_jobs` as the durable source for semantic Paste/Sheets, document pipelines and
+Typing AI review. A logical job snapshots plan/source, has a per-user idempotency key, Free/Pro physical
+call cap, heartbeat and terminal state. `processing_job_reservations` links its content/typing/heavy-job
+reservations; `processing_job_outputs` keeps bounded replay output for 24 hours; Typing stores only stable
+item IDs and booleans. Original documents and raw provider prompts/responses are not stored.
+
+Trusted service-role RPCs serialize per-user DB concurrency, record every physical call before provider
+access, accumulate provider-reported input/output tokens and reconcile stale jobs based on call evidence.
+Browser roles cannot execute those mutations. RLS exposes only a user's own job/result rows. Redis adds
+a short-lived owner-token semaphore with crash TTL, but database state remains authoritative.

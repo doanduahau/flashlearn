@@ -2,7 +2,7 @@
 
 ## 0. Metadata
 
-- `Status`: planned
+- `Status`: implemented locally; rollout gates deferred
 - `Difficulty`: 10/10 — tối quan trọng
 - `Risk`: cost amplification, provider outage, partial failure, concurrency, untrusted files
 - `Dependencies`: LP-01, LP-02, LP-07
@@ -126,3 +126,47 @@ Hiện trạng gọi AI tuần tự cho từng câu local sai có thể khuếch
 - Spend cap provider và global circuit breaker trước production.
 - Rollback enforcement bằng flag; giữ batch local matcher và file hardening nếu ổn định.
 - Không bật Pro/billing khi LP-08 chưa verified.
+
+## 12. Implementation record — 2026-08-20
+
+Đã hoàn thành trong repo:
+
+- Semantic Paste và Google Sheets dùng chung rate-limit, quota reservation, durable idempotent job,
+  Redis semaphore và provider accounting boundary. Structured input vẫn deterministic và không trừ AI.
+- DOCX/PDF áp giới hạn Free/Pro ở client lẫn server; kiểm tra extension, MIME, magic bytes, ZIP central
+  directory, macro/embedded object, decompression ratio, PDF object/page/character bounds trước parser/provider.
+- Document classification và generation dùng chung durable job và physical-call counter Free `5`, Pro `20`.
+  Partial usable output được giữ; invalid/provider failure không có output được refund theo policy.
+- Typing chấm local toàn bộ trước, chỉ gửi local misses theo một batch có stable ID, item/character cap,
+  schema mapping đầy đủ và ledger riêng tính theo số answer được review.
+- `processing_jobs` lưu plan/source, physical calls, input characters, provider input/output tokens,
+  output count, heartbeat và sanitized error code. Output/replay tạm có TTL; file gốc không được lưu.
+- RLS/ACL giữ browser khỏi trusted job mutations; job result load kiểm tra user ownership.
+- Unit/fault/guard tests và pgTAP `043_ai_heavy_jobs.sql` bao phủ formula, replay, concurrency,
+  physical cap, token accounting, file hardening, typing mapping và provider bypass guard.
+
+Không có migration LP-08 nào được áp lên remote/production trong task này. Hai migration mới chỉ được áp
+vào Supabase local để tạo type và chạy pgTAP.
+
+## 13. Làm sau — bắt buộc trước production enforcement
+
+1. Independent security + cost review bởi reviewer không triển khai LP-08.
+2. Áp migration lên Supabase staging riêng, chạy pgTAP/unit/import/typing E2E và smoke; sau đó mới xem xét
+   production theo quy trình migration hiện hành.
+3. Load test staging với mock provider để đo Free `1`/Pro `2` concurrent jobs, lock contention, stale-job
+   reconciliation và serverless timeout; không dùng Gemini thật trong automated load test.
+4. Cấu hình/xác minh spend cap hoặc budget alert tại Gemini/Google Cloud, Sentry alert cho provider error,
+   stale reservation, quota mismatch và daily spend threshold.
+5. Giữ quota ở `observe`, xác minh telemetry/job distributions tối thiểu 7 ngày; chỉ chuyển `warn`, rồi
+   staging `block`, sau review và owner approval riêng. Chưa bật Pro/billing trước khi các gate này đạt.
+
+## 14. Verification record — local 2026-08-20
+
+- `npm run check`: PASS — lint, typecheck, `1.304` tests passed / `9` skipped, production build.
+- `supabase test db supabase/tests/043_ai_heavy_jobs.sql`: PASS — `39/39` assertions.
+- Document/Paste/Typing E2E: PASS — `21/21` tests with local Supabase and mock providers.
+- PDF production runtime isolation: PASS — `1/1`.
+- PDF worker trace/runtime parse: PASS; traced worker belongs to `/sets/create` import runtime.
+- Full local pgTAP was also executed without reset. LP-08 suite passed; the only failure was the pre-existing
+  dirty-local-data assertion in `040_starter_provisioning.sql` (expected 3 catalog sets, local database had
+  4). Per the no-reset constraint, local data was not destroyed to manufacture a green full-suite result.

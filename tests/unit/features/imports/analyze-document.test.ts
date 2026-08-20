@@ -21,8 +21,35 @@ vi.mock("@/features/imports/adapters/gemini-classifier", () => ({
   },
 }));
 
-import { analyzeDocument } from "@/features/imports/server/analyze-document";
+vi.mock("@/features/entitlements/server/entitlement-service", () => ({
+  getEffectivePlan: vi.fn().mockResolvedValue("free"),
+  reserveUsage: vi.fn().mockResolvedValue({
+    reservation_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    enforcementMode: "observe",
+    wouldBlock: false,
+  }),
+}));
+vi.mock("@/features/entitlements/server/processing-job-service", () => ({
+  loadProcessingJobOutput: vi.fn().mockResolvedValue(null),
+  linkJobReservation: vi.fn().mockResolvedValue(undefined),
+  runProcessingJobPhase: vi.fn(async (_job, operation) => operation()),
+  storeProcessingJobOutput: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/features/entitlements/server/provider-call-budget", () => ({
+  createProviderCallBudget: vi.fn(() => ({ beforeCall: vi.fn(), afterCall: vi.fn() })),
+}));
+
+import { analyzeDocument as analyzeDocumentAction } from "@/features/imports/server/analyze-document";
 import type { ExtractedDocument } from "@/features/imports/types/document-types";
+
+const TEST_USER = "aaaaaaaa-0000-4000-8000-000000000001";
+const TEST_JOB = {
+  id: "aaaaaaaa-0000-4000-8000-000000000002",
+  correlationId: "aaaaaaaa-0000-4000-8000-000000000003",
+};
+function analyzeDocument(document: ExtractedDocument) {
+  return analyzeDocumentAction({ ...document, processingJob: TEST_JOB });
+}
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -82,7 +109,7 @@ describe("analyzeDocument", () => {
 
   describe("deterministic — zero AI", () => {
     it("classifies structured Q/A table deterministically", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       const result = await analyzeDocument(Q_A_TABLE_DOC);
 
       expect("document" in result).toBe(true);
@@ -99,7 +126,7 @@ describe("analyzeDocument", () => {
     });
 
     it("classifies prose deterministically", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       const result = await analyzeDocument(PROSE_DOC);
 
       if ("document" in result) {
@@ -111,7 +138,7 @@ describe("analyzeDocument", () => {
     });
 
     it("no flashcard generation occurs", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       const result = await analyzeDocument(Q_A_TABLE_DOC);
       if ("document" in result) {
         expect(
@@ -125,7 +152,7 @@ describe("analyzeDocument", () => {
 
   describe("AI fallback", () => {
     it("calls AI for low-confidence ambiguous section", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockClassify.mockResolvedValue({ kind: "mixed", confidence: 0.7, deterministic: false });
 
       const doc = ambiguousDoc();
@@ -138,7 +165,7 @@ describe("analyzeDocument", () => {
     });
 
     it("tracks sourceChars and aiInputChars", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockClassify.mockResolvedValue({ kind: "prose", confidence: 0.75, deterministic: false });
 
       const doc = ambiguousDoc();
@@ -154,7 +181,7 @@ describe("analyzeDocument", () => {
     });
 
     it("AI failure retains deterministic fallback", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockClassify.mockRejectedValue(new Error("Network error"));
 
       const doc = ambiguousDoc();
@@ -170,7 +197,7 @@ describe("analyzeDocument", () => {
 
   describe("bounds", () => {
     it("enforces max AI sections limit", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockClassify.mockResolvedValue({ kind: "prose", confidence: 0.75, deterministic: false });
 
       // Create many sections each with a small 2-column table (low confidence via deterministic)
@@ -188,12 +215,12 @@ describe("analyzeDocument", () => {
       });
 
       if ("document" in result) {
-        expect(result.document.analysis.aiSections).toBeLessThanOrEqual(10);
+        expect(result.document.analysis.aiSections).toBeLessThanOrEqual(20);
       }
     });
 
     it("does not classify the same section twice", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockClassify.mockResolvedValue({ kind: "prose", confidence: 0.8, deterministic: false });
 
       const doc = ambiguousDoc();

@@ -24,18 +24,55 @@ vi.mock("@/features/imports/adapters/gemini-classifier", () => ({
 
 vi.mock("@/features/imports/adapters/gemini-provider", () => ({
   GeminiFlashcardGenerationProvider: class {
-    generateCards(input: { text: string }) {
+    constructor(private readonly budget: { beforeCall(chars: number): Promise<void> }) {}
+    async generateCards(input: { text: string }) {
+      await this.budget.beforeCall(input.text.length);
       return mockGenerateCards(input);
     }
     async generateCardsWithStats(input: { text: string }) {
+      await this.budget.beforeCall(input.text.length);
       return { cards: await mockGenerateCards(input), discardedCount: 0 };
     }
   },
 }));
 
-import { analyzeDocument } from "@/features/imports/server/analyze-document";
-import { generateDocumentCards } from "@/features/imports/server/generate-document-cards";
+vi.mock("@/features/entitlements/server/entitlement-service", () => ({
+  getEffectivePlan: vi.fn().mockResolvedValue("free"),
+  reserveUsage: vi.fn().mockResolvedValue({
+    reservation_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    reservation_status: "reserved",
+    enforcementMode: "observe",
+    wouldBlock: false,
+  }),
+  finalizeUsage: vi.fn().mockResolvedValue(undefined),
+  refundUsage: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/features/entitlements/server/processing-job-service", () => ({
+  loadProcessingJobOutput: vi.fn().mockResolvedValue(null),
+  linkJobReservation: vi.fn().mockResolvedValue(undefined),
+  runProcessingJobPhase: vi.fn(async (_job, operation) => operation()),
+  storeProcessingJobOutput: vi.fn().mockResolvedValue(undefined),
+  finishProcessingJob: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/features/entitlements/server/provider-call-budget", () => ({
+  createProviderCallBudget: vi.fn(() => ({ beforeCall: vi.fn(), afterCall: vi.fn() })),
+}));
+
+import { analyzeDocument as analyzeDocumentAction } from "@/features/imports/server/analyze-document";
+import { generateDocumentCards as generateDocumentCardsAction } from "@/features/imports/server/generate-document-cards";
 import type { ExtractedDocument } from "@/features/imports/types/document-types";
+
+const TEST_USER = "dddddddd-0000-4000-8000-000000000001";
+const TEST_JOB = {
+  id: "dddddddd-0000-4000-8000-000000000002",
+  correlationId: "dddddddd-0000-4000-8000-000000000003",
+};
+function analyzeDocument(document: ExtractedDocument) {
+  return analyzeDocumentAction({ ...document, processingJob: TEST_JOB });
+}
+function generateDocumentCards(document: Parameters<typeof generateDocumentCardsAction>[0]) {
+  return generateDocumentCardsAction({ ...document, processingJob: TEST_JOB });
+}
 
 const EXTRACTED_PARAGRAPHS = [
   "RAM là gì?",
@@ -74,7 +111,7 @@ const EXTRACTED_DOCUMENT: ExtractedDocument = {
 };
 
 beforeEach(() => {
-  mockGetClaims.mockResolvedValue({ data: { claims: { sub: "user-id" } } });
+  mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
 });
 
 afterEach(() => {

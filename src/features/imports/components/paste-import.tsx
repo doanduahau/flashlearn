@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { analyzePasteContent } from "@/features/imports/server/analyze-paste";
 import { CreateSummary } from "@/features/imports/components/create-summary";
@@ -17,12 +17,16 @@ export function PasteImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel
     aiUsed: boolean;
   } | null>(null);
   const [error, setError] = useState("");
+  const idempotencyKeyRef = useRef(crypto.randomUUID());
 
   async function handleAnalyze(): Promise<void> {
     setError("");
     setAnalyzing(true);
     try {
-      const result = await analyzePasteContent(text);
+      const result = await analyzePasteContent({
+        text,
+        idempotencyKey: idempotencyKeyRef.current,
+      });
       if ("error" in result) {
         setError(result.error);
         setPreview(null);
@@ -48,6 +52,7 @@ export function PasteImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel
           value={text}
           onChange={(e) => {
             setText(e.target.value);
+            idempotencyKeyRef.current = crypto.randomUUID();
             setPreview(null);
             setError("");
           }}

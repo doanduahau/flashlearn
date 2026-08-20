@@ -88,3 +88,24 @@ export async function reserveUsage(input: {
   });
   return { ...reservation, enforcementMode: mode, wouldBlock: !reservation.allowed };
 }
+
+export async function finalizeUsage(reservationId: string, actualAmount: number): Promise<void> {
+  const { error } = await createAdminClient().rpc("finalize_usage", {
+    p_reservation_id: reservationId,
+    p_actual_amount: actualAmount,
+  });
+  if (error) throw new Error("quota_finalization_failed");
+}
+
+export async function refundUsage(reservationId: string, reason: string): Promise<void> {
+  const { error } = await createAdminClient().rpc("refund_usage", {
+    p_reservation_id: reservationId,
+    p_reason: reason,
+  });
+  if (error) throw new Error("quota_refund_failed");
+}
+
+export async function getIntegerEntitlement(userId: string, key: string): Promise<number | null> {
+  const value = await getEntitlement(userId, key);
+  return value?.value_type === "integer" ? value.integer_value : null;
+}

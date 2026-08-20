@@ -22,7 +22,16 @@ function runNpm(args) {
 await runNpm(["run", "build"]);
 
 const rootDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const runtimeEntry = path.join(rootDirectory, ".next", "server", "app", "(app)", "sets", "page.js");
+const runtimeEntry = path.join(
+  rootDirectory,
+  ".next",
+  "server",
+  "app",
+  "(app)",
+  "sets",
+  "create",
+  "page.js",
+);
 const tracePath = `${runtimeEntry}.nft.json`;
 const trace = JSON.parse(await readFile(tracePath, "utf8"));
 const workerEntry = trace.files.find((file) =>
@@ -31,7 +40,10 @@ const workerEntry = trace.files.find((file) =>
   ),
 );
 
-assert.ok(workerEntry, "The traced /sets runtime must include pdf-parse's supported worker entry.");
+assert.ok(
+  workerEntry,
+  "The traced /sets/create import runtime must include pdf-parse's supported worker entry.",
+);
 
 const runtimeRequire = createRequire(runtimeEntry);
 const { PDFParse } = runtimeRequire("pdf-parse");

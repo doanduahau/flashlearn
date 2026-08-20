@@ -15,14 +15,47 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/features/imports/adapters/gemini-provider", () => ({
   GeminiFlashcardGenerationProvider: class {
-    generateCards(input: { text: string }) {
+    constructor(private readonly budget: { beforeCall(chars: number): Promise<void> }) {}
+    async generateCards(input: { text: string }) {
+      await this.budget.beforeCall(input.text.length);
       return mockGenerateCards(input);
     }
   },
 }));
 
-import { generateDocumentCards } from "@/features/imports/server/generate-document-cards";
+vi.mock("@/features/entitlements/server/entitlement-service", () => ({
+  getEffectivePlan: vi.fn().mockResolvedValue("free"),
+  reserveUsage: vi.fn().mockResolvedValue({
+    reservation_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    reservation_status: "reserved",
+    enforcementMode: "observe",
+    wouldBlock: false,
+  }),
+  finalizeUsage: vi.fn().mockResolvedValue(undefined),
+  refundUsage: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/features/entitlements/server/processing-job-service", () => ({
+  loadProcessingJobOutput: vi.fn().mockResolvedValue(null),
+  linkJobReservation: vi.fn().mockResolvedValue(undefined),
+  runProcessingJobPhase: vi.fn(async (_job, operation) => operation()),
+  storeProcessingJobOutput: vi.fn().mockResolvedValue(undefined),
+  finishProcessingJob: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/features/entitlements/server/provider-call-budget", () => ({
+  createProviderCallBudget: vi.fn(() => ({ beforeCall: vi.fn(), afterCall: vi.fn() })),
+}));
+
+import { generateDocumentCards as generateDocumentCardsAction } from "@/features/imports/server/generate-document-cards";
 import type { AnalyzedDocument } from "@/features/imports/types/document-types";
+
+const TEST_USER = "bbbbbbbb-0000-4000-8000-000000000001";
+const TEST_JOB = {
+  id: "bbbbbbbb-0000-4000-8000-000000000002",
+  correlationId: "bbbbbbbb-0000-4000-8000-000000000003",
+};
+function generateDocumentCards(document: AnalyzedDocument) {
+  return generateDocumentCardsAction({ ...document, processingJob: TEST_JOB });
+}
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -130,7 +163,7 @@ describe("generateDocumentCards", () => {
 
   describe("flashcard_like — deterministic, zero AI generation", () => {
     it("converts a Question/Answer table to cards, skipping header row", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       const result = await generateDocumentCards(STRUCTURED_DOC);
 
       expect("cards" in result).toBe(true);
@@ -145,7 +178,7 @@ describe("generateDocumentCards", () => {
     });
 
     it("converts headerless 2-column table", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       const result = await generateDocumentCards(HEADERLESS_TABLE_DOC);
 
       if ("cards" in result) {
@@ -158,7 +191,7 @@ describe("generateDocumentCards", () => {
 
   describe("prose — AI generation", () => {
     it("calls the generation provider for prose sections", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockGenerateCards.mockResolvedValue([
         { front: "OS là gì?", back: "Phần mềm quản lý tài nguyên." },
       ]);
@@ -174,7 +207,7 @@ describe("generateDocumentCards", () => {
     });
 
     it("tracks aiInputChars correctly", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockGenerateCards.mockResolvedValue([{ front: "Q", back: "A" }]);
 
       const result = await generateDocumentCards(PROSE_DOC);
@@ -189,7 +222,7 @@ describe("generateDocumentCards", () => {
 
   describe("mixed — hybrid processing", () => {
     it("extracts table deterministically and generates prose via AI", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockGenerateCards.mockResolvedValue([
         { front: "OS definition?", back: "Phần mềm quản lý..." },
       ]);
@@ -197,7 +230,8 @@ describe("generateDocumentCards", () => {
       const result = await generateDocumentCards(MIXED_DOC);
 
       if ("cards" in result) {
-        expect(result.metrics.aiRequests).toBe(1);
+        // Prose on each side of the table stays in source order and uses two calls.
+        expect(result.metrics.aiRequests).toBe(2);
         expect(result.metrics.deterministicCards).toBeGreaterThan(0);
         expect(result.metrics.aiGeneratedCards).toBeGreaterThan(0);
       }
@@ -206,7 +240,7 @@ describe("generateDocumentCards", () => {
 
   describe("AI failure", () => {
     it("survives AI failure and retains deterministic cards", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockGenerateCards.mockRejectedValue(new Error("API error"));
 
       const result = await generateDocumentCards(MIXED_DOC);
@@ -219,7 +253,7 @@ describe("generateDocumentCards", () => {
     });
 
     it("warns when prose section generation fails", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockGenerateCards.mockRejectedValue(new Error("timeout"));
 
       const result = await generateDocumentCards(PROSE_DOC);
@@ -232,7 +266,7 @@ describe("generateDocumentCards", () => {
 
   describe("deduplication", () => {
     it("removes exact duplicate cards", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockGenerateCards.mockResolvedValue([
         { front: "OS là gì?", back: "Hệ điều hành" },
         { front: "OS là gì?", back: "Hệ điều hành" },
@@ -274,7 +308,7 @@ describe("generateDocumentCards", () => {
 
   describe("multi-section ordering", () => {
     it("preserves section order in output", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockGenerateCards.mockResolvedValue([{ front: "Prose Q", back: "Prose A" }]);
 
       const doc: AnalyzedDocument = {
@@ -318,7 +352,7 @@ describe("generateDocumentCards", () => {
 
   describe("metrics", () => {
     it("tracks sourceChars correctly", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockGenerateCards.mockResolvedValue([]);
       const result = await generateDocumentCards(PROSE_DOC);
       if ("cards" in result) {
@@ -327,7 +361,7 @@ describe("generateDocumentCards", () => {
     });
 
     it("aiInputChars ≈ sourceChars for clear prose", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockGenerateCards.mockResolvedValue([]);
       const result = await generateDocumentCards(PROSE_DOC);
       if ("cards" in result) {
@@ -339,7 +373,7 @@ describe("generateDocumentCards", () => {
 
   describe("card bounds", () => {
     it("does not exceed canonical import limit", async () => {
-      mockGetClaims.mockResolvedValue({ data: { claims: {} } });
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
       mockGenerateCards.mockResolvedValue(
         Array.from({ length: 5000 }, (_, i) => ({ front: `Q${i}`, back: `A${i}` })),
       );

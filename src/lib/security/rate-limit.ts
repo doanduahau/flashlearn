@@ -14,6 +14,8 @@ type RateLimitPolicy =
   | "import"
   | "importPro"
   | "aiGeneration"
+  | "aiGenerationFree"
+  | "aiGenerationPro"
   | "googleSheets"
   | "learningSubmit"
   | "catalogInstallFree"
@@ -31,6 +33,8 @@ const POLICY_CONFIG: Record<RateLimitPolicy, PolicyConfig> = {
   import: { limit: 12, window: "1 h" },
   importPro: { limit: 30, window: "1 h" },
   aiGeneration: { limit: 20, window: "1 h" },
+  aiGenerationFree: { limit: 4, window: "1 h" },
+  aiGenerationPro: { limit: 20, window: "1 h" },
   googleSheets: { limit: 30, window: "10 m" },
   learningSubmit: { limit: 30, window: "10 m" },
   catalogInstallFree: { limit: 10, window: "1 h" },

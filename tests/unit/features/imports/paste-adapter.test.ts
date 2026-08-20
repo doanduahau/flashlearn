@@ -97,11 +97,11 @@ describe("pasteToDraftCards — semantic path (AI fallback)", () => {
 
 describe("pasteToDraftCards — limits", () => {
   it("rejects content exceeding PASTE_MAX_CHARS", async () => {
-    const longText = "x".repeat(50_001);
+    const longText = "x".repeat(200_001);
     const result = await pasteToDraftCards(longText, { provider: mockProvider([]) });
     expect(result.kind).toBe("error");
     if (result.kind === "error") {
-      expect(result.message).toContain("50.000");
+      expect(result.message).toContain("200.000");
     }
   });
 });

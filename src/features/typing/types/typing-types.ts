@@ -31,6 +31,7 @@ export type TypingSubmitResult = {
   questions: TypingQuestionResult[];
   collections: TypingCollectionOption[];
   membershipsByCard: Record<string, string[]>;
+  gradingNotice?: string;
 };
 
 export type TypingAvailability = {

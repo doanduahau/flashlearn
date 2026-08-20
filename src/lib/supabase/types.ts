@@ -784,6 +784,74 @@ export type Database = {
         }
         Relationships: []
       }
+      processing_job_outputs: {
+        Row: {
+          created_at: string
+          expires_at: string
+          job_id: string
+          output_kind: string
+          payload: Json
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          job_id: string
+          output_kind: string
+          payload: Json
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          job_id?: string
+          output_kind?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_job_outputs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "processing_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_job_reservations: {
+        Row: {
+          created_at: string
+          job_id: string
+          purpose: string
+          reservation_id: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          purpose: string
+          reservation_id: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          purpose?: string
+          reservation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_job_reservations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "processing_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_job_reservations_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: true
+            referencedRelation: "quota_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processing_jobs: {
         Row: {
           correlation_id: string
@@ -792,10 +860,19 @@ export type Database = {
           finished_at: string | null
           id: string
           idempotency_key: string
+          input_characters: number
           job_kind: string
+          last_heartbeat_at: string
+          output_items: number
+          physical_call_limit: number
+          physical_calls: number
+          plan_id: string | null
           provider: string | null
+          provider_input_tokens: number
+          provider_output_tokens: number
           provider_request_id: string | null
           reservation_id: string | null
+          source_type: string | null
           started_at: string | null
           status: string
           updated_at: string
@@ -808,10 +885,19 @@ export type Database = {
           finished_at?: string | null
           id?: string
           idempotency_key: string
+          input_characters?: number
           job_kind: string
+          last_heartbeat_at?: string
+          output_items?: number
+          physical_call_limit?: number
+          physical_calls?: number
+          plan_id?: string | null
           provider?: string | null
+          provider_input_tokens?: number
+          provider_output_tokens?: number
           provider_request_id?: string | null
           reservation_id?: string | null
+          source_type?: string | null
           started_at?: string | null
           status: string
           updated_at?: string
@@ -824,16 +910,32 @@ export type Database = {
           finished_at?: string | null
           id?: string
           idempotency_key?: string
+          input_characters?: number
           job_kind?: string
+          last_heartbeat_at?: string
+          output_items?: number
+          physical_call_limit?: number
+          physical_calls?: number
+          plan_id?: string | null
           provider?: string | null
+          provider_input_tokens?: number
+          provider_output_tokens?: number
           provider_request_id?: string | null
           reservation_id?: string | null
+          source_type?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "processing_jobs_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "processing_jobs_reservation_id_fkey"
             columns: ["reservation_id"]
@@ -1363,6 +1465,35 @@ export type Database = {
         }
         Relationships: []
       }
+      typing_ai_job_results: {
+        Row: {
+          correct: boolean
+          created_at: string
+          item_id: string
+          job_id: string
+        }
+        Insert: {
+          correct: boolean
+          created_at?: string
+          item_id: string
+          job_id: string
+        }
+        Update: {
+          correct?: boolean
+          created_at?: string
+          item_id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "typing_ai_job_results_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "processing_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       typing_attempts: {
         Row: {
           completed_at: string | null
@@ -1618,6 +1749,13 @@ export type Database = {
         }[]
       }
       assert_storage_totals: { Args: { p_user_id: string }; Returns: undefined }
+      begin_processing_job_phase: {
+        Args: { p_job_id: string; p_user_id: string }
+        Returns: {
+          concurrent_limit: number
+          job_status: string
+        }[]
+      }
       claim_starter_onboarding_banner: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -1747,6 +1885,18 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      finish_processing_job: {
+        Args: {
+          p_error_code?: string
+          p_job_id: string
+          p_output_items?: number
+          p_provider_input_tokens?: number
+          p_provider_output_tokens?: number
+          p_status: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       get_dashboard_counts: {
         Args: never
         Returns: {
@@ -1866,6 +2016,15 @@ export type Database = {
           set_id: string
         }[]
       }
+      link_processing_job_reservation: {
+        Args: {
+          p_job_id: string
+          p_purpose: string
+          p_reservation_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       load_new_card_candidates: {
         Args: { p_limit?: number }
         Returns: {
@@ -1894,6 +2053,10 @@ export type Database = {
         Args: { p_direction: string; p_set_id: string }
         Returns: undefined
       }
+      pause_processing_job: {
+        Args: { p_job_id: string; p_user_id: string }
+        Returns: undefined
+      }
       provision_starter_sets: {
         Args: { p_user_id: string }
         Returns: {
@@ -1914,6 +2077,13 @@ export type Database = {
           provisioning_status: string
         }[]
       }
+      reconcile_stale_processing_jobs: {
+        Args: never
+        Returns: {
+          expired_without_provider: number
+          requires_review: number
+        }[]
+      }
       record_daily_activity: {
         Args: {
           p_correct_answers: number
@@ -1925,6 +2095,23 @@ export type Database = {
       }
       record_mode_answers: {
         Args: { p_answers: Json; p_mode: string; p_user_id: string }
+        Returns: undefined
+      }
+      record_processing_job_call: {
+        Args: {
+          p_input_characters: number
+          p_job_id: string
+          p_user_id: string
+        }
+        Returns: number
+      }
+      record_processing_job_tokens: {
+        Args: {
+          p_job_id: string
+          p_provider_input_tokens: number
+          p_provider_output_tokens: number
+          p_user_id: string
+        }
         Returns: undefined
       }
       record_storage_quota_observation: {
@@ -2024,7 +2211,26 @@ export type Database = {
         Args: { p_enabled: boolean; p_set_id: string; p_user_id: string }
         Returns: undefined
       }
+      start_processing_job: {
+        Args: {
+          p_correlation_id: string
+          p_idempotency_key: string
+          p_job_kind: string
+          p_source_type: string
+          p_user_id: string
+        }
+        Returns: {
+          job_id: string
+          job_status: string
+          physical_call_limit: number
+          replayed: boolean
+        }[]
+      }
       storage_enforcement_mode: { Args: never; Returns: string }
+      store_typing_ai_job_results: {
+        Args: { p_job_id: string; p_results: Json; p_user_id: string }
+        Returns: undefined
+      }
       submit_quiz_answer: {
         Args: { p_question_id: string; p_selected_choice_index: number }
         Returns: {

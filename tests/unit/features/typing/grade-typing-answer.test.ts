@@ -1,65 +1,52 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-
-const mocks = vi.hoisted(() => ({
-  checkAnswerWithAI: vi.fn(),
-}));
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/features/typing/server/gemini-answer-check", () => ({
-  checkAnswerWithAI: mocks.checkAnswerWithAI,
-}));
+import { gradeTypingAnswersBatch } from "@/features/typing/server/answer-check";
 
-import { gradeTypingAnswer } from "@/features/typing/server/answer-check";
+const A = "11111111-1111-4111-8111-111111111111";
+const B = "22222222-2222-4222-8222-222222222222";
 
-afterEach(() => {
-  vi.clearAllMocks();
-});
+describe("gradeTypingAnswersBatch", () => {
+  it("grades every answer locally before sending only misses in one batch", async () => {
+    const review = vi.fn().mockResolvedValue([{ id: B, correct: true, reason: null }]);
+    const result = await gradeTypingAnswersBatch(
+      [
+        { id: A, userAnswer: "xin chao", correctAnswer: "xin chào" },
+        { id: B, userAnswer: "bye bye", correctAnswer: "tạm biệt" },
+      ],
+      { review },
+    );
 
-describe("gradeTypingAnswer — two-step grading", () => {
-  it("accepts a locally correct answer and never calls the AI", async () => {
-    const result = await gradeTypingAnswer("xin chao", "xin chào");
-
-    expect(result).toBe(true);
-    expect(mocks.checkAnswerWithAI).not.toHaveBeenCalled();
+    expect(review).toHaveBeenCalledOnce();
+    expect(review).toHaveBeenCalledWith([
+      { id: B, userAnswer: "bye bye", correctAnswer: "tạm biệt" },
+    ]);
+    expect(result.results).toEqual([
+      { id: A, correct: true },
+      { id: B, correct: true },
+    ]);
+    expect(result.reviewed).toBe(1);
   });
 
-  it("accepts an answer the AI confirms as same language and meaning", async () => {
-    mocks.checkAnswerWithAI.mockResolvedValue({ correct: true, reason: null });
-
-    const result = await gradeTypingAnswer("cách học tiếng anh", "phương pháp học tiếng Anh");
-
-    expect(result).toBe(true);
-    expect(mocks.checkAnswerWithAI).toHaveBeenCalledTimes(1);
-    expect(mocks.checkAnswerWithAI).toHaveBeenCalledWith({
-      userAnswer: "cách học tiếng anh",
-      correctAnswer: "phương pháp học tiếng Anh",
-    });
+  it("does not call the provider when all answers match locally", async () => {
+    const review = vi.fn();
+    const result = await gradeTypingAnswersBatch(
+      [{ id: A, userAnswer: "xin chao", correctAnswer: "xin chào" }],
+      { review },
+    );
+    expect(review).not.toHaveBeenCalled();
+    expect(result.results).toEqual([{ id: A, correct: true }]);
   });
 
-  it("rejects an answer the AI says is not equivalent", async () => {
-    mocks.checkAnswerWithAI.mockResolvedValue({ correct: false, reason: "Khác nghĩa" });
-
-    const result = await gradeTypingAnswer("con mèo", "con chó");
-
-    expect(result).toBe(false);
-    expect(mocks.checkAnswerWithAI).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps the local result when the AI throws", async () => {
-    mocks.checkAnswerWithAI.mockRejectedValue(new Error("AI timeout"));
-
-    const result = await gradeTypingAnswer("con mèo", "con chó");
-
-    expect(result).toBe(false);
-    expect(mocks.checkAnswerWithAI).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps the local result when the API key is missing", async () => {
-    mocks.checkAnswerWithAI.mockRejectedValue(new Error("GEMINI_API_KEY is not configured."));
-
-    const result = await gradeTypingAnswer("con mèo", "con chó");
-
-    expect(result).toBe(false);
+  it("fails closed to local wrong results when the provider fails", async () => {
+    const review = vi.fn().mockRejectedValue(new Error("timeout"));
+    const result = await gradeTypingAnswersBatch(
+      [{ id: A, userAnswer: "mèo", correctAnswer: "chó" }],
+      { review },
+    );
+    expect(result.results).toEqual([{ id: A, correct: false }]);
+    expect(result.degraded).toBe(true);
+    expect(result.reviewed).toBe(0);
   });
 });

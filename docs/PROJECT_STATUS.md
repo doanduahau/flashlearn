@@ -28,6 +28,7 @@
 | Restore/RTO               | ⏳         | Chưa diễn tập restore trên Supabase project cô lập; chưa chứng minh RTO ≤ 4 giờ                      |
 | Custom domain CapyStudy   | ⏳         | Chưa hoàn tất                                                                                        |
 | Email branding/SMTP       | ⏳         | Chưa hoàn tất                                                                                        |
+| LP-08 AI/document guard   | ⚠️         | Code + local migration/test xong; chưa review độc lập hoặc rollout staging/production                |
 
 ## 1. Môi trường và quy trình triển khai
 
@@ -139,6 +140,9 @@ Không ghi giá trị thật của các biến trên vào Git hoặc tài liệu
 - ⚠️ Starter provisioning/backfill production không được coi là hoàn tất nếu chưa có execution record xác nhận review độc lập, staging, dry-run dữ liệu thật, capacity, backup/restore và owner approval cho write-mode.
 - ⚠️ Admin/billing có thể có foundation hoặc feature flag trong code, nhưng chưa được coi là đang hoạt động thương mại trên production khi chưa có record kích hoạt và kiểm thử end-to-end.
 - ⏳ Gói Pro/thanh toán thực tế chưa được đánh dấu là production-ready trong record hiện tại.
+- ⚠️ LP-08 đã có quota/rate/concurrency/idempotency, file hardening, provider token accounting và Typing
+  batch trong repo. Migration `20260820010000`/`20260820020000` mới chỉ áp local; các rollout gate nằm ở
+  `docs/task-prompts/capystudy-library-admin-pro/08-ai-heavy-job-enforcement.md`.
 
 Chi tiết inventory tính năng ứng dụng nằm trong `docs/PROJECT_KNOWLEDGE/07_FEATURES.md`. Tài liệu này không thay thế kiểm thử acceptance của từng feature.
 

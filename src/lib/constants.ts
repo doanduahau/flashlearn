@@ -28,7 +28,8 @@ export const STUDY_MAX_CARDS = 1_000;
 
 export const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
 
-export const PASTE_MAX_CHARS = 50_000;
+// Absolute parser ceiling. Plan-specific Paste limits are enforced server-side.
+export const PASTE_MAX_CHARS = 200_000;
 export const GEMINI_MAX_OUTPUT_CARDS = 100;
 
 export const GOOGLE_SHEETS_HEADER_SCAN_MAX_COLUMNS = 702;
@@ -38,5 +39,5 @@ export const DOCUMENT_MAX_EXTRACTED_CHARS = 100_000;
 export const PDF_MAX_PAGES = 200;
 
 export const DOCUMENT_ANALYSIS_MAX_AI_SECTIONS = 10;
-export const DOCUMENT_GENERATION_MAX_AI_REQUESTS = 10;
-export const DOCUMENT_GENERATION_MAX_INPUT_CHARS = PASTE_MAX_CHARS;
+// Per-provider-call bound; separate from the larger plan/document total.
+export const DOCUMENT_GENERATION_MAX_INPUT_CHARS = 50_000;

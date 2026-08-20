@@ -16,6 +16,8 @@ export type RateLimitTelemetryPolicy =
   | "import"
   | "importPro"
   | "aiGeneration"
+  | "aiGenerationFree"
+  | "aiGenerationPro"
   | "googleSheets"
   | "learningSubmit"
   | "catalogInstallFree"

@@ -66,6 +66,18 @@ the existing-user backfill remain disabled until all of the following exist:
 Review this file before opening the product publicly, when any free-tier quota
 is reached, or at the next quarterly recovery drill.
 
+## Deferred LP-08 rollout
+
+LP-08 AI/document/Typing enforcement is implemented and validated locally. Migrations
+`20260820010000` and `20260820020000` have not been applied to staging or production. Before rollout:
+
+1. Obtain an independent security and cost review of the implementation and migrations.
+2. Apply to dedicated staging and run pgTAP, unit, document import, Paste/Sheets and Typing E2E.
+3. Run a mock-provider staging load test for Free/Pro concurrency, crash TTL and stale reconciliation.
+4. Configure and verify Gemini/Google Cloud spend limits or budget alerts plus Sentry operational alerts.
+5. Observe real job distributions for at least seven days and obtain separate owner approval before
+   changing quota enforcement from `observe` to `warn` or `block`, or enabling paid Pro/billing.
+
 ## Deferred LP-07 production enforcement
 
 The LP-07 migration and application paths are implemented. Production was migrated through

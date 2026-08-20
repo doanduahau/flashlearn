@@ -210,6 +210,11 @@ export default async function AdminUsersPage({
               }
             />
           </div>
+          {result.email_confirmed_at && (
+            <p className="mt-2 text-xs text-text-secondary">
+              Email xác nhận: {new Date(result.email_confirmed_at).toLocaleDateString("vi-VN")}
+            </p>
+          )}
         </div>
       )}
 

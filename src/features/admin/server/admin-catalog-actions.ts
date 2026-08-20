@@ -248,3 +248,75 @@ export async function adminReplaceCatalogCards(
     return adminError("Lỗi server khi cập nhật thẻ.");
   }
 }
+
+// ============================================================
+// 6. Create catalog set (direct insert, no RPC needed)
+// ============================================================
+
+export async function createCatalogSet(input: {
+  title: string;
+  slug: string;
+  description?: string;
+  category_id: string;
+  language_front: string;
+  language_back: string;
+  level?: string;
+}): Promise<CatalogMutationResult> {
+  try {
+    await getActor();
+    const admin = createAdminClient();
+
+    const { data, error } = await admin
+      .from("catalog_sets")
+      .insert({
+        title: input.title.trim(),
+        slug: input.slug.trim(),
+        description: input.description?.trim() || null,
+        category_id: input.category_id,
+        language_front: input.language_front.trim(),
+        language_back: input.language_back.trim(),
+        level: input.level?.trim() || null,
+        status: "draft",
+        version: 1,
+        is_starter: false,
+      })
+      .select("id, title, slug, status")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") return adminError("Slug đã tồn tại. Vui lòng chọn slug khác.");
+      return adminError(`Không thể tạo bộ: ${error.message}`);
+    }
+
+    revalidatePath("/admin/catalog");
+    return { ok: true, id: data.id, title: data.title ?? "", status: data.status ?? "draft" };
+  } catch (error) {
+    if (error instanceof AdminAuthorizationError)
+      return adminError("Không có quyền tạo bộ thư viện.");
+    return adminError("Lỗi server khi tạo bộ thư viện.");
+  }
+}
+
+// ============================================================
+// 7. Load catalog set detail + cards
+// ============================================================
+
+export async function loadCatalogSetDetail(setId: string) {
+  const admin = createAdminClient();
+
+  const { data: set, error: setError } = await admin
+    .from("catalog_sets")
+    .select("*")
+    .eq("id", setId)
+    .single();
+
+  if (setError || !set) return null;
+
+  const { data: cards } = await admin
+    .from("catalog_cards")
+    .select("id, front, back, position")
+    .eq("catalog_set_id", setId)
+    .order("position", { ascending: true });
+
+  return { set, cards: cards ?? [] };
+}

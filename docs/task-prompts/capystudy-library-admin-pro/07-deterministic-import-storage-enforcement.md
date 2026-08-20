@@ -2,7 +2,8 @@
 
 ## 0. Metadata
 
-- `Status`: follow-up implemented locally — second independent review and staging approval still required
+- `Status`: implementation complete; production migration applied in `observe` — enforcement rollout
+  deferred pending second independent review, staging evidence, restore drill and owner approval
 - `Difficulty`: 9/10 — rất cao
 - `Risk`: critical; nhiều mutation path, legacy data, concurrent growth và duplicate import
 - `Dependencies`: LP-02
@@ -131,9 +132,9 @@ Rollback bằng `quota_enforcement_mode=warn|observe`; không rollback ledger/da
 - Local verification covers pgTAP boundaries, legacy shrink/delete behavior, user isolation,
   observe/warn/block, and real concurrent final-slot/idempotent-import races.
 
-Production activation and independent review are intentionally deferred in
-`docs/PRODUCTION_DEFERRED_COSTS.md`; the migration must not be applied directly to production until
-those gates are complete.
+The migration was applied to production on 2026-08-20 after the read-only preflight passed and remains
+in `observe`. This is an observational deployment only, not approval to enable `warn` or `block`.
+Remaining external rollout gates are tracked in `docs/PRODUCTION_DEFERRED_COSTS.md`.
 
 ## 12. Independent-review follow-up
 
@@ -149,5 +150,19 @@ conditions and found no Critical/High issue. Its M1–M3 conditions are addresse
 - Regression coverage includes GUC downgrade, observation/status behavior, direct RLS growth, catalog,
   shared clone, starter provisioning, hard card-side length and fixed legacy-floor refill semantics.
 
-Warn/block and production remain prohibited until the follow-up receives an independent re-review and all
-staging, backup/restore and owner-approval gates are satisfied.
+Warn/block remain prohibited until the follow-up receives an independent re-review and all staging,
+backup/restore and owner-approval gates are satisfied.
+
+## 13. Current rollout record (2026-08-20)
+
+- Production migration head is `20260819220000`; LP-07 schema is applied.
+- Hardened production storage preflight passed: maximum card-side length `81`, card sides above the
+  50,000-character hard ceiling `0`.
+- Production `storage_enforcement_mode` remains `observe`.
+- A production backup completed successfully before the deployment.
+- The first independent review is `APPROVED WITH CONDITIONS`; M1–M3 have implementation and regression
+  coverage in commit `0a57819` but still require a second independent reviewer.
+- No repository record currently proves the full LP-07 pgTAP/concurrency/import/catalog/share suite ran
+  against the dedicated staging project.
+- Restore drill, measured RTO and explicit owner approval for `block` remain external gates. These are
+  deliberately deferred rather than inferred or self-approved by the implementing agent.

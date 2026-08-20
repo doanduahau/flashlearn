@@ -68,19 +68,23 @@ is reached, or at the next quarterly recovery drill.
 
 ## Deferred LP-07 production enforcement
 
-The LP-07 migration and application paths are implemented and verified against local Supabase. Keep
-production unapplied/observational until all items below are complete:
+The LP-07 migration and application paths are implemented. Production was migrated through
+`20260819220000` on 2026-08-20 after the hardened preflight passed, and remains observational. Do not
+enable `warn` or `block` until all applicable items below are complete:
 
 1. The first independent review of commit `c5ce9e3` is recorded in
    `reports/LP07_INDEPENDENT_REVIEW_2026-08-19.md`. Obtain a second independent review of the M1/M2/M3
    follow-up before enabling warn or block.
-2. Apply LP-05, LP-06 and LP-07 migrations to the dedicated staging project in order; run pgTAP,
-   storage concurrency integration and relevant import/catalog/share E2E there.
-3. Run `npm run storage:preflight:production` with the hardened production identity variables. Review
-   aggregate set/card/collection distributions, accounts above Free/Pro and the estimated floor count.
-   A non-zero count of card sides above 50,000 is a migration blocker and requires a separately reviewed
-   data-remediation plan; the diagnostic itself never writes or prints content/identifiers.
+2. Record evidence that the LP-07 pgTAP, storage concurrency integration and relevant
+   import/catalog/share E2E suites pass on the dedicated staging project. The existence and readiness of
+   staging alone are not sufficient evidence for this gate.
+3. Production preflight completed successfully on 2026-08-20 (maximum card-side length `81`; card sides
+   above 50,000: `0`). Re-run it before any future migration or enforcement change that can alter these
+   assumptions.
 4. Keep `quota_runtime_settings.storage_enforcement_mode = 'observe'` for the sampling period, then
-   change to `warn` only after warning UI/telemetry is verified. Do not let the public client choose mode.
+   change to `warn` only after the implemented warning UI/telemetry is verified on staging. Do not let the
+   public client choose mode.
 5. Obtain a separate owner approval before changing staging or production to `block`; retain the tested
    rollback procedure that changes the row back to `warn`/`observe` without deleting user data.
+6. Complete the isolated restore drill and record measured RTO before treating the backup/restore gate as
+   verified.

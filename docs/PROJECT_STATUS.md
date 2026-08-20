@@ -153,8 +153,8 @@ Chi tiết inventory tính năng ứng dụng nằm trong `docs/PROJECT_KNOWLEDG
 
 ### Trước khi bật quota `warn` hoặc `block`
 
-1. Hoàn tất telemetry cho các trường hợp “would block”.
-2. Kiểm tra warning UI và hành vi downgrade/hết hạn.
+1. Xác minh telemetry “would block” đã triển khai bằng dữ liệu staging.
+2. Kiểm tra warning UI và hành vi downgrade/hết hạn trên staging.
 3. Chạy review độc lập theo rollout contract.
 4. Ghi owner approval riêng trước khi thay đổi enforcement mode.
 

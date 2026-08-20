@@ -25,9 +25,12 @@ vi.mock("@/features/entitlements/server/entitlement-service", () => ({
   getEffectivePlan: vi.fn().mockResolvedValue("free"),
   reserveUsage: vi.fn().mockResolvedValue({
     reservation_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    reservation_status: "reserved",
     enforcementMode: "observe",
     wouldBlock: false,
   }),
+  finalizeUsage: vi.fn().mockResolvedValue(undefined),
+  refundUsage: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/features/entitlements/server/processing-job-service", () => ({
   loadProcessingJobOutput: vi.fn().mockResolvedValue(null),
@@ -40,6 +43,11 @@ vi.mock("@/features/entitlements/server/provider-call-budget", () => ({
 }));
 
 import { analyzeDocument as analyzeDocumentAction } from "@/features/imports/server/analyze-document";
+import {
+  finalizeUsage,
+  refundUsage,
+  reserveUsage,
+} from "@/features/entitlements/server/entitlement-service";
 import type { ExtractedDocument } from "@/features/imports/types/document-types";
 
 const TEST_USER = "aaaaaaaa-0000-4000-8000-000000000001";
@@ -50,6 +58,10 @@ const TEST_JOB = {
 function analyzeDocument(document: ExtractedDocument) {
   return analyzeDocumentAction({ ...document, processingJob: TEST_JOB });
 }
+
+const mockReserveUsage = reserveUsage as unknown as ReturnType<typeof vi.fn>;
+const mockFinalizeUsage = finalizeUsage as unknown as ReturnType<typeof vi.fn>;
+const mockRefundUsage = refundUsage as unknown as ReturnType<typeof vi.fn>;
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -228,6 +240,83 @@ describe("analyzeDocument", () => {
       const callCount = mockClassify.mock.calls.length;
       // Only the ambiguous section (2 blocks) should trigger AI
       expect(callCount).toBeLessThanOrEqual(1);
+    });
+  });
+
+  describe("stage reservation settlement", () => {
+    it("finalizes the analyze-stage reservation when AI classified sections", async () => {
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
+      mockClassify.mockResolvedValue({ kind: "mixed", confidence: 0.7, deterministic: false });
+
+      await analyzeDocument(ambiguousDoc());
+
+      expect(mockReserveUsage).toHaveBeenCalledWith(
+        expect.objectContaining({ idempotencyKey: expect.any(String) }),
+      );
+      expect(mockFinalizeUsage).toHaveBeenCalledTimes(1);
+      expect(mockRefundUsage).not.toHaveBeenCalled();
+    });
+
+    it("refunds the analyze-stage reservation when AI produced nothing", async () => {
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
+      mockClassify.mockRejectedValue(new Error("Network error"));
+
+      await analyzeDocument(ambiguousDoc());
+
+      expect(mockRefundUsage).toHaveBeenCalledTimes(1);
+      expect(mockRefundUsage).toHaveBeenCalledWith(expect.any(String), "no_usable_ai_result");
+      expect(mockFinalizeUsage).not.toHaveBeenCalled();
+    });
+
+    it("uses a stage-scoped idempotency key distinct from the raw job id", async () => {
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
+      mockClassify.mockResolvedValue({ kind: "mixed", confidence: 0.7, deterministic: false });
+
+      await analyzeDocument(ambiguousDoc());
+
+      expect(mockReserveUsage).toHaveBeenCalledTimes(1);
+      const { idempotencyKey } = mockReserveUsage.mock.calls[0]![0];
+      expect(idempotencyKey).not.toBe(TEST_JOB.id);
+    });
+
+    it("does not settle when reservation was not reserved", async () => {
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
+      mockReserveUsage.mockResolvedValue({
+        reservation_id: null,
+        reservation_status: "denied",
+        enforcementMode: "observe",
+        wouldBlock: true,
+      });
+      mockClassify.mockResolvedValue({ kind: "mixed", confidence: 0.7, deterministic: false });
+
+      await analyzeDocument(ambiguousDoc());
+
+      expect(mockFinalizeUsage).not.toHaveBeenCalled();
+      expect(mockRefundUsage).not.toHaveBeenCalled();
+    });
+
+    it("keeps deterministic fallback when the processing phase itself fails", async () => {
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
+      const { runProcessingJobPhase } =
+        await import("@/features/entitlements/server/processing-job-service");
+      const mockPhase = runProcessingJobPhase as ReturnType<typeof vi.fn>;
+      mockPhase.mockRejectedValue(new Error("concurrency exceeded"));
+      mockClassify.mockResolvedValue({ kind: "mixed", confidence: 0.7, deterministic: false });
+      mockReserveUsage.mockResolvedValue({
+        reservation_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        reservation_status: "reserved",
+        enforcementMode: "observe",
+        wouldBlock: false,
+      });
+
+      const result = await analyzeDocument(ambiguousDoc());
+
+      if ("document" in result) {
+        expect(result.document.analysis.aiSections).toBe(0);
+        expect(result.document.sections.every((s) => s.detectedBy === "deterministic")).toBe(true);
+      }
+      expect(mockRefundUsage).toHaveBeenCalledTimes(1);
+      mockPhase.mockImplementation(async (_job, operation) => operation());
     });
   });
 });

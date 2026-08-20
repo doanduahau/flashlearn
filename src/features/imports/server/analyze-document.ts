@@ -14,10 +14,16 @@ import {
 } from "@/features/imports/utils/document-classifier";
 import {
   aiPlanTier,
+  calculateContentCredits,
   DOCUMENT_PROCESSING_LIMITS,
   estimateContentCredits,
 } from "@/features/entitlements/ai-job-limits";
-import { getEffectivePlan, reserveUsage } from "@/features/entitlements/server/entitlement-service";
+import {
+  finalizeUsage,
+  getEffectivePlan,
+  refundUsage,
+  reserveUsage,
+} from "@/features/entitlements/server/entitlement-service";
 import {
   linkJobReservation,
   loadProcessingJobOutput,
@@ -25,6 +31,7 @@ import {
   storeProcessingJobOutput,
 } from "@/features/entitlements/server/processing-job-service";
 import { createProviderCallBudget } from "@/features/entitlements/server/provider-call-budget";
+import { stageReservationKey } from "@/features/entitlements/utils/reservation-key";
 import { createClient } from "@/lib/supabase/server";
 import { recordDocumentTelemetry } from "@/lib/telemetry/telemetry";
 
@@ -117,16 +124,18 @@ export async function analyzeDocument(extracted: ExtractedDocument): Promise<Ana
   let quotaUnavailable = false;
   let providerDegraded = false;
   let reservationId: string | null = null;
+  let reservationStatus: string | null = null;
 
   if (uncertain.length > 0) {
     const reservation = await reserveUsage({
       userId,
       usageKey: "ai.content_credits.monthly",
       requestedAmount: estimateContentCredits(sourceChars, limits.cards),
-      idempotencyKey: processingJob.id,
+      idempotencyKey: stageReservationKey(processingJob.id, "analyze"),
       correlationId: processingJob.correlationId,
     });
     reservationId = reservation.reservation_id ?? null;
+    reservationStatus = reservation.reservation_status ?? null;
     quotaUnavailable = reservation.wouldBlock && reservation.enforcementMode === "block";
     if (reservationId) {
       await linkJobReservation({
@@ -137,41 +146,7 @@ export async function analyzeDocument(extracted: ExtractedDocument): Promise<Ana
       });
     }
 
-    if (!quotaUnavailable) {
-      await runProcessingJobPhase({ id: processingJob.id, userId }, async () => {
-        const classifier = new GeminiDocumentClassifier(
-          createProviderCallBudget({ jobId: processingJob.id, userId }),
-        );
-        for (const candidate of uncertain) {
-          aiInputChars += candidate.text.length;
-          try {
-            const result = await classifier.classify(candidate.text);
-            aiSections += 1;
-            sections.push({
-              index: candidate.index,
-              heading: candidate.section.heading,
-              blocks: candidate.section.blocks,
-              kind: result.kind,
-              confidence: result.confidence,
-              detectedBy: "ai",
-              reason: result.reason ?? candidate.deterministic.reason,
-            });
-          } catch {
-            providerDegraded = true;
-            deterministicCount += 1;
-            sections.push({
-              index: candidate.index,
-              heading: candidate.section.heading,
-              blocks: candidate.section.blocks,
-              kind: candidate.deterministic.kind,
-              confidence: candidate.deterministic.confidence,
-              detectedBy: "deterministic",
-              reason: `${candidate.deterministic.reason} (AI unavailable)`,
-            });
-          }
-        }
-      });
-    } else {
+    const fallbackToDeterministic = (): void => {
       for (const candidate of uncertain) {
         deterministicCount += 1;
         sections.push({
@@ -181,8 +156,63 @@ export async function analyzeDocument(extracted: ExtractedDocument): Promise<Ana
           kind: candidate.deterministic.kind,
           confidence: candidate.deterministic.confidence,
           detectedBy: "deterministic",
-          reason: `${candidate.deterministic.reason} (AI quota unavailable)`,
+          reason: `${candidate.deterministic.reason} (AI unavailable)`,
         });
+      }
+    };
+
+    if (!quotaUnavailable) {
+      try {
+        await runProcessingJobPhase({ id: processingJob.id, userId }, async () => {
+          const classifier = new GeminiDocumentClassifier(
+            createProviderCallBudget({ jobId: processingJob.id, userId }),
+          );
+          for (const candidate of uncertain) {
+            aiInputChars += candidate.text.length;
+            try {
+              const result = await classifier.classify(candidate.text);
+              aiSections += 1;
+              sections.push({
+                index: candidate.index,
+                heading: candidate.section.heading,
+                blocks: candidate.section.blocks,
+                kind: result.kind,
+                confidence: result.confidence,
+                detectedBy: "ai",
+                reason: result.reason ?? candidate.deterministic.reason,
+              });
+            } catch {
+              providerDegraded = true;
+              deterministicCount += 1;
+              sections.push({
+                index: candidate.index,
+                heading: candidate.section.heading,
+                blocks: candidate.section.blocks,
+                kind: candidate.deterministic.kind,
+                confidence: candidate.deterministic.confidence,
+                detectedBy: "deterministic",
+                reason: `${candidate.deterministic.reason} (AI unavailable)`,
+              });
+            }
+          }
+        });
+      } catch {
+        providerDegraded = true;
+        fallbackToDeterministic();
+      }
+    } else {
+      fallbackToDeterministic();
+    }
+
+    // Settle this stage's reservation: analyze only classifies, so finalize
+    // with the actual input characters consumed, or refund when no AI result
+    // was produced. A reservation never held across stages avoids the
+    // 15-minute TTL breaking the analyze → generate flow.
+    if (reservationId && reservationStatus === "reserved") {
+      if (aiSections > 0) {
+        await finalizeUsage(reservationId, calculateContentCredits(aiInputChars, 0));
+      } else {
+        await refundUsage(reservationId, "no_usable_ai_result");
       }
     }
   }

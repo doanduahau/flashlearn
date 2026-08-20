@@ -46,6 +46,12 @@ vi.mock("@/features/entitlements/server/provider-call-budget", () => ({
 }));
 
 import { generateDocumentCards as generateDocumentCardsAction } from "@/features/imports/server/generate-document-cards";
+import {
+  finalizeUsage,
+  refundUsage,
+  reserveUsage,
+} from "@/features/entitlements/server/entitlement-service";
+import { finishProcessingJob } from "@/features/entitlements/server/processing-job-service";
 import type { AnalyzedDocument } from "@/features/imports/types/document-types";
 
 const TEST_USER = "bbbbbbbb-0000-4000-8000-000000000001";
@@ -56,6 +62,11 @@ const TEST_JOB = {
 function generateDocumentCards(document: AnalyzedDocument) {
   return generateDocumentCardsAction({ ...document, processingJob: TEST_JOB });
 }
+
+const mockReserveUsage = reserveUsage as unknown as ReturnType<typeof vi.fn>;
+const mockFinalizeUsage = finalizeUsage as unknown as ReturnType<typeof vi.fn>;
+const mockRefundUsage = refundUsage as unknown as ReturnType<typeof vi.fn>;
+const mockFinishProcessingJob = finishProcessingJob as unknown as ReturnType<typeof vi.fn>;
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -383,6 +394,58 @@ describe("generateDocumentCards", () => {
       if ("cards" in result) {
         expect(result.cards.length).toBeLessThanOrEqual(2000);
       }
+    });
+  });
+
+  describe("stage reservation settlement", () => {
+    it("uses a stage-scoped idempotency key distinct from the raw job id", async () => {
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
+      mockGenerateCards.mockResolvedValue([{ front: "Q", back: "A" }]);
+
+      await generateDocumentCards(PROSE_DOC);
+
+      expect(mockReserveUsage).toHaveBeenCalledTimes(1);
+      const { idempotencyKey } = mockReserveUsage.mock.calls[0]![0];
+      expect(idempotencyKey).not.toBe(TEST_JOB.id);
+    });
+
+    it("finalizes the generate-stage reservation when AI cards were produced", async () => {
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
+      mockGenerateCards.mockResolvedValue([{ front: "Q", back: "A" }]);
+
+      await generateDocumentCards(PROSE_DOC);
+
+      expect(mockFinalizeUsage).toHaveBeenCalledTimes(1);
+      expect(mockRefundUsage).not.toHaveBeenCalled();
+    });
+
+    it("refunds the generate-stage reservation when no AI cards were produced", async () => {
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
+      mockGenerateCards.mockResolvedValue([]);
+
+      await generateDocumentCards(PROSE_DOC);
+
+      expect(mockRefundUsage).toHaveBeenCalledTimes(1);
+      expect(mockRefundUsage).toHaveBeenCalledWith(expect.any(String), "no_usable_ai_result");
+      expect(mockFinalizeUsage).not.toHaveBeenCalled();
+    });
+
+    it("does not record an empty success when the processing phase itself fails", async () => {
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: TEST_USER } } });
+      const { runProcessingJobPhase } =
+        await import("@/features/entitlements/server/processing-job-service");
+      const mockPhase = runProcessingJobPhase as ReturnType<typeof vi.fn>;
+      mockPhase.mockRejectedValue(new Error("concurrency exceeded"));
+      mockGenerateCards.mockResolvedValue([{ front: "Q", back: "A" }]);
+
+      const result = await generateDocumentCards(PROSE_DOC);
+
+      expect("error" in result).toBe(true);
+      expect(mockFinishProcessingJob).toHaveBeenCalledWith(
+        expect.objectContaining({ status: "failed", errorCode: "AI_PHASE_UNAVAILABLE" }),
+      );
+      expect(mockRefundUsage).toHaveBeenCalledTimes(1);
+      mockPhase.mockImplementation(async (_job, operation) => operation());
     });
   });
 });

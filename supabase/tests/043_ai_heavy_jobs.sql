@@ -1,5 +1,5 @@
 begin;
-select plan(39);
+select plan(45);
 
 insert into auth.users (
   instance_id, id, aud, role, email, email_confirmed_at,
@@ -102,9 +102,29 @@ select lives_ok($$select public.finish_processing_job(
 )$$, 'finishing a job preserves accumulated token usage');
 select is((select provider_input_tokens from public.processing_jobs where idempotency_key = 'a8000000-0000-4000-8000-000000000103'), 12::bigint, 'finish does not erase provider input tokens');
 
+select throws_ok($$select public.finish_processing_job(
+  (select id from public.processing_jobs where idempotency_key = 'a8000000-0000-4000-8000-000000000102'),
+  'a8000000-0000-4000-8000-000000000001', 'failed'
+)$$, '55000', 'processing job is already finished', 'finish cannot overwrite a settled terminal status');
+select lives_ok($$select public.finish_processing_job(
+  (select id from public.processing_jobs where idempotency_key = 'a8000000-0000-4000-8000-000000000102'),
+  'a8000000-0000-4000-8000-000000000001', 'succeeded'
+)$$, 'finish replays the same terminal status idempotently');
+
+select lives_ok($$select * from public.start_processing_job(
+  'a8000000-0000-4000-8000-000000000001','document_pipeline','pdf',
+  'a8000000-0000-4000-8000-000000000105','a8000000-0000-4000-8000-000000000206'
+)$$, 'queues a stale job for reconcile');
+update public.processing_jobs
+set last_heartbeat_at = now() - interval '3 hours', status = 'running', physical_calls = 2
+where idempotency_key = 'a8000000-0000-4000-8000-000000000105';
+select is((select status from public.processing_jobs where idempotency_key = 'a8000000-0000-4000-8000-000000000105'), 'running', 'stale job is running before reconcile');
+select lives_ok($$select * from public.reconcile_stale_processing_jobs()$$, 'reconcile function is callable');
+select is((select status from public.processing_jobs where idempotency_key = 'a8000000-0000-4000-8000-000000000105'), 'reconcile_required', 'stale job with provider calls is marked for review');
+
 set local role authenticated;
 set local request.jwt.claim.sub = 'a8000000-0000-4000-8000-000000000001';
-select is((select count(*)::integer from public.processing_jobs), 2, 'RLS exposes only own processing jobs');
+select is((select count(*)::integer from public.processing_jobs), 3, 'RLS exposes only own processing jobs');
 select is((select count(*)::integer from public.typing_ai_job_results), 0, 'RLS hides another user typing results');
 reset role;
 

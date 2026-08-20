@@ -35,6 +35,7 @@ import {
   storeProcessingJobOutput,
 } from "@/features/entitlements/server/processing-job-service";
 import { createProviderCallBudget } from "@/features/entitlements/server/provider-call-budget";
+import { stageReservationKey } from "@/features/entitlements/utils/reservation-key";
 
 // ─── Test-only generation mock (env-gated) ─────────────────────────────────
 
@@ -421,7 +422,7 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
       userId,
       usageKey: "ai.content_credits.monthly",
       requestedAmount: estimateContentCredits(analyzed.analysis.sourceChars, limits.cards),
-      idempotencyKey: jobId,
+      idempotencyKey: stageReservationKey(jobId, "generate"),
       correlationId: jobCorrelationId,
     });
     reservationId = reservation.reservation_id ?? null;
@@ -498,6 +499,7 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
     }
   };
 
+  let phaseFailed = false;
   try {
     if (allowAi && needsAi) {
       await runProcessingJobPhase({ id: jobId, userId }, generate);
@@ -505,10 +507,27 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
       await generate();
     }
   } catch {
+    phaseFailed = true;
     warnings.push("AI tạm thời không khả dụng; các thẻ đã tạo được vẫn được giữ lại.");
   }
 
   const deduped = deduplicateCards(allCards);
+
+  if (phaseFailed && deduped.length === 0) {
+    // The phase could not run (concurrency limit, semaphore unavailable, or an
+    // unexpected phase error) and no cards were produced. Record a failed job
+    // instead of a misleading empty success, and release the reservation.
+    if (reservationId && reservationStatus === "reserved") {
+      await refundUsage(reservationId, "no_usable_ai_result").catch(() => undefined);
+    }
+    await finishProcessingJob({
+      jobId,
+      userId: authenticatedUserId,
+      status: "failed",
+      errorCode: "AI_PHASE_UNAVAILABLE",
+    }).catch(() => undefined);
+    return { error: "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau." };
+  }
 
   // No silent truncation: plan-specific output caps are visible to the user.
   if (deduped.length > limits.cards) {
@@ -560,9 +579,9 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
   async function persistGeneration(
     result: Exclude<GenerationResult, { error: string }>,
   ): Promise<void> {
-    const usableAi = analyzed.analysis.aiSections > 0 || result.metrics.aiGeneratedCards > 0;
+    const usableAi = result.metrics.aiGeneratedCards > 0;
     const actualCredits = calculateContentCredits(
-      analyzed.analysis.aiInputChars + result.metrics.aiInputChars,
+      result.metrics.aiInputChars,
       result.metrics.aiGeneratedCards,
     );
     try {

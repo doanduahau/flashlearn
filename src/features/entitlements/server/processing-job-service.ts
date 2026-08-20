@@ -2,7 +2,10 @@ import "server-only";
 
 import type { Json } from "@/lib/supabase/types";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { acquireHeavyJobSlot } from "@/lib/security/distributed-semaphore";
+import {
+  acquireHeavyJobSlot,
+  type DistributedSemaphoreLease,
+} from "@/lib/security/distributed-semaphore";
 
 export type ProcessingJobKind =
   "paste_generate" | "google_sheets_generate" | "document_pipeline" | "typing_ai_review";
@@ -58,7 +61,17 @@ export async function runProcessingJobPhase<T>(
   const phase = firstRow(data);
   if (error || !phase) throw new Error("processing_job_concurrency_failed");
 
-  const lease = await acquireHeavyJobSlot(job.userId, phase.concurrent_limit);
+  let lease: DistributedSemaphoreLease | null = null;
+  try {
+    lease = await acquireHeavyJobSlot(job.userId, phase.concurrent_limit);
+  } catch (acquireError) {
+    // The DB phase lease was already taken; return the job to 'queued' so a
+    // failed slot acquire does not leave it stuck 'running' for the stale
+    // window. begin_processing_job_phase already validates that the job is
+    // active, so pausing only rewinds status back to 'queued'.
+    await admin.rpc("pause_processing_job", { p_job_id: job.id, p_user_id: job.userId });
+    throw acquireError;
+  }
   try {
     return await operation();
   } finally {

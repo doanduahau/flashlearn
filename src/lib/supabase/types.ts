@@ -1822,6 +1822,20 @@ export type Database = {
           job_status: string
         }[]
       }
+      bootstrap_owner: {
+        Args: {
+          p_actor_user_id?: string
+          p_correlation_id?: string
+          p_email: string
+          p_reason: string
+        }
+        Returns: {
+          bootstrap_status: string
+          granted_at: string
+          role: string
+          role_id: string
+        }[]
+      }
       claim_starter_onboarding_banner: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -1981,6 +1995,15 @@ export type Database = {
           reason: string
           target_id: string
           target_type: string
+        }[]
+      }
+      get_admin_user_by_email: {
+        Args: { p_email: string }
+        Returns: {
+          email: string
+          email_confirmed_at: string
+          is_active_owner: boolean
+          user_id: string
         }[]
       }
       get_dashboard_counts: {

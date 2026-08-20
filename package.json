@@ -14,6 +14,7 @@
     "smoke:staging": "node scripts/smoke-environment.mjs",
     "baseline:usage": "tsx scripts/report-usage-baseline.ts",
     "backfill:starters": "tsx scripts/backfill-starter-sets.ts",
+    "bootstrap:owner": "tsx scripts/bootstrap-admin-owner.ts",
     "icons": "node scripts/generate-pwa-icons.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

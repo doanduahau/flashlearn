@@ -34,6 +34,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          actor: string | null
+          after_summary: Json | null
+          before_summary: Json | null
+          correlation_id: string | null
+          created_at: string
+          id: string
+          reason: string | null
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          after_summary?: Json | null
+          before_summary?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          after_summary?: Json | null
+          before_summary?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: []
+      }
       card_learning_schedule: {
         Row: {
           algorithm: string
@@ -1676,6 +1715,33 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          revoked_at: string | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          revoked_at?: string | null
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          revoked_at?: string | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_subscriptions: {
         Row: {
           created_at: string
@@ -1897,6 +1963,26 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_admin_audit_logs: {
+        Args: {
+          p_actor?: string
+          p_limit?: number
+          p_target_id?: string
+          p_target_type?: string
+        }
+        Returns: {
+          action: string
+          actor: string
+          after_summary: Json
+          before_summary: Json
+          correlation_id: string
+          created_at: string
+          id: string
+          reason: string
+          target_id: string
+          target_type: string
+        }[]
+      }
       get_dashboard_counts: {
         Args: never
         Returns: {
@@ -1907,6 +1993,13 @@ export type Database = {
       get_due_review_card_count: {
         Args: { p_user_id: string }
         Returns: number
+      }
+      get_effective_admin_roles: {
+        Args: { p_user_id: string }
+        Returns: {
+          granted_at: string
+          role: string
+        }[]
       }
       get_effective_entitlement: {
         Args: { p_entitlement_key: string; p_user_id: string }
@@ -1981,6 +2074,19 @@ export type Database = {
           provisioning_status: string
           user_created_at: string
           user_id: string
+        }[]
+      }
+      grant_admin_role: {
+        Args: {
+          p_correlation_id?: string
+          p_reason: string
+          p_role: string
+          p_target_user_id: string
+        }
+        Returns: {
+          granted_at: string
+          role: string
+          role_id: string
         }[]
       }
       import_flashcard_set: {
@@ -2172,6 +2278,19 @@ export type Database = {
           remaining: number
           reservation_id: string
           reservation_status: string
+        }[]
+      }
+      revoke_admin_role: {
+        Args: {
+          p_correlation_id?: string
+          p_reason: string
+          p_role: string
+          p_target_user_id: string
+        }
+        Returns: {
+          revoked_at: string
+          role: string
+          role_id: string
         }[]
       }
       revoke_set_share_token: {

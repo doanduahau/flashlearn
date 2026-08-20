@@ -19,6 +19,7 @@ import {
   getEffectiveAdminPermissions,
   hasAdminPermission,
   requireAdminPermission,
+  requireAnyAdminRole,
 } from "@/features/admin/server/authorization";
 
 const USER_ID = "aaaaaaaa-0000-4000-8000-000000000001";
@@ -96,5 +97,23 @@ describe("admin authorization helpers", () => {
   it("requireAdminPermission throws when unauthenticated", async () => {
     sessionUser(null);
     await expect(requireAdminPermission("usage.read")).rejects.toThrow("authentication required");
+  });
+
+  it("requireAnyAdminRole resolves for a user holding any admin role", async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ role: "analyst" }], error: null });
+    await expect(requireAnyAdminRole()).resolves.toEqual({
+      userId: USER_ID,
+      roles: ["analyst"],
+    });
+  });
+
+  it("requireAnyAdminRole throws when the user holds no admin role", async () => {
+    mocks.rpc.mockResolvedValue({ data: [], error: null });
+    await expect(requireAnyAdminRole()).rejects.toThrow("admin access denied");
+  });
+
+  it("requireAnyAdminRole throws when unauthenticated", async () => {
+    sessionUser(null);
+    await expect(requireAnyAdminRole()).rejects.toThrow("authentication required");
   });
 });

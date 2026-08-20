@@ -41,6 +41,7 @@ const localEnv = {
   CAPYSTUDY_ENVIRONMENT: "test",
   CAPYSTUDY_STARTER_PROVISIONING_ENABLED: starterProvisioningEnabled ? "true" : "false",
   CAPYSTUDY_CATALOG_ENABLED: catalogEnabled ? "true" : "false",
+  CAPYSTUDY_ADMIN_CONSOLE_ENABLED: "true",
   MAILPIT_URL: mailpitUrl,
   // Use the test-only classifier mock so E2E never calls real Gemini.
   CAPYSTUDY_CLASSIFIER_MOCK: "1",

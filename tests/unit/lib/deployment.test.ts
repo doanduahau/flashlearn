@@ -12,6 +12,10 @@ describe("deployment constraints", () => {
     "src/features/auth/utils/safe-redirect.ts",
     "src/features/auth/utils/auth-error.ts",
     "src/lib/env.ts",
+    "src/lib/supabase/admin.ts",
+    "src/features/admin/server/authorization.ts",
+    "src/features/admin/server/owner-bootstrap.ts",
+    "src/features/admin/permission-map.ts",
   ];
 
   const allContent = srcFiles

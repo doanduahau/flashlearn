@@ -80,3 +80,20 @@ export async function requireAdminPermission(permission: AdminPermission): Promi
   }
   return { userId: identity.userId, roles };
 }
+
+/**
+ * Route guard for the admin hub: requires at least one active admin role so the
+ * page is reachable by every admin role, while the specific server actions and
+ * data loads inside it re-check the narrower permission they actually need.
+ */
+export async function requireAnyAdminRole(): Promise<AdminIdentity> {
+  const identity = await resolveSessionIdentity();
+  if (!identity) {
+    throw new AdminAuthorizationError("authentication required");
+  }
+  const roles = await loadRoles(identity.userId);
+  if (roles.length === 0) {
+    throw new AdminAuthorizationError("admin access denied");
+  }
+  return { userId: identity.userId, roles };
+}

@@ -37,6 +37,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# Generated software-bill-of-materials report. Regenerate with `npm run sbom`.
+/reports/sbom.cdx.json
+
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
@@ -51,3 +54,6 @@ next-env.d.ts
 # supabase cli transient state
 /supabase/.branches/
 /supabase/.temp/
+
+# local production database backups (never commit dumps or user data)
+/backups/

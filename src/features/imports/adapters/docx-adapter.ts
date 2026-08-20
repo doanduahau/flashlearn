@@ -1,7 +1,6 @@
 import mammoth from "mammoth";
 
 import type { ExtractedDocument, ExtractedDocumentBlock } from "../types/document-types";
-import { DOCUMENT_MAX_EXTRACTED_CHARS } from "@/lib/constants";
 
 function stripHtmlTags(html: string): string {
   return html
@@ -110,20 +109,10 @@ function findMatchingClose(html: string, tagName: string, startFrom: number): nu
 export async function extractDocx(fileBuffer: ArrayBuffer): Promise<ExtractedDocument> {
   const result = await mammoth.convertToHtml({ buffer: Buffer.from(fileBuffer) });
   const parsed = parseMammothHtml(result.value);
-  const blocks =
-    parsed.chars > DOCUMENT_MAX_EXTRACTED_CHARS
-      ? parsed.blocks.slice(
-          0,
-          Math.max(
-            1,
-            Math.floor((DOCUMENT_MAX_EXTRACTED_CHARS / parsed.chars) * parsed.blocks.length),
-          ),
-        )
-      : parsed.blocks;
 
   return {
     sourceType: "docx",
-    blocks,
-    totalCharacters: Math.min(parsed.chars, DOCUMENT_MAX_EXTRACTED_CHARS),
+    blocks: parsed.blocks,
+    totalCharacters: parsed.chars,
   };
 }

@@ -8,6 +8,7 @@ import type { FlashcardGenerationProvider } from "../types/import-types";
 import { CARD_TEXT_MAX_LENGTH, GEMINI_MAX_OUTPUT_CARDS } from "@/lib/constants";
 import { getGeminiApiKey } from "@/lib/env";
 import { withCircuitBreaker, withTimeout } from "@/lib/resilience";
+import type { ProviderCallBudget } from "@/features/entitlements/server/provider-call-budget";
 
 const MODEL_ID = "gemini-flash-lite-latest";
 
@@ -51,6 +52,8 @@ ${text}`;
 }
 
 export class GeminiFlashcardGenerationProvider implements FlashcardGenerationProvider {
+  constructor(private readonly callBudget: ProviderCallBudget) {}
+
   async generateCards(input: { text: string }): Promise<DraftFlashcard[]> {
     const result = await this.generateCardsWithStats(input);
     return result.cards;
@@ -68,6 +71,8 @@ export class GeminiFlashcardGenerationProvider implements FlashcardGenerationPro
 
     const prompt = buildPrompt(input.text);
 
+    await this.callBudget.beforeCall(input.text.length);
+
     const result = await withCircuitBreaker("gemini", () =>
       withTimeout(
         "gemini",
@@ -84,6 +89,10 @@ export class GeminiFlashcardGenerationProvider implements FlashcardGenerationPro
         }),
       ),
     );
+    await this.callBudget.afterCall({
+      inputTokens: result.usageMetadata?.promptTokenCount ?? 0,
+      outputTokens: result.usageMetadata?.candidatesTokenCount ?? 0,
+    });
 
     const responseText = result.text;
     if (!responseText) {

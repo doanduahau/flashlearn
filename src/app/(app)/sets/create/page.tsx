@@ -12,6 +12,8 @@ import { PasteImport } from "@/features/imports/components/paste-import";
 import { loadMascotLevel } from "@/features/mascot/server/load-mascot-level";
 import type { RouteSearchParams } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
+import { getEffectivePlan } from "@/features/entitlements/server/entitlement-service";
+import { aiPlanTier } from "@/features/entitlements/ai-job-limits";
 
 export const metadata: Metadata = { title: "Tạo Flash card" };
 
@@ -29,7 +31,12 @@ export default async function CreateSetPage({
   const source = sourceOf(raw.source);
 
   const supabase = await createClient();
-  const mascotLevel = await loadMascotLevel(supabase);
+  const [{ data: claims }, mascotLevel] = await Promise.all([
+    supabase.auth.getClaims(),
+    loadMascotLevel(supabase),
+  ]);
+  const userId = claims?.claims?.sub;
+  const plan = typeof userId === "string" ? await getEffectivePlan(userId) : "free";
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 pb-20">
@@ -41,7 +48,9 @@ export default async function CreateSetPage({
       <div className="mt-4">
         {source === "paste" ? <PasteImport mascotLevel={mascotLevel} /> : null}
         {source === "google_sheets" ? <GoogleSheetsImport mascotLevel={mascotLevel} /> : null}
-        {source === "file" ? <FileImport mascotLevel={mascotLevel} /> : null}
+        {source === "file" ? (
+          <FileImport mascotLevel={mascotLevel} planTier={aiPlanTier(plan)} />
+        ) : null}
         {source === "manual" ? <ManualSetForm /> : null}
       </div>
     </div>

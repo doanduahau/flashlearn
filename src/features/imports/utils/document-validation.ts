@@ -32,6 +32,9 @@ export function validateDocumentFile(file: {
   }
 
   const byMime = MIME_TO_TYPE[file.type];
+  if (file.type && byMime === undefined) {
+    return { ok: false, error: "Loại nội dung của tệp không được hỗ trợ." };
+  }
   if (byMime && !SUPPORTED_EXTENSIONS.has(ext)) {
     return { ok: false, error: "Định dạng tệp không khớp." };
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { extractDocument } from "@/features/imports/server/extract-document";
 import { analyzeDocument } from "@/features/imports/server/analyze-document";
@@ -13,7 +13,7 @@ import type {
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
 import { CreateSummary } from "@/features/imports/components/create-summary";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
-import { DOCUMENT_MAX_BYTES } from "@/lib/constants";
+import { DOCUMENT_PROCESSING_LIMITS, type AiPlanTier } from "@/features/entitlements/ai-job-limits";
 import { Button } from "@/components/ui/button";
 import { LoadingDots } from "@/components/shared/loading-dots";
 
@@ -56,74 +56,90 @@ function renderBlock(block: ExtractedDocumentBlock) {
 export function DocumentImport({
   initialFile,
   mascotLevel,
-}: Readonly<{ initialFile?: File; mascotLevel: MascotLevel }>) {
+  planTier,
+}: Readonly<{ initialFile?: File; mascotLevel: MascotLevel; planTier: AiPlanTier }>) {
   const [extraction, setExtraction] = useState<ExtractedDocument | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzedDocument | null>(null);
   const [generatedCards, setGeneratedCards] = useState<DraftFlashcard[] | null>(null);
   const [genWarnings, setGenWarnings] = useState<string[]>([]);
   const [genLimitExceeded, setGenLimitExceeded] = useState(false);
+  const [generationAiUsed, setGenerationAiUsed] = useState(false);
   const [genKey, setGenKey] = useState(0);
   const [error, setError] = useState("");
   const [fileName, setFileName] = useState("");
+  const [fileSize, setFileSize] = useState(0);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const initialFileRef = useRef(initialFile);
+  const jobKeyRef = useRef(crypto.randomUUID());
+
+  function reset() {
+    setExtraction(null);
+    setAnalysis(null);
+    setGeneratedCards(null);
+    setGenerationAiUsed(false);
+    setGenWarnings([]);
+    setError("");
+    setFileName("");
+    setFileSize(0);
+    jobKeyRef.current = crypto.randomUUID();
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  const handleFile = useCallback(
+    async (file: File | undefined): Promise<void> => {
+      if (!file) return;
+      setFileName(file.name);
+      setFileSize(file.size);
+      setError("");
+      setAnalysis(null);
+
+      jobKeyRef.current = crypto.randomUUID();
+      const extension = file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "docx";
+      const maximumBytes = DOCUMENT_PROCESSING_LIMITS[extension][planTier].bytes;
+
+      if (file.size > maximumBytes) {
+        setError(`Tệp quá lớn. Tối đa ${Math.round(maximumBytes / (1024 * 1024))} MB.`);
+        return;
+      }
+
+      startTransition(async () => {
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("idempotencyKey", jobKeyRef.current);
+          const result = await extractDocument(formData);
+
+          if ("error" in result) {
+            setError(result.error);
+            setExtraction(null);
+          } else {
+            setExtraction(result.document);
+
+            // Auto-analyze after extraction
+            try {
+              const analysisResult = await analyzeDocument(result.document);
+              if ("document" in analysisResult) {
+                setAnalysis(analysisResult.document);
+              }
+            } catch {
+              // Analysis is optional; extraction result remains visible.
+            }
+          }
+        } catch {
+          setError("Không thể đọc tệp. Hãy thử lại.");
+        }
+      });
+    },
+    [planTier],
+  );
 
   useEffect(() => {
     if (initialFileRef.current) {
       void handleFile(initialFileRef.current);
       initialFileRef.current = undefined;
     }
-  }, []);
-
-  function reset() {
-    setExtraction(null);
-    setAnalysis(null);
-    setGeneratedCards(null);
-    setGenWarnings([]);
-    setError("");
-    setFileName("");
-    if (inputRef.current) inputRef.current.value = "";
-  }
-
-  async function handleFile(file: File | undefined): Promise<void> {
-    if (!file) return;
-    setFileName(file.name);
-    setError("");
-    setAnalysis(null);
-
-    if (file.size > DOCUMENT_MAX_BYTES) {
-      setError(`Tệp quá lớn. Tối đa ${Math.round(DOCUMENT_MAX_BYTES / (1024 * 1024))} MB.`);
-      return;
-    }
-
-    startTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        const result = await extractDocument(formData);
-
-        if ("error" in result) {
-          setError(result.error);
-          setExtraction(null);
-        } else {
-          setExtraction(result.document);
-
-          // Auto-analyze after extraction
-          try {
-            const analysisResult = await analyzeDocument(result.document);
-            if ("document" in analysisResult) {
-              setAnalysis(analysisResult.document);
-            }
-          } catch {
-            // Analysis is optional; extraction result remains visible.
-          }
-        }
-      } catch {
-        setError("Không thể đọc tệp. Hãy thử lại.");
-      }
-    });
-  }
+  }, [handleFile]);
 
   async function handleGenerate(): Promise<void> {
     if (!analysis) return;
@@ -138,6 +154,7 @@ export function DocumentImport({
           setError(result.error);
         } else {
           setGeneratedCards(result.cards);
+          setGenerationAiUsed(result.metrics.aiInputChars > 0 || result.metrics.aiRequests > 0);
           setGenWarnings(result.warnings);
           setGenLimitExceeded(result.limitExceeded);
           setGenKey((k) => k + 1);
@@ -235,6 +252,10 @@ export function DocumentImport({
           {generatedCards && generatedCards.length > 0 && (
             <CreateSummary
               key={`doc-${genKey}`}
+              source={extraction.sourceType}
+              sourceBytes={fileSize}
+              sourceChars={extraction.totalCharacters}
+              aiUsed={generationAiUsed}
               sourceCards={generatedCards}
               sourceMetadata={[
                 { label: "Tệp", value: fileName },

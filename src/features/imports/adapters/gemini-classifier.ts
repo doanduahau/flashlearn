@@ -9,6 +9,7 @@ import type { SectionKind } from "../types/document-types";
 import { getGeminiApiKey } from "@/lib/env";
 import { withCircuitBreaker, withTimeout } from "@/lib/resilience";
 import { isTestRuntime } from "@/lib/env";
+import type { ProviderCallBudget } from "@/features/entitlements/server/provider-call-budget";
 
 const MODEL_ID = "gemini-flash-lite-latest";
 
@@ -97,10 +98,13 @@ export const mockClassifierCount = {
 };
 
 export class GeminiDocumentClassifier implements DocumentClassifier {
+  constructor(private readonly callBudget: ProviderCallBudget) {}
+
   async classify(
     text: string,
   ): Promise<{ kind: SectionKind; confidence: number; deterministic: false; reason?: string }> {
     if (MOCK_ENABLED) {
+      await this.callBudget.beforeCall(text.length);
       mockClassifierCount.increment();
       return {
         kind: "mixed",
@@ -116,6 +120,8 @@ export class GeminiDocumentClassifier implements DocumentClassifier {
     const genAI = new GoogleGenAI({ apiKey });
     const prompt = buildClassificationPrompt(text);
 
+    await this.callBudget.beforeCall(text.length);
+
     const result = await withCircuitBreaker("gemini", () =>
       withTimeout(
         "gemini",
@@ -130,6 +136,10 @@ export class GeminiDocumentClassifier implements DocumentClassifier {
         }),
       ),
     );
+    await this.callBudget.afterCall({
+      inputTokens: result.usageMetadata?.promptTokenCount ?? 0,
+      outputTokens: result.usageMetadata?.candidatesTokenCount ?? 0,
+    });
 
     const raw = result.text;
     if (!raw) throw new Error("No AI response.");

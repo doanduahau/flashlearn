@@ -24,6 +24,11 @@ vi.mock("@/lib/env", () => ({
 
 import { GeminiFlashcardGenerationProvider } from "@/features/imports/adapters/gemini-provider";
 
+const callBudget = {
+  beforeCall: vi.fn().mockResolvedValue(undefined),
+  afterCall: vi.fn().mockResolvedValue(undefined),
+};
+
 const SOURCE_TEXT = [
   "RAM là gì?",
   "Tiến trình là gì?",
@@ -66,7 +71,7 @@ describe("GeminiFlashcardGenerationProvider Unicode fidelity", () => {
     });
     mockGenerateContent.mockResolvedValue({ text: rawResponse });
 
-    const provider = new GeminiFlashcardGenerationProvider();
+    const provider = new GeminiFlashcardGenerationProvider(callBudget);
     const result = await provider.generateCardsWithStats({ text: SOURCE_TEXT });
 
     expect(result.cards).toEqual([
@@ -92,7 +97,7 @@ describe("GeminiFlashcardGenerationProvider Unicode fidelity", () => {
       }),
     });
 
-    const provider = new GeminiFlashcardGenerationProvider();
+    const provider = new GeminiFlashcardGenerationProvider(callBudget);
     const result = await provider.generateCardsWithStats({ text: "Unicode preservation fixture" });
 
     expect(result.cards).toEqual([{ front: "Unicode matrix", back: VIETNAMESE_DIACRITIC_MATRIX }]);

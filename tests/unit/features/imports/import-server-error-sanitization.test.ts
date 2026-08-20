@@ -20,6 +20,11 @@ describe("import server error boundaries", () => {
     mocks.createClient.mockRejectedValue(new Error("internal SUPABASE_URL diagnostic"));
 
     const result = await importFlashcards({
+      idempotencyKey: "11111111-1111-4111-8111-111111111111",
+      source: "manual",
+      sourceBytes: 0,
+      sourceChars: 0,
+      aiUsed: false,
       name: "An toàn",
       cards: [{ front: "Mặt trước", back: "Mặt sau" }],
     });

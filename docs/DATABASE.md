@@ -736,3 +736,77 @@ Existing completed sessions are snapshotted once during the migration using the 
 history from completed owned sessions, but derives active days, streaks and the fixed 30-day series
 from immutable owned `daily_learning_records`. It accepts no browser-controlled user, timezone or
 range and falls back to `Asia/Ho_Chi_Minh` when a profile timezone is invalid.
+
+## Starter catalog provisioning
+
+`starter_provisioning_states` stores durable per-user state (`pending`, `running`, `completed`,
+`partial`, or `failed`), bounded attempt counts and sanitized error codes. The service-role-only
+`provision_starter_sets` RPC serializes work per user with a transaction advisory lock and calls the
+catalog install RPC once per missing starter. Each set clone is atomic; caught per-template failures
+leave a retryable partial state without duplicating successful sets.
+
+Completion is durable even if a user later deletes a cloned starter. This prevents background login
+provisioning from undoing an explicit deletion; a future catalog UI may offer an explicit reinstall.
+Starter cards count toward storage. Legacy accounts near the Free cap receive non-expiring
+`cards.total.max` or `sets.regular.max` floors equal to their post-provision usage, while absolute safety
+ceilings remain 30,000 cards and 200 regular sets.
+
+`get_starter_backfill_batch` is a service-role-only, read-only operator RPC ordered by
+`(auth.users.created_at, auth.users.id)`. It accepts no offset and enforces a maximum page size of 100,
+allowing the operator runner to checkpoint and resume without skipping or duplicating users.
+
+LP-06 adds `onboarding_announced_at` as acknowledgement state independent from provisioning status.
+The service-role-only `claim_starter_onboarding_banner` RPC atomically claims that message once.
+User-initiated catalog installs use `install_catalog_set_for_user`, which serializes storage decisions
+per user, applies the server-side observe/warn/block mode, enforces absolute 30,000-card/200-set
+ceilings and delegates the atomic clone to `install_catalog_set`.
+
+## Storage quota and deterministic imports
+
+`legacy_storage_floors` snapshots the set/card/collection totals that existed when LP-07 was applied.
+An account above its current plan limit may keep and delete existing data, but cannot grow beyond the
+higher of its entitlement and captured floor after enforcement reaches `block`.
+
+`flashcard_import_commits` stores one result per `(user_id, idempotency_key)`. Clients create one UUID
+for a logical commit and reuse it on retry. `commit_flashcard_import` authenticates with `auth.uid()`,
+serializes storage decisions with a per-user transaction advisory lock, validates deterministic-source
+metadata, and returns the first result for a replay. Original uploaded files are not persisted.
+
+All inserts into `flashcard_sets`, `flashcards`, and `special_collections` pass statement-level quota
+triggers, including service-role batch paths. The triggers count source-of-truth rows inside the locked
+transaction, so there is no projection to reconcile. Card writes also enforce the plan's soft per-side
+limit in `block`; an already oversized legacy value may shrink but not grow. A validated 50,000-character
+constraint is the absolute database ceiling.
+
+`quota_runtime_settings` is service-role-only and defaults to `observe`. It is the sole storage
+enforcement source: neither browser RPCs nor service-role catalog/share/starter wrappers accept a mode.
+The storage mode function deliberately ignores request GUCs, preventing rollout downgrade through a
+PostgREST request. The environment quota flag remains only for non-storage usage reservations.
+
+In `observe` and `warn`, would-block totals, card-side growth and per-request import limits are upserted
+into `storage_quota_observations` by user/resource/operation/mode/hour. Each write prunes that user's
+observations older than 35 days, bounding durable rollout data. Raw rows are service-role-only;
+authenticated users can read only the boolean warning status through `get_my_storage_quota_status()`.
+Warn mode displays an application banner after a recent would-block event; observe remains silent.
+
+Legacy floors are fixed captured ceilings, not high-water marks that decay. If a legacy account captured
+at 30 sets deletes down to 10, it may refill to 30 but not 31. This prevents unexpected loss of prior
+capacity while preserving a deterministic enforcement boundary.
+
+Production rollout must move through observe, warn, staging block and progressive production block.
+Rollback changes the database row to `warn` or `observe` and never mutates user data. Before applying the
+50,000-character constraints, run `npm run storage:preflight:production`; the allowlisted read-only runner
+prints only aggregate distributions and exits non-zero when an existing card side would block migration.
+
+## AI-heavy processing jobs
+
+LP-08 extends `processing_jobs` as the durable source for semantic Paste/Sheets, document pipelines and
+Typing AI review. A logical job snapshots plan/source, has a per-user idempotency key, Free/Pro physical
+call cap, heartbeat and terminal state. `processing_job_reservations` links its content/typing/heavy-job
+reservations; `processing_job_outputs` keeps bounded replay output for 24 hours; Typing stores only stable
+item IDs and booleans. Original documents and raw provider prompts/responses are not stored.
+
+Trusted service-role RPCs serialize per-user DB concurrency, record every physical call before provider
+access, accumulate provider-reported input/output tokens and reconcile stale jobs based on call evidence.
+Browser roles cannot execute those mutations. RLS exposes only a user's own job/result rows. Redis adds
+a short-lived owner-token semaphore with crash TTL, but database state remains authoritative.

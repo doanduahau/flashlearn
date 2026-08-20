@@ -13,28 +13,30 @@
 
 ## Authenticated Routes
 
-| Route                         | Description                                                                                                                                       |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/dashboard`                  | Tổng quan: compact daily summary and monthly activity calendar                                                                                    |
-| `/sets?tab=regular`           | Bộ flashcard: create-set actions plus regular-set list (search, pagination and card counts)                                                       |
-| `/sets?tab=special`           | Bộ flashcard: create-set actions plus special-collection list (search, pagination and empty state)                                                |
-| `/sets?create=import`         | Bộ flashcard with the Excel/CSV import wizard expanded                                                                                            |
-| `/sets?create=manual`         | Bộ flashcard with the manual set-creation sheet opened                                                                                            |
-| `/sets/[setId]`               | Set detail: rename/delete set, add/edit/delete cards, card search and pagination, per-card special-collection membership                          |
-| `/collections/[collectionId]` | Special collection detail: rename/delete collection, card list with original set name and remove-membership                                       |
-| `/study`                      | Học: two top tabs — "Học truyền thống" (study scope) and "Vừa học vừa chơi" (Memory + future Runner)                                              |
-| `/study/session`              | Flashcard study session (deterministic source-query route, optional `seed`)                                                                       |
-| `/match`                      | Kiểm tra: the "Match" tab — choose an eligible source and a feasible 12, 18, or 24-card session                                                   |
-| `/match/session`              | Front-to-Back Match practice session; no Quiz, scheduling, mastery, or activity writes                                                            |
-| `/memory`                     | Memory Matching setup: choose an eligible source and a feasible 12, 18, or 24-card session                                                        |
-| `/memory/session`             | Front-to-Back Memory Matching practice session (adaptive grid); no Quiz, scheduling, mastery, or activity writes                                  |
-| `/quiz?tab=create`            | Kiểm tra: the "Trắc nghiệm" tab — quiz setup with server-paginated source search/filter, shared mode filters (Chưa / Sai / Ngẫu nhiên) and counts |
-| `/quiz?tab=history`           | Kiểm tra: current-user completed quiz history                                                                                                     |
-| `/quiz/[attemptId]`           | Take a quiz                                                                                                                                       |
-| `/quiz/[attemptId]/result`    | Quiz result                                                                                                                                       |
-| `/profile?tab=profile`        | Cá nhân: profile summary                                                                                                                          |
-| `/profile?tab=statistics`     | Cá nhân: server-rendered streak and completed-quiz statistics                                                                                     |
-| `/profile?tab=settings`       | Cá nhân: settings (read-only email, editable display name and IANA timezone)                                                                      |
+| Route                          | Description                                                                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/dashboard`                   | Tổng quan: compact daily summary and monthly activity calendar                                                                                    |
+| `/sets?tab=regular`            | Bộ flashcard: create-set actions plus regular-set list (search, pagination and card counts)                                                       |
+| `/sets?tab=special`            | Bộ flashcard: create-set actions plus special-collection list (search, pagination and empty state)                                                |
+| `/sets?create=import`          | Bộ flashcard with the Excel/CSV import wizard expanded                                                                                            |
+| `/sets?create=manual`          | Bộ flashcard with the manual set-creation sheet opened                                                                                            |
+| `/sets/[setId]`                | Set detail: rename/delete set, add/edit/delete cards, card search and pagination, per-card special-collection membership                          |
+| `/sets/catalog`                | System Flashcard library: published-set search, filters, pagination and installed state                                                           |
+| `/sets/catalog/[catalogSetId]` | Catalog preview with an ordered eight-card sample and idempotent install/open action                                                              |
+| `/collections/[collectionId]`  | Special collection detail: rename/delete collection, card list with original set name and remove-membership                                       |
+| `/study`                       | Học: two top tabs — "Học truyền thống" (study scope) and "Vừa học vừa chơi" (Memory + future Runner)                                              |
+| `/study/session`               | Flashcard study session (deterministic source-query route, optional `seed`)                                                                       |
+| `/match`                       | Kiểm tra: the "Match" tab — choose an eligible source and a feasible 12, 18, or 24-card session                                                   |
+| `/match/session`               | Front-to-Back Match practice session; no Quiz, scheduling, mastery, or activity writes                                                            |
+| `/memory`                      | Memory Matching setup: choose an eligible source and a feasible 12, 18, or 24-card session                                                        |
+| `/memory/session`              | Front-to-Back Memory Matching practice session (adaptive grid); no Quiz, scheduling, mastery, or activity writes                                  |
+| `/quiz?tab=create`             | Kiểm tra: the "Trắc nghiệm" tab — quiz setup with server-paginated source search/filter, shared mode filters (Chưa / Sai / Ngẫu nhiên) and counts |
+| `/quiz?tab=history`            | Kiểm tra: current-user completed quiz history                                                                                                     |
+| `/quiz/[attemptId]`            | Take a quiz                                                                                                                                       |
+| `/quiz/[attemptId]/result`     | Quiz result                                                                                                                                       |
+| `/profile?tab=profile`         | Cá nhân: profile summary                                                                                                                          |
+| `/profile?tab=statistics`      | Cá nhân: server-rendered streak and completed-quiz statistics                                                                                     |
+| `/profile?tab=settings`        | Cá nhân: settings (read-only email, editable display name and IANA timezone)                                                                      |
 
 ## Compatibility Redirects
 

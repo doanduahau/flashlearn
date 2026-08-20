@@ -103,7 +103,7 @@ export async function addCard(input: unknown): Promise<MutationResult> {
   if (!(await hasAuthenticatedSession(supabase)))
     return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
 
-  const { data, error } = await supabase.rpc("add_flashcard", {
+  const { data, error } = await supabase.rpc("add_flashcard_with_quota", {
     p_set_id: parsed.data.setId,
     p_front: parsed.data.front,
     p_back: parsed.data.back,
@@ -126,15 +126,15 @@ export async function updateCard(input: unknown): Promise<MutationResult> {
   if (!(await hasAuthenticatedSession(supabase)))
     return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
 
-  const { data, error } = await supabase
-    .from("flashcards")
-    .update({ front: parsed.data.front, back: parsed.data.back })
-    .eq("id", parsed.data.cardId)
-    .eq("set_id", parsed.data.setId)
-    .select("id");
+  const { data, error } = await supabase.rpc("update_flashcard_with_quota", {
+    p_card_id: parsed.data.cardId,
+    p_set_id: parsed.data.setId,
+    p_front: parsed.data.front,
+    p_back: parsed.data.back,
+  });
 
   if (error) return { ok: false, error: mapMutationError(error) };
-  if (!data?.length) return { ok: false, error: "Không tìm thấy flashcard." };
+  if (!data) return { ok: false, error: "Không tìm thấy flashcard." };
 
   revalidatePath(`/sets/${parsed.data.setId}`);
   return { ok: true };

@@ -29,7 +29,35 @@ vi.mock("@/lib/logger", () => ({
 vi.mock("@/features/imports/adapters/pdf-adapter", () => ({
   extractPdf: mocks.extractPdf,
   PDFEncryptedError: class PDFEncryptedError extends Error {},
+  PDFPageLimitError: class PDFPageLimitError extends Error {},
   PdfProcessingError: mocks.PdfProcessingError,
+}));
+vi.mock("@/features/entitlements/server/entitlement-service", () => ({
+  getEffectivePlan: vi.fn().mockResolvedValue("free"),
+  reserveUsage: vi.fn().mockResolvedValue({
+    reservation_id: null,
+    reservation_status: "reserved",
+    enforcementMode: "observe",
+    wouldBlock: false,
+  }),
+  finalizeUsage: vi.fn(),
+  refundUsage: vi.fn(),
+}));
+vi.mock("@/features/entitlements/server/processing-job-service", () => ({
+  startProcessingJob: vi.fn().mockResolvedValue({
+    id: "11111111-1111-4111-8111-111111111111",
+    status: "queued",
+    replayed: false,
+    physicalCallLimit: 5,
+  }),
+  runProcessingJobPhase: vi.fn(async (_job, operation) => operation()),
+  linkJobReservation: vi.fn(),
+  finishProcessingJob: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/lib/security/rate-limit", () => ({
+  consumeRateLimit: vi.fn().mockResolvedValue({ ok: true }),
+  rateLimitMessage: vi.fn(),
+  subjectRateLimitKey: vi.fn().mockReturnValue("test-subject"),
 }));
 
 import { extractDocument } from "@/features/imports/server/extract-document";
@@ -40,7 +68,7 @@ afterEach(() => {
 
 describe("extractDocument PDF diagnostics", () => {
   it("logs safe PDF runtime metadata while returning only the generic client error", async () => {
-    const privateDocumentContent = "private PDF text must never be logged";
+    const privateDocumentContent = "%PDF-1.7\nprivate PDF text must never be logged";
     mocks.createClient.mockResolvedValue({
       auth: { getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: "user" } } }) },
     });
@@ -55,6 +83,7 @@ describe("extractDocument PDF diagnostics", () => {
       "file",
       new File([privateDocumentContent], "document.pdf", { type: "application/pdf" }),
     );
+    formData.append("idempotencyKey", "22222222-2222-4222-8222-222222222222");
 
     const result = await extractDocument(formData);
 
@@ -66,7 +95,7 @@ describe("extractDocument PDF diagnostics", () => {
       expect.objectContaining({
         stage: "pdf.text_extract",
         errorName: "Error",
-        errorMessage: "Unclassified PDF runtime error",
+        category: "unclassified",
         workerConfigured: false,
         fileSizeBytes: privateDocumentContent.length,
       }),

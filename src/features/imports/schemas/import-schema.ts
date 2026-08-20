@@ -2,7 +2,22 @@ import { z } from "zod";
 
 import { CARD_TEXT_MAX_LENGTH, IMPORT_MAX_ROWS, SET_NAME_MAX_LENGTH } from "@/lib/constants";
 
+export const importCommitSourceSchema = z.enum([
+  "manual",
+  "csv_xlsx",
+  "google_sheets",
+  "paste_structured",
+  "paste_prose",
+  "docx",
+  "pdf",
+]);
+
 export const importPayloadSchema = z.object({
+  idempotencyKey: z.uuid("Mã yêu cầu import không hợp lệ."),
+  source: importCommitSourceSchema,
+  sourceBytes: z.number().int().nonnegative().max(250_000_000),
+  sourceChars: z.number().int().nonnegative().max(250_000_000),
+  aiUsed: z.boolean(),
   name: z
     .string()
     .trim()

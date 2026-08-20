@@ -1,5 +1,14 @@
 # docs/task-prompts/
 
+## Chương trình Library, Admin và Free/Pro
+
+Bộ đặc tả cho starter flashcards, catalog hệ thống, admin RBAC, quota Free/Pro và billing nằm tại:
+
+- [`capystudy-library-admin-pro/README.md`](./capystudy-library-admin-pro/README.md)
+
+Đây là chương trình nhiều phase, có dependency và production gates riêng. Bắt đầu từ LP-01; không
+bật billing hoặc chạy backfill production trực tiếp từ tài liệu task.
+
 Thư mục lưu **prompt giao việc cho agent** (không phải tài liệu kỹ thuật, không phải code).
 
 ## Mục đích

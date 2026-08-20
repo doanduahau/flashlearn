@@ -1,6 +1,6 @@
 "use server";
 
-import { randomInt } from "node:crypto";
+import { createHash, randomInt, randomUUID } from "node:crypto";
 
 import {
   retryTypingSaveSchema,
@@ -16,7 +16,29 @@ import type {
   TypingCard,
   TypingSubmitResult,
 } from "@/features/typing/types/typing-types";
-import { gradeTypingAnswer } from "@/features/typing/server/answer-check";
+import { localTypingMisses } from "@/features/typing/server/answer-check";
+import {
+  GeminiTypingBatchReviewer,
+  typingBatchCharacters,
+  type TypingReviewItem,
+} from "@/features/typing/server/gemini-answer-check";
+import { isAnswerCorrect } from "@/features/typing/utils/answer-match";
+import { AI_JOB_LIMITS, aiPlanTier } from "@/features/entitlements/ai-job-limits";
+import {
+  finalizeUsage,
+  getEffectivePlan,
+  refundUsage,
+  reserveUsage,
+} from "@/features/entitlements/server/entitlement-service";
+import {
+  finishProcessingJob,
+  linkJobReservation,
+  loadTypingJobResults,
+  runProcessingJobPhase,
+  startProcessingJob,
+  storeTypingJobResults,
+} from "@/features/entitlements/server/processing-job-service";
+import { createProviderCallBudget } from "@/features/entitlements/server/provider-call-budget";
 import { selectCardsByPriority } from "@/features/learning-modes/types";
 import { QUIZ_COVERAGE_MODES } from "@/features/practice-coverage/constants";
 import {
@@ -32,6 +54,182 @@ import { consumeRateLimit, rateLimitMessage, subjectRateLimitKey } from "@/lib/s
 
 const generic = "Không thể xử lý bài kiểm tra. Vui lòng thử lại.";
 const TYPING_QUICK_COUNTS = [10, 20, 30, 50];
+
+type TypingReviewOutcome = {
+  aiCorrectById: Map<string, boolean>;
+  notice?: string;
+};
+
+function partialTypingReservationKey(coverageSessionId: string, amount: number): string {
+  const hex = createHash("sha256")
+    .update(`${coverageSessionId}:typing-review:${amount}`)
+    .digest("hex")
+    .slice(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+async function reviewLocalMisses(
+  userId: string,
+  coverageSessionId: string,
+  items: readonly TypingReviewItem[],
+): Promise<TypingReviewOutcome> {
+  const misses = localTypingMisses(items);
+  if (misses.length === 0) return { aiCorrectById: new Map() };
+
+  const plan = await getEffectivePlan(userId);
+  const tier = aiPlanTier(plan);
+  const limits = AI_JOB_LIMITS[tier];
+  const bounded: TypingReviewItem[] = [];
+  let characters = 0;
+  for (const item of misses) {
+    const itemCharacters = typingBatchCharacters([item]);
+    if (
+      bounded.length >= limits.typingBatchItems ||
+      characters + itemCharacters > limits.typingBatchChars
+    ) {
+      break;
+    }
+    bounded.push(item);
+    characters += itemCharacters;
+  }
+  if (bounded.length === 0) {
+    return {
+      aiCorrectById: new Map(),
+      notice: "Các câu chưa khớp được chấm theo quy tắc thông thường do vượt giới hạn batch AI.",
+    };
+  }
+
+  const rateLimit = await consumeRateLimit(
+    plan === "free" ? "aiGenerationFree" : "aiGenerationPro",
+    subjectRateLimitKey("ai-heavy-start", userId),
+  );
+  if (!rateLimit.ok) {
+    return {
+      aiCorrectById: new Map(),
+      notice: "AI đang giới hạn yêu cầu; các câu chưa khớp được chấm theo quy tắc thông thường.",
+    };
+  }
+
+  const correlationId = randomUUID();
+  let job;
+  try {
+    job = await startProcessingJob({
+      userId,
+      kind: "typing_ai_review",
+      source: "typing",
+      idempotencyKey: coverageSessionId,
+      correlationId,
+    });
+  } catch {
+    return {
+      aiCorrectById: new Map(),
+      notice: "AI tạm thời không khả dụng; các câu chưa khớp được chấm theo quy tắc thông thường.",
+    };
+  }
+
+  if (job.replayed && job.status === "succeeded") {
+    const cached = await loadTypingJobResults(job.id, userId).catch(() => []);
+    return { aiCorrectById: new Map(cached.map((item) => [item.itemId, item.correct])) };
+  }
+  if (job.replayed) {
+    return {
+      aiCorrectById: new Map(),
+      notice: "Tác vụ chấm AI đang được xử lý; kết quả hiện tại dùng quy tắc thông thường.",
+    };
+  }
+
+  let reviewable = bounded;
+  let reservation = await reserveUsage({
+    userId,
+    usageKey: "ai.typing_reviews.monthly",
+    requestedAmount: reviewable.length,
+    idempotencyKey: coverageSessionId,
+    correlationId,
+  });
+  if (reservation.wouldBlock && reservation.enforcementMode === "block") {
+    const remaining = Math.max(0, Number(reservation.remaining ?? 0));
+    reviewable = reviewable.slice(0, remaining);
+    if (reviewable.length > 0) {
+      reservation = await reserveUsage({
+        userId,
+        usageKey: "ai.typing_reviews.monthly",
+        requestedAmount: reviewable.length,
+        idempotencyKey: partialTypingReservationKey(coverageSessionId, reviewable.length),
+        correlationId,
+      });
+    }
+  }
+  if (reviewable.length === 0) {
+    await finishProcessingJob({
+      jobId: job.id,
+      userId,
+      status: "cancelled",
+      errorCode: "QUOTA_EXCEEDED",
+    }).catch(() => undefined);
+    return {
+      aiCorrectById: new Map(),
+      notice: "Đã hết lượt chấm AI; các câu chưa khớp được chấm theo quy tắc thông thường.",
+    };
+  }
+
+  const reservationId = reservation.reservation_id ?? null;
+  if (reservationId) {
+    await linkJobReservation({
+      jobId: job.id,
+      userId,
+      reservationId,
+      purpose: "typing_review",
+    });
+  }
+
+  let usableResult = false;
+  try {
+    const results = await runProcessingJobPhase({ id: job.id, userId }, async () => {
+      const reviewer = new GeminiTypingBatchReviewer(
+        createProviderCallBudget({ jobId: job.id, userId }),
+      );
+      return reviewer.review(reviewable);
+    });
+    usableResult = true;
+    await storeTypingJobResults({
+      jobId: job.id,
+      userId,
+      results: results.map((result) => ({ itemId: result.id, correct: result.correct })),
+    });
+    if (reservationId && reservation.reservation_status === "reserved") {
+      await finalizeUsage(reservationId, reviewable.length);
+    }
+    await finishProcessingJob({
+      jobId: job.id,
+      userId,
+      status: "succeeded",
+      outputItems: results.length,
+    });
+    return {
+      aiCorrectById: new Map(results.map((result) => [result.id, result.correct])),
+      notice:
+        reviewable.length < misses.length
+          ? "Một số câu chưa khớp được chấm theo quy tắc thông thường vì đã đạt giới hạn AI."
+          : undefined,
+    };
+  } catch {
+    if (reservationId && reservation.reservation_status === "reserved") {
+      if (usableResult)
+        await finalizeUsage(reservationId, reviewable.length).catch(() => undefined);
+      else await refundUsage(reservationId, "typing_provider_failure").catch(() => undefined);
+    }
+    await finishProcessingJob({
+      jobId: job.id,
+      userId,
+      status: usableResult ? "reconcile_required" : "failed",
+      errorCode: usableResult ? "RESULT_PERSIST_FAILED" : "PROVIDER_FAILED",
+    }).catch(() => undefined);
+    return {
+      aiCorrectById: new Map(),
+      notice: "AI tạm thời không khả dụng; các câu chưa khớp được chấm theo quy tắc thông thường.",
+    };
+  }
+}
 
 async function authenticatedUserId(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -161,7 +359,7 @@ export async function submitTypingAttempt(input: unknown): Promise<SubmitTypingR
   if (!userId) return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
 
   const rateLimit = await consumeRateLimit(
-    "aiGeneration",
+    "learningSubmit",
     subjectRateLimitKey("typing-submit", userId),
   );
   if (!rateLimit.ok) return { ok: false, error: rateLimitMessage(rateLimit) };
@@ -179,14 +377,19 @@ export async function submitTypingAttempt(input: unknown): Promise<SubmitTypingR
     }
     const backById = new Map((cards ?? []).map((card) => [card.id, card.back]));
 
-    // Grade server-side, two steps: local matching first, then the AI reviewer
-    // only for answers the local matcher marks wrong. Answers are graded in
-    // order (one AI call per wrong answer) to stay within provider limits.
+    const reviewItems = parsed.data.answers.map((answer) => ({
+      id: answer.flashcardId,
+      userAnswer: answer.answer,
+      correctAnswer: backById.get(answer.flashcardId) ?? "",
+    }));
+    const review = await reviewLocalMisses(userId, parsed.data.coverageSessionId, reviewItems);
     const questions = [];
     let correctCount = 0;
     for (const answer of parsed.data.answers) {
       const back = backById.get(answer.flashcardId) ?? "";
-      const isCorrect = await gradeTypingAnswer(answer.answer, back);
+      const isCorrect =
+        isAnswerCorrect(answer.answer, back) ||
+        review.aiCorrectById.get(answer.flashcardId) === true;
       if (isCorrect) correctCount += 1;
       const card = (cards ?? []).find((item) => item.id === answer.flashcardId);
       questions.push({
@@ -249,6 +452,7 @@ export async function submitTypingAttempt(input: unknown): Promise<SubmitTypingR
         questions,
         collections,
         membershipsByCard,
+        gradingNotice: review.notice,
       },
       saveError: !coverage.ok ? coverage.error : save.ok ? null : save.error,
     };

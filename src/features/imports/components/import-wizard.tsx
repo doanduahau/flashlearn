@@ -27,6 +27,7 @@ export function ImportWizard({
   const [error, setError] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const [isAnalyzed, setIsAnalyzed] = useState(false);
+  const [sourceBytes, setSourceBytes] = useState(0);
   const sheet = sheets[sheetIndex];
   const columnOptions = useMemo(() => {
     if (!sheet?.rows || sheet.rows.length === 0) return [];
@@ -86,6 +87,7 @@ export function ImportWizard({
     setFrontColumn(0);
     setBackColumn(1);
     setIsAnalyzed(false);
+    setSourceBytes(0);
     setError("");
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -107,6 +109,7 @@ export function ImportWizard({
       setFrontColumn(0);
       setBackColumn(1);
       setIsAnalyzed(false);
+      setSourceBytes(file.size);
       setError("");
     } catch {
       setError("Không thể đọc tệp này. Hãy dùng CSV hoặc XLSX hợp lệ.");
@@ -292,6 +295,8 @@ export function ImportWizard({
               {summary && typeof summary !== "string" ? (
                 <CreateSummary
                   key={`excel-${sheetIndex}-${frontColumn}-${backColumn}`}
+                  source="csv_xlsx"
+                  sourceBytes={sourceBytes}
                   sourceCards={summary.rows}
                   sourceMetadata={[{ label: "Nguồn", value: "Excel / CSV" }]}
                   mascotLevel={mascotLevel}

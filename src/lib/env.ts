@@ -23,6 +23,11 @@ const envSchema = z.object({
     emptyToUndefined,
     z.enum(["development", "test", "staging", "production"]).optional(),
   ),
+  CAPYSTUDY_CATALOG_ENABLED: z.enum(["true", "false"]).default("false"),
+  CAPYSTUDY_STARTER_PROVISIONING_ENABLED: z.enum(["true", "false"]).default("false"),
+  CAPYSTUDY_QUOTA_ENFORCEMENT_MODE: z.enum(["observe", "warn", "block"]).default("observe"),
+  CAPYSTUDY_ADMIN_CONSOLE_ENABLED: z.enum(["true", "false"]).default("false"),
+  CAPYSTUDY_BILLING_ENABLED: z.enum(["true", "false"]).default("false"),
   /** @deprecated Use CAPYSTUDY_ENVIRONMENT. */
   FLASHLEARN_ENVIRONMENT: z.preprocess(
     emptyToUndefined,
@@ -46,6 +51,11 @@ const parsed = envSchema.safeParse({
   SENTRY_DSN: process.env.SENTRY_DSN,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   CAPYSTUDY_ENVIRONMENT: process.env.CAPYSTUDY_ENVIRONMENT,
+  CAPYSTUDY_CATALOG_ENABLED: process.env.CAPYSTUDY_CATALOG_ENABLED,
+  CAPYSTUDY_STARTER_PROVISIONING_ENABLED: process.env.CAPYSTUDY_STARTER_PROVISIONING_ENABLED,
+  CAPYSTUDY_QUOTA_ENFORCEMENT_MODE: process.env.CAPYSTUDY_QUOTA_ENFORCEMENT_MODE,
+  CAPYSTUDY_ADMIN_CONSOLE_ENABLED: process.env.CAPYSTUDY_ADMIN_CONSOLE_ENABLED,
+  CAPYSTUDY_BILLING_ENABLED: process.env.CAPYSTUDY_BILLING_ENABLED,
   FLASHLEARN_ENVIRONMENT: process.env.FLASHLEARN_ENVIRONMENT,
 });
 

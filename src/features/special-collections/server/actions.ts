@@ -32,7 +32,7 @@ export async function createCollection(input: unknown): Promise<MutationResult> 
   if (!(await hasAuthenticatedSession(supabase)))
     return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
 
-  const { error } = await supabase.rpc("create_special_collection", {
+  const { error } = await supabase.rpc("create_special_collection_with_quota", {
     p_name: parsed.data.name,
   });
 

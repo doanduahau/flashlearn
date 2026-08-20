@@ -60,7 +60,7 @@ describe("cloneSharedSet", () => {
 
     const result = await cloneSharedSet(TOKEN);
     expect(result).toEqual({ setId: SET_ID, alreadyExists: false });
-    expect(admin.rpc).toHaveBeenCalledWith("clone_shared_set", {
+    expect(admin.rpc).toHaveBeenCalledWith("clone_shared_set_with_quota", {
       p_token: TOKEN,
       p_user_id: "user-a",
     });

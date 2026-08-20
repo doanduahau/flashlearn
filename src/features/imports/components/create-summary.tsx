@@ -7,6 +7,7 @@ import { TrashIcon } from "lucide-react";
 import type { MascotLevel } from "@/features/mascot/types/mascot-types";
 import { importFlashcards } from "@/features/imports/server/actions";
 import type { DraftFlashcard } from "@/features/imports/types/import-types";
+import type { ImportCommitSource } from "@/features/entitlements/storage-limits";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,10 @@ export type CreateSummaryMetadata = {
 };
 
 type Props = {
+  source: ImportCommitSource;
+  sourceBytes?: number;
+  sourceChars?: number;
+  aiUsed?: boolean;
   sourceCards: DraftFlashcard[];
   sourceMetadata?: CreateSummaryMetadata[];
   warnings?: string[];
@@ -29,6 +34,10 @@ type Props = {
 };
 
 export function CreateSummary({
+  source,
+  sourceBytes = 0,
+  sourceChars = 0,
+  aiUsed = false,
   sourceCards,
   sourceMetadata,
   warnings,
@@ -41,6 +50,7 @@ export function CreateSummary({
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const importInFlightRef = useRef(false);
+  const idempotencyKeyRef = useRef(globalThis.crypto.randomUUID());
 
   const [editableCards, setEditableCards] = useState<DraftFlashcard[]>(sourceCards);
   const [prevSourceCards, setPrevSourceCards] = useState<DraftFlashcard[]>(sourceCards);
@@ -68,7 +78,15 @@ export function CreateSummary({
     setError("");
     setImporting(true);
     try {
-      const result = await importFlashcards({ name, cards: validation.cards });
+      const result = await importFlashcards({
+        idempotencyKey: idempotencyKeyRef.current,
+        source,
+        sourceBytes,
+        sourceChars,
+        aiUsed,
+        name,
+        cards: validation.cards,
+      });
       if ("error" in result) {
         setError(result.error);
       } else {

@@ -3,8 +3,21 @@
 import { revalidatePath } from "next/cache";
 
 import { importPayloadSchema } from "@/features/imports/schemas/import-schema";
+import { getEffectivePlan } from "@/features/entitlements/server/entitlement-service";
+import { storagePlanTier } from "@/features/entitlements/storage-limits";
 import { createClient } from "@/lib/supabase/server";
 import { consumeRateLimit, rateLimitMessage, subjectRateLimitKey } from "@/lib/security/rate-limit";
+
+function importErrorMessage(error: { message?: string; code?: string } | null): string {
+  if (error?.message === "storage_quota_exceeded")
+    return "Bạn đã đạt giới hạn bộ hoặc thẻ của gói hiện tại.";
+  if (error?.message === "storage_card_side_limit")
+    return "Một mặt thẻ vượt giới hạn ký tự của gói hiện tại.";
+  if (error?.message === "import_per_request_limit")
+    return "Lần import này vượt giới hạn của gói hiện tại. Hãy giảm số thẻ hoặc kích thước nguồn.";
+  if (error?.code === "23505") return "Yêu cầu này đang được xử lý. Vui lòng chờ.";
+  return "Không thể import bộ flashcard. Không có dữ liệu nào được lưu.";
+}
 
 export async function importFlashcards(
   input: unknown,
@@ -24,16 +37,23 @@ export async function importFlashcards(
   const userId = claims?.claims?.sub;
   if (typeof userId !== "string") return { error: "Phiên đăng nhập đã hết hạn." };
 
-  const rateLimit = await consumeRateLimit("import", subjectRateLimitKey("import", userId));
+  const plan = await getEffectivePlan(userId);
+  const tier = storagePlanTier(plan);
+  const ratePolicy = tier === "free" ? "import" : "importPro";
+  const rateLimit = await consumeRateLimit(ratePolicy, subjectRateLimitKey(ratePolicy, userId));
   if (!rateLimit.ok) return { error: rateLimitMessage(rateLimit) };
 
   try {
-    const { data, error } = await supabase.rpc("import_flashcard_set", {
+    const { data, error } = await supabase.rpc("commit_flashcard_import", {
       p_name: parsed.data.name,
       p_cards: parsed.data.cards,
+      p_idempotency_key: parsed.data.idempotencyKey,
+      p_source_type: parsed.data.source,
+      p_source_bytes: parsed.data.sourceBytes,
+      p_source_chars: parsed.data.sourceChars,
+      p_ai_used: parsed.data.aiUsed,
     });
-    if (error || !data?.[0]?.set_id)
-      return { error: "Không thể import bộ flashcard. Không có dữ liệu nào được lưu." };
+    if (error || !data?.[0]?.set_id) return { error: importErrorMessage(error) };
     revalidatePath("/sets");
     revalidatePath("/sets/library");
     return { setId: data[0].set_id };

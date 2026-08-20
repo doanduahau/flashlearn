@@ -48,10 +48,16 @@ describe("ManualSetForm", () => {
     await user.type(backFields()[0], "Hello");
     await user.click(screen.getByRole("button", { name: /tạo bộ/i }));
     await waitFor(() =>
-      expect(mocks.importFlashcards).toHaveBeenCalledWith({
-        name: "Bộ một thẻ",
-        cards: [{ front: "Xin chào", back: "Hello" }],
-      }),
+      expect(mocks.importFlashcards).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Bộ một thẻ",
+          cards: [{ front: "Xin chào", back: "Hello" }],
+          source: "manual",
+          sourceBytes: 0,
+          sourceChars: 0,
+          aiUsed: false,
+        }),
+      ),
     );
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(`/sets/${SET_ID}`));
   });
@@ -71,14 +77,20 @@ describe("ManualSetForm", () => {
     await user.type(backFields()[2], "Three");
     await user.click(screen.getByRole("button", { name: /tạo bộ/i }));
     await waitFor(() =>
-      expect(mocks.importFlashcards).toHaveBeenCalledWith({
-        name: "Bộ nhiều thẻ",
-        cards: [
-          { front: "Một", back: "One" },
-          { front: "Hai", back: "Two" },
-          { front: "Ba", back: "Three" },
-        ],
-      }),
+      expect(mocks.importFlashcards).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Bộ nhiều thẻ",
+          cards: [
+            { front: "Một", back: "One" },
+            { front: "Hai", back: "Two" },
+            { front: "Ba", back: "Three" },
+          ],
+          source: "manual",
+          sourceBytes: 0,
+          sourceChars: 0,
+          aiUsed: false,
+        }),
+      ),
     );
   });
 

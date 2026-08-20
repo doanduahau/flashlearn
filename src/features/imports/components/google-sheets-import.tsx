@@ -132,6 +132,7 @@ type RawSheetData = {
 };
 
 export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: MascotLevel }>) {
+  const semanticJobRef = useRef<{ text: string; idempotencyKey: string } | null>(null);
   const [mode, setMode] = useState<Mode>("init");
   const [error, setError] = useState("");
   const [sheetInfo, setSheetInfo] = useState<SheetInfo | null>(null);
@@ -249,7 +250,13 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
   async function runSemantic(text: string): Promise<void> {
     setMode("analyzing");
     try {
-      const result = await analyzeSheetText({ text });
+      if (semanticJobRef.current?.text !== text) {
+        semanticJobRef.current = { text, idempotencyKey: crypto.randomUUID() };
+      }
+      const result = await analyzeSheetText({
+        text,
+        idempotencyKey: semanticJobRef.current.idempotencyKey,
+      });
       if (result.kind === "success") {
         setFullCards(result.cards);
         if (sheetInfo) {
@@ -769,6 +776,7 @@ export function GoogleSheetsImport({ mascotLevel }: Readonly<{ mascotLevel: Masc
 
               <CreateSummary
                 key={`sheets-${selectedSheetIndex}-${frontColumn}-${backColumn}`}
+                source="google_sheets"
                 sourceCards={fullCards}
                 sourceMetadata={[
                   { label: "Bảng tính", value: sheetInfo.spreadsheetTitle },

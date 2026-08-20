@@ -248,6 +248,14 @@ export function TypingSession({
           </Button>
           <BackButton fallbackHref="/quiz/mode" />
         </div>
+        {result.gradingNotice ? (
+          <p
+            role="status"
+            className="rounded-2xl border border-border-soft bg-surface-subtle px-4 py-3 text-sm text-text-secondary"
+          >
+            {result.gradingNotice}
+          </p>
+        ) : null}
         {saveError ? (
           <div
             role="alert"

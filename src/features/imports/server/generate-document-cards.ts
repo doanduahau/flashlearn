@@ -10,14 +10,31 @@ import type {
 } from "@/features/imports/types/document-types";
 import { GeminiFlashcardGenerationProvider } from "@/features/imports/adapters/gemini-provider";
 import { validateDraftCards } from "@/features/imports/utils/validate-draft-cards";
-import {
-  DOCUMENT_GENERATION_MAX_AI_REQUESTS,
-  DOCUMENT_GENERATION_MAX_INPUT_CHARS,
-  GEMINI_MAX_OUTPUT_CARDS,
-  IMPORT_MAX_ROWS,
-} from "@/lib/constants";
+import { DOCUMENT_GENERATION_MAX_INPUT_CHARS, GEMINI_MAX_OUTPUT_CARDS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { isTestRuntime } from "@/lib/env";
+import { recordDocumentTelemetry } from "@/lib/telemetry/telemetry";
+import type { Json } from "@/lib/supabase/types";
+import {
+  aiPlanTier,
+  calculateContentCredits,
+  DOCUMENT_PROCESSING_LIMITS,
+  estimateContentCredits,
+} from "@/features/entitlements/ai-job-limits";
+import {
+  finalizeUsage,
+  getEffectivePlan,
+  refundUsage,
+  reserveUsage,
+} from "@/features/entitlements/server/entitlement-service";
+import {
+  finishProcessingJob,
+  linkJobReservation,
+  loadProcessingJobOutput,
+  runProcessingJobPhase,
+  storeProcessingJobOutput,
+} from "@/features/entitlements/server/processing-job-service";
+import { createProviderCallBudget } from "@/features/entitlements/server/provider-call-budget";
 
 // ─── Test-only generation mock (env-gated) ─────────────────────────────────
 
@@ -242,10 +259,14 @@ async function processProse(
 
   for (const chunk of chunks) {
     aiInputChars += chunk.length;
-    const result = await generateProseChunk(chunk, provider);
-    cards.push(...result.cards);
-    if (result.discarded > 0) {
-      warnings.push(`Bỏ qua ${result.discarded} thẻ AI không hợp lệ trong một mục văn bản.`);
+    try {
+      const result = await generateProseChunk(chunk, provider);
+      cards.push(...result.cards);
+      if (result.discarded > 0) {
+        warnings.push(`Bỏ qua ${result.discarded} thẻ AI không hợp lệ trong một mục văn bản.`);
+      }
+    } catch {
+      warnings.push("Không thể tạo thẻ cho một phần văn bản; các phần đã xử lý vẫn được giữ lại.");
     }
   }
 
@@ -283,11 +304,17 @@ async function processMixed(
     const { chunks, oversizedBlocks } = chunkProseBlocks(proseGroup);
     for (const chunk of chunks) {
       aiInputChars += chunk.length;
-      const result = await generateProseChunk(chunk, provider);
-      allCards.push(...result.cards);
-      aiPre += result.cards.length;
-      if (result.discarded > 0) {
-        warnings.push(`Bỏ qua ${result.discarded} thẻ AI không hợp lệ trong một mục hỗn hợp.`);
+      try {
+        const result = await generateProseChunk(chunk, provider);
+        allCards.push(...result.cards);
+        aiPre += result.cards.length;
+        if (result.discarded > 0) {
+          warnings.push(`Bỏ qua ${result.discarded} thẻ AI không hợp lệ trong một mục hỗn hợp.`);
+        }
+      } catch {
+        warnings.push(
+          "Không thể tạo thẻ cho một phần hỗn hợp; các phần đã xử lý vẫn được giữ lại.",
+        );
       }
     }
     for (const oversized of oversizedBlocks) {
@@ -335,18 +362,41 @@ function deduplicateCards(cards: DraftFlashcard[]): DraftFlashcard[] {
 
 // ─── Main orchestrator ────────────────────────────────────────────────────
 
+function parseCachedGeneration(value: Json): Exclude<GenerationResult, { error: string }> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Record<string, Json | undefined>;
+  if (!Array.isArray(candidate.cards) || !candidate.metrics) return null;
+  return value as unknown as Exclude<GenerationResult, { error: string }>;
+}
+
 export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise<GenerationResult> {
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
-  if (!claims?.claims) return { error: "Phiên đăng nhập đã hết hạn." };
+  const userId = claims?.claims?.sub;
+  if (typeof userId !== "string") return { error: "Phiên đăng nhập đã hết hạn." };
+  const authenticatedUserId = userId;
 
   if (!analyzed || typeof analyzed !== "object" || !Array.isArray(analyzed.sections)) {
     return { error: "Dữ liệu phân tích không hợp lệ." };
   }
+  const processingJob = analyzed.processingJob;
+  if (!processingJob || !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(processingJob.id)) {
+    return { error: "Phiên xử lý tài liệu không hợp lệ. Hãy chọn lại tệp." };
+  }
+  const jobId = processingJob.id;
+  const jobCorrelationId = processingJob.correlationId;
 
-  const provider: ProviderWithStats = GEN_MOCK_ENABLED
-    ? { generateCards: mockGenerateCards }
-    : new GeminiFlashcardGenerationProvider();
+  const cached = await loadProcessingJobOutput(jobId, userId).catch(() => null);
+  if (cached) {
+    const response = parseCachedGeneration(cached.payload);
+    if (response) return response;
+  }
+
+  const plan = await getEffectivePlan(userId);
+  const limits = DOCUMENT_PROCESSING_LIMITS[analyzed.sourceType][aiPlanTier(plan)];
+  if (analyzed.totalCharacters > limits.characters) {
+    return { error: "Nội dung tài liệu quá dài với gói hiện tại." };
+  }
 
   const allCards: DraftFlashcard[] = [];
   let detCardCount = 0;
@@ -359,79 +409,130 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
     aiGeneratedCards: 0,
     aiRequests: 0,
   };
-  const warnings: string[] = [];
-
-  for (const section of analyzed.sections) {
-    for (const block of section.blocks) {
-      metrics.sourceChars += blockText(block).length;
+  const warnings: string[] = [...(analyzed.warnings ?? [])];
+  const needsAi = analyzed.sections.some(
+    (section) => section.kind === "prose" || section.kind === "mixed",
+  );
+  let reservationId: string | null = null;
+  let reservationStatus: string | null = null;
+  let allowAi = needsAi;
+  if (needsAi) {
+    const reservation = await reserveUsage({
+      userId,
+      usageKey: "ai.content_credits.monthly",
+      requestedAmount: estimateContentCredits(analyzed.analysis.sourceChars, limits.cards),
+      idempotencyKey: jobId,
+      correlationId: jobCorrelationId,
+    });
+    reservationId = reservation.reservation_id ?? null;
+    reservationStatus = reservation.reservation_status;
+    if (reservation.wouldBlock && reservation.enforcementMode === "block") {
+      allowAi = false;
+      warnings.push("Đã hết lượt AI; phần có cấu trúc vẫn được tạo bằng quy tắc thông thường.");
     }
+    if (reservationId) {
+      await linkJobReservation({
+        jobId,
+        userId: authenticatedUserId,
+        reservationId,
+        purpose: "content_credit",
+      });
+    }
+  }
 
-    if (section.kind === "empty") continue;
-
-    if (section.kind === "flashcard_like") {
-      const result = processFlashcardLike(section);
-      allCards.push(...result.cards);
-      metrics.deterministicChars += result.chars;
-      detCardCount += result.cards.length;
-    } else if (section.kind === "prose") {
-      if (metrics.aiRequests >= DOCUMENT_GENERATION_MAX_AI_REQUESTS) {
-        warnings.push(`Đã đạt giới hạn ${DOCUMENT_GENERATION_MAX_AI_REQUESTS} yêu cầu AI.`);
-        continue;
-      }
+  const baseBudget = createProviderCallBudget({ jobId, userId });
+  const trackedBudget = {
+    async beforeCall(inputCharacters: number): Promise<void> {
+      await baseBudget.beforeCall(inputCharacters);
       metrics.aiRequests += 1;
-      try {
+    },
+    async afterCall(usage: { inputTokens: number; outputTokens: number }): Promise<void> {
+      await baseBudget.afterCall(usage);
+    },
+  };
+  const provider: ProviderWithStats = GEN_MOCK_ENABLED
+    ? {
+        async generateCards(input): Promise<DraftFlashcard[]> {
+          await trackedBudget.beforeCall(input.text.length);
+          return mockGenerateCards(input);
+        },
+      }
+    : new GeminiFlashcardGenerationProvider(trackedBudget);
+
+  const generate = async (): Promise<void> => {
+    for (const section of analyzed.sections) {
+      for (const block of section.blocks) metrics.sourceChars += blockText(block).length;
+      if (section.kind === "empty") continue;
+
+      if (section.kind === "flashcard_like") {
+        const result = processFlashcardLike(section);
+        allCards.push(...result.cards);
+        metrics.deterministicChars += result.chars;
+        detCardCount += result.cards.length;
+      } else if (section.kind === "prose") {
+        if (!allowAi) {
+          warnings.push("Không tạo phần văn bản vì đã đạt giới hạn AI của tác vụ.");
+          continue;
+        }
         const result = await processProse(section, provider);
         allCards.push(...result.cards);
         metrics.aiInputChars += result.aiInputChars;
         aiCardCount += result.cards.length;
         warnings.push(...result.warnings);
-      } catch {
-        warnings.push("Không thể tạo thẻ cho một mục văn bản (AI không khả dụng).");
-      }
-    } else if (section.kind === "mixed") {
-      if (metrics.aiRequests >= DOCUMENT_GENERATION_MAX_AI_REQUESTS) {
-        const det = processFlashcardLike(section);
-        allCards.push(...det.cards);
-        metrics.deterministicChars += det.chars;
-        detCardCount += det.cards.length;
-        warnings.push(`Đã đạt giới hạn ${DOCUMENT_GENERATION_MAX_AI_REQUESTS} yêu cầu AI.`);
-        continue;
-      }
-      metrics.aiRequests += 1;
-      try {
+      } else if (section.kind === "mixed") {
+        if (!allowAi) {
+          const deterministic = processFlashcardLike(section);
+          allCards.push(...deterministic.cards);
+          metrics.deterministicChars += deterministic.chars;
+          detCardCount += deterministic.cards.length;
+          warnings.push("Chỉ giữ phần có cấu trúc vì đã đạt giới hạn AI của tác vụ.");
+          continue;
+        }
         const result = await processMixed(section, provider);
         allCards.push(...result.cards);
         metrics.aiInputChars += result.aiInputChars;
         detCardCount += result.detPre;
         aiCardCount += result.aiPre;
         warnings.push(...result.warnings);
-      } catch {
-        const det = processFlashcardLike(section);
-        allCards.push(...det.cards);
-        metrics.deterministicChars += det.chars;
-        detCardCount += det.cards.length;
-        warnings.push(
-          "Không thể tạo thẻ cho phần văn bản của một mục hỗn hợp (AI không khả dụng).",
-        );
       }
     }
+  };
+
+  try {
+    if (allowAi && needsAi) {
+      await runProcessingJobPhase({ id: jobId, userId }, generate);
+    } else {
+      await generate();
+    }
+  } catch {
+    warnings.push("AI tạm thời không khả dụng; các thẻ đã tạo được vẫn được giữ lại.");
   }
 
   const deduped = deduplicateCards(allCards);
 
-  // No silent truncation: if the document exceeds the canonical limit, surface it.
-  if (deduped.length > IMPORT_MAX_ROWS) {
+  // No silent truncation: plan-specific output caps are visible to the user.
+  if (deduped.length > limits.cards) {
     metrics.deterministicCards = detCardCount;
     metrics.aiGeneratedCards = aiCardCount;
-    return {
+    const response = {
       cards: deduped,
       metrics,
       warnings: [
         ...warnings,
-        `Tài liệu tạo ra ${deduped.length} thẻ, vượt quá mức tối đa ${IMPORT_MAX_ROWS}. Không thể tiếp tục import.`,
+        `Tài liệu tạo ra ${deduped.length} thẻ, vượt quá mức tối đa ${limits.cards} của gói hiện tại. Không thể tiếp tục import.`,
       ],
       limitExceeded: true,
     };
+    recordDocumentTelemetry({
+      correlationId: jobCorrelationId,
+      operation: "generate",
+      outcome: "rejected",
+      processingPath: metrics.aiRequests > 0 ? "mixed" : "deterministic",
+      inputSize: metrics.sourceChars,
+      outputCount: deduped.length,
+    });
+    await persistGeneration(response);
+    return response;
   }
 
   const validated = validateDraftCards(deduped);
@@ -439,10 +540,62 @@ export async function generateDocumentCards(analyzed: AnalyzedDocument): Promise
   metrics.deterministicCards = detCardCount;
   metrics.aiGeneratedCards = aiCardCount;
 
-  return {
+  const response = {
     cards: validated.cards,
     metrics,
     warnings: warnings.length > 0 ? warnings : [],
     limitExceeded: false,
   };
+  recordDocumentTelemetry({
+    correlationId: jobCorrelationId,
+    operation: "generate",
+    outcome: "succeeded",
+    processingPath: metrics.aiRequests > 0 ? "mixed" : "deterministic",
+    inputSize: metrics.sourceChars,
+    outputCount: response.cards.length,
+  });
+  await persistGeneration(response);
+  return response;
+
+  async function persistGeneration(
+    result: Exclude<GenerationResult, { error: string }>,
+  ): Promise<void> {
+    const usableAi = analyzed.analysis.aiSections > 0 || result.metrics.aiGeneratedCards > 0;
+    const actualCredits = calculateContentCredits(
+      analyzed.analysis.aiInputChars + result.metrics.aiInputChars,
+      result.metrics.aiGeneratedCards,
+    );
+    try {
+      await storeProcessingJobOutput({
+        jobId,
+        userId: authenticatedUserId,
+        outputKind: "flashcards",
+        payload: result as unknown as Json,
+      });
+      if (reservationId && reservationStatus === "reserved") {
+        if (usableAi) await finalizeUsage(reservationId, actualCredits);
+        else await refundUsage(reservationId, "no_usable_ai_result");
+      }
+      await finishProcessingJob({
+        jobId,
+        userId: authenticatedUserId,
+        status: "succeeded",
+        outputItems: result.cards.length,
+      });
+    } catch {
+      if (reservationId && reservationStatus === "reserved" && usableAi) {
+        await finalizeUsage(
+          reservationId,
+          estimateContentCredits(analyzed.analysis.sourceChars, limits.cards),
+        ).catch(() => undefined);
+      }
+      await finishProcessingJob({
+        jobId,
+        userId: authenticatedUserId,
+        status: "reconcile_required",
+        errorCode: "OUTPUT_PERSIST_FAILED",
+      }).catch(() => undefined);
+      throw new Error("Không thể lưu kết quả tác vụ. Vui lòng thử lại sau.");
+    }
+  }
 }

@@ -167,8 +167,8 @@ Runs the pipeline only (no writes). Used by the debounced setup effect.
   return the pool message as error.
 - Build the session plan with a NEW pure util `buildRunnerSession` (§5).
 - `createAdminClient().rpc("create_runner_session", {
-  p_user_id: userId, p_session_card_ids, p_scope_card_ids,
-  p_difficulty: parsed.data.difficulty })`.
+p_user_id: userId, p_session_card_ids, p_scope_card_ids,
+p_difficulty: parsed.data.difficulty })`.
   - `p_session_card_ids` = the `questionCount` selected cards;
     `p_scope_card_ids` = all post-filter, post-eligibility card ids.
   - RPC error → friendly error (do not leak the SQL message).

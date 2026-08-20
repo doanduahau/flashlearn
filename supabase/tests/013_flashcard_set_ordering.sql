@@ -36,7 +36,7 @@ set local request.jwt.claim.sub = 'a1111111-1111-1111-1111-111111111111';
 delete from public.flashcard_sets where id = 'a0000000-0000-0000-0000-000000000001';
 select is((select array_agg(name order by sort_order asc, id asc) from public.flashcard_sets), array['A two', 'A three'], 'deleting a set leaves the remaining custom order intact');
 
-create temporary table imported as select * from public.import_flashcard_set('New imported', '[{"front":"front","back":"back"}]'::jsonb);
+create temporary table imported as select * from public.commit_flashcard_import('New imported', '[{"front":"front","back":"back"}]'::jsonb,'71000000-0000-4000-8000-000000000001','manual',0,0,false);
 select is((select array_agg(name order by sort_order asc, id asc) from public.flashcard_sets), array['New imported', 'A two', 'A three'], 'new imports receive a sensible position at the front');
 select is((select array_agg(name) from (select name from public.flashcard_sets order by sort_order asc, id asc offset 1 limit 2) as page_two), array['A two', 'A three'], 'offset pagination remains deterministic after reordering');
 

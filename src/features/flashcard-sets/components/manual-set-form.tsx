@@ -29,6 +29,7 @@ export function ManualSetForm() {
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const [confirmClose, setConfirmClose] = useState(false);
+  const idempotencyKeyRef = useRef(globalThis.crypto.randomUUID());
 
   const hasContent =
     name.trim() !== "" || rows.some((row) => row.front.trim() !== "" || row.back.trim() !== "");
@@ -98,7 +99,15 @@ export function ManualSetForm() {
   }
 
   function validate(): boolean {
-    const parsed = importPayloadSchema.safeParse({ name, cards: rows });
+    const parsed = importPayloadSchema.safeParse({
+      idempotencyKey: idempotencyKeyRef.current,
+      source: "manual",
+      sourceBytes: 0,
+      sourceChars: 0,
+      aiUsed: false,
+      name,
+      cards: rows,
+    });
     const next: FieldErrors = {};
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
@@ -126,7 +135,15 @@ export function ManualSetForm() {
     setError("");
     if (!validate()) return;
     startTransition(async () => {
-      const result = await importFlashcards({ name, cards: rows });
+      const result = await importFlashcards({
+        idempotencyKey: idempotencyKeyRef.current,
+        source: "manual",
+        sourceBytes: 0,
+        sourceChars: 0,
+        aiUsed: false,
+        name,
+        cards: rows,
+      });
       if ("error" in result) {
         setError(result.error);
         return;

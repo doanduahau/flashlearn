@@ -55,7 +55,7 @@ set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
 create temporary table added as
-select * from public.add_flashcard('11111111-1111-1111-1111-1111111111aa', '  New front  ', 'New back');
+select * from public.add_flashcard_with_quota('11111111-1111-1111-1111-1111111111aa', '  New front  ', 'New back');
 
 select is((select "position" from added), 2, 'added card receives max(position)+1');
 select is(
@@ -75,17 +75,17 @@ select is(
 );
 
 create temporary table added2 as
-select * from public.add_flashcard('11111111-1111-1111-1111-1111111111aa', 'Next', 'Next back');
+select * from public.add_flashcard_with_quota('11111111-1111-1111-1111-1111111111aa', 'Next', 'Next back');
 
 select is((select "position" from added2), 3, 'repeated additions keep sequential positions');
 
 select throws_ok(
-  $$select * from public.add_flashcard('55555555-5555-5555-5555-5555555555aa', 'x', 'y')$$,
+  $$select * from public.add_flashcard_with_quota('55555555-5555-5555-5555-5555555555aa', 'x', 'y')$$,
   '22023', NULL, 'user A cannot add a card into user B set'
 );
 
 select throws_ok(
-  $$select * from public.add_flashcard('11111111-1111-1111-1111-1111111111aa', '   ', 'y')$$,
+  $$select * from public.add_flashcard_with_quota('11111111-1111-1111-1111-1111111111aa', '   ', 'y')$$,
   '22023', NULL, 'blank front rejected'
 );
 select is(
@@ -146,7 +146,7 @@ select is(
 );
 
 create temporary table added3 as
-select * from public.add_flashcard('11111111-1111-1111-1111-1111111111aa', 'After delete', 'x');
+select * from public.add_flashcard_with_quota('11111111-1111-1111-1111-1111111111aa', 'After delete', 'x');
 
 select is((select "position" from added3), 4, 'new card after deletion gets max+1 with no reindexing');
 
@@ -203,7 +203,7 @@ select is(
 set local role anon;
 
 select throws_ok(
-  $$select * from public.add_flashcard('55555555-5555-5555-5555-5555555555aa', 'x', 'y')$$,
+  $$select * from public.add_flashcard_with_quota('55555555-5555-5555-5555-5555555555aa', 'x', 'y')$$,
   '42501', NULL, 'anonymous add_flashcard denied'
 );
 select throws_ok(

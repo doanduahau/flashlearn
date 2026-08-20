@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { CatalogActionsCell } from "@/features/admin/components/catalog-actions-cell";
 import {
   AdminAuthorizationError,
   requireAdminPermission,
@@ -191,6 +192,7 @@ export default async function AdminCatalogPage({
                   <th className="px-4 py-3">Thẻ</th>
                   <th className="px-4 py-3">Cài đặt</th>
                   <th className="px-4 py-3">Ngôn ngữ</th>
+                  <th className="px-4 py-3">Thao tác</th>
                   <th className="px-4 py-3">Cập nhật</th>
                 </tr>
               </thead>
@@ -218,6 +220,12 @@ export default async function AdminCatalogPage({
                     </td>
                     <td className="px-4 py-2.5 text-xs">
                       {set.language_front} → {set.language_back}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <CatalogActionsCell
+                        setId={set.id}
+                        status={set.status as "draft" | "published" | "archived"}
+                      />
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-xs text-text-secondary">
                       {new Date(set.updated_at).toLocaleDateString("vi-VN")}

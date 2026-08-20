@@ -2112,6 +2112,120 @@ export type Database = {
           role_id: string
         }[]
       }
+      admin_adjust_user_usage: {
+        Args: {
+          p_actor_user_id: string
+          p_amount: number
+          p_correlation_id?: string
+          p_reason: string
+          p_target_user_id: string
+          p_usage_key: string
+        }
+        Returns: {
+          amount: number
+          entry_type: string
+          usage_key: string
+        }[]
+      }
+      admin_archive_catalog_set: {
+        Args: {
+          p_actor_user_id: string
+          p_catalog_set_id: string
+          p_reason: string
+        }
+        Returns: {
+          id: string
+          status: string
+        }[]
+      }
+      admin_override_user_entitlement: {
+        Args: {
+          p_actor_user_id: string
+          p_boolean_value?: boolean
+          p_catalog_set_id?: string
+          p_correlation_id?: string
+          p_entitlement_key: string
+          p_expires_at?: string
+          p_integer_value?: number
+          p_reason: string
+          p_target_user_id: string
+          p_text_value?: string
+          p_value_type: string
+        }
+        Returns: {
+          entitlement_key: string
+          expires_at: string
+          id: string
+        }[]
+      }
+      admin_publish_catalog_set: {
+        Args: {
+          p_actor_user_id: string
+          p_catalog_set_id: string
+          p_reason: string
+        }
+        Returns: {
+          id: string
+          published_at: string
+          status: string
+          version: number
+        }[]
+      }
+      admin_replace_catalog_cards: {
+        Args: {
+          p_actor_user_id: string
+          p_cards: Json
+          p_catalog_set_id: string
+          p_reason?: string
+        }
+        Returns: {
+          card_count: number
+        }[]
+      }
+      admin_retry_processing_job: {
+        Args: {
+          p_actor_user_id: string
+          p_correlation_id?: string
+          p_job_id: string
+          p_reason: string
+        }
+        Returns: {
+          job_id: string
+          status: string
+        }[]
+      }
+      admin_unpublish_catalog_set: {
+        Args: {
+          p_actor_user_id: string
+          p_catalog_set_id: string
+          p_reason: string
+        }
+        Returns: {
+          id: string
+          status: string
+          version: number
+        }[]
+      }
+      admin_update_catalog_set: {
+        Args: {
+          p_actor_user_id: string
+          p_catalog_set_id: string
+          p_category_id?: string
+          p_description?: string
+          p_is_starter?: boolean
+          p_language_back?: string
+          p_language_front?: string
+          p_level?: string
+          p_tags?: string[]
+          p_title?: string
+        }
+        Returns: {
+          id: string
+          status: string
+          title: string
+          version: number
+        }[]
+      }
       import_flashcard_set: {
         Args: { p_cards: Json; p_name: string }
         Returns: {

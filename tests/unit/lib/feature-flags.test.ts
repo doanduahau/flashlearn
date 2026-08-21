@@ -21,6 +21,7 @@ describe("feature flags", () => {
       quotaEnforcementMode: "observe",
       adminConsoleEnabled: false,
       billingEnabled: false,
+      adminCatalogMutationsEnabled: false,
     });
   });
 
@@ -30,6 +31,7 @@ describe("feature flags", () => {
     vi.stubEnv("CAPYSTUDY_QUOTA_ENFORCEMENT_MODE", "warn");
     vi.stubEnv("CAPYSTUDY_ADMIN_CONSOLE_ENABLED", "true");
     vi.stubEnv("CAPYSTUDY_BILLING_ENABLED", "true");
+    vi.stubEnv("CAPYSTUDY_ADMIN_CATALOG_MUTATIONS_ENABLED", "true");
 
     const { getFeatureFlags } = await loadFlags();
 
@@ -39,6 +41,7 @@ describe("feature flags", () => {
       quotaEnforcementMode: "warn",
       adminConsoleEnabled: true,
       billingEnabled: true,
+      adminCatalogMutationsEnabled: true,
     });
   });
 });

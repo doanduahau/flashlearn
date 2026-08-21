@@ -1,4 +1,4 @@
--- LP-10 Part 3: pgTAP tests for admin mutation RPCs (8 functions + check_admin_permission)
+-- LP-10 Part 3: pgTAP tests for admin mutation RPCs
 -- Covers: permissions, input validation, idempotency, audit, security boundary
 
 begin;
@@ -33,20 +33,27 @@ values ('MutCat046', 'mutcat-046')
 on conflict (slug) do nothing;
 
 -- Catalog sets
-insert into public.catalog_sets (title, slug, category_id, language_front, language_back, status, version)
-select 'TestMutSet046', 'test-mut-set-046', cc.id, 'en', 'vi', 'draft', 1
+insert into public.catalog_sets (id, title, slug, category_id, language_front, language_back, status, version)
+select 'c0460000-0000-4000-8000-000000000001'::uuid, 'TestMutSet046', 'test-mut-set-046', cc.id, 'en', 'vi', 'draft', 1
 from public.catalog_categories cc where cc.slug = 'mutcat-046'
-and not exists (select 1 from public.catalog_sets where slug = 'test-mut-set-046');
+on conflict (slug) do nothing;
 
-insert into public.catalog_sets (title, slug, category_id, language_front, language_back, status, version)
-select 'ReasonTest046', 'reason-test-046', cc.id, 'en', 'vi', 'draft', 1
+insert into public.catalog_sets (id, title, slug, category_id, language_front, language_back, status, version)
+select 'c0460000-0000-4000-8000-000000000002'::uuid, 'ReasonTest046', 'reason-test-046', cc.id, 'en', 'vi', 'draft', 1
 from public.catalog_categories cc where cc.slug = 'mutcat-046'
-and not exists (select 1 from public.catalog_sets where slug = 'reason-test-046');
+on conflict (slug) do nothing;
 
-insert into public.catalog_sets (title, slug, category_id, language_front, language_back, status, version)
-select 'PermTest046', 'perm-test-046', cc.id, 'en', 'vi', 'draft', 1
+insert into public.catalog_sets (id, title, slug, category_id, language_front, language_back, status, version)
+select 'c0460000-0000-4000-8000-000000000003'::uuid, 'PermTest046', 'perm-test-046', cc.id, 'en', 'vi', 'draft', 1
 from public.catalog_categories cc where cc.slug = 'mutcat-046'
-and not exists (select 1 from public.catalog_sets where slug = 'perm-test-046');
+on conflict (slug) do nothing;
+
+-- Add cards so sets can be published
+insert into public.catalog_cards (catalog_set_id, front, back, position)
+values
+  ('c0460000-0000-4000-8000-000000000001'::uuid, 'Front 1', 'Back 1', 0),
+  ('c0460000-0000-4000-8000-000000000002'::uuid, 'Front 2', 'Back 2', 0),
+  ('c0460000-0000-4000-8000-000000000003'::uuid, 'Front 3', 'Back 3', 0);
 
 -- Processing jobs
 insert into public.processing_jobs (id, user_id, job_kind, source_type, status, error_code, correlation_id, idempotency_key, physical_calls)
@@ -81,13 +88,13 @@ select ok(not public.check_admin_permission('22222222-2222-2222-2222-22222222222
 select ok(not public.check_admin_permission('44444444-4444-4444-4444-444444444444', 'catalog.write'), 'regular user lacks catalog.write');
 
 -- ============================================================
--- SECTION 1: PERMISSIONS (14 assertions)
+-- SECTION 1: PERMISSIONS (4 assertions)
 -- ============================================================
 
-select ok((select prosecdef from pg_proc where proname = 'admin_publish_catalog_set'), 'admin_publish_catalog_set is SECURITY DEFINER');
+select ok(not (select prosecdef from pg_proc where proname = 'admin_publish_catalog_set'), 'admin_publish_catalog_set is SECURITY INVOKER');
 select is((select count(*)::integer from information_schema.routine_privileges where routine_name = 'admin_publish_catalog_set' and grantee = 'anon'), 0, 'anon blocked: publish');
-select is(has_function_privilege('service_role', 'public.admin_publish_catalog_set(uuid,uuid,text)', 'execute'), true, 'svc can: publish');
-select is(has_function_privilege('authenticated', 'public.admin_publish_catalog_set(uuid,uuid,text)', 'execute'), false, 'authenticated blocked: publish');
+select is(has_function_privilege('service_role', 'public.admin_publish_catalog_set(uuid,uuid,timestamptz,text)', 'execute'), true, 'svc can: publish');
+select is(has_function_privilege('authenticated', 'public.admin_publish_catalog_set(uuid,uuid,timestamptz,text)', 'execute'), false, 'authenticated blocked: publish');
 
 -- ============================================================
 -- SECTION 2: PUBLISH / UNPUBLISH / ARCHIVE (10 assertions)
@@ -96,59 +103,59 @@ select is(has_function_privilege('authenticated', 'public.admin_publish_catalog_
 -- Publish a draft
 set local role service_role;
 select lives_ok(
-  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), 'ready to go')$$,
+  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), NULL, 'ready to go')$$,
   'owner publishes draft'
 );
 reset role;
 
 select is((select status from public.catalog_sets where slug = 'test-mut-set-046'), 'published', 'status=published');
-select is((select version from public.catalog_sets where slug = 'test-mut-set-046'), 2, 'version=2');
+select is((select version from public.catalog_sets where slug = 'test-mut-set-046'), 1, 'version=1');
 select ok((select published_at is not null from public.catalog_sets where slug = 'test-mut-set-046'), 'published_at set');
 
--- Already published fails
+-- Already published is no-op / succeeds
 set local role service_role;
-select throws_ok(
-  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), 'retry')$$,
-  '22023', NULL, 'publish already-published fails'
+select lives_ok(
+  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), NULL, 'retry')$$,
+  'publish already-published is idempotent no-op'
 );
 reset role;
 
 -- Unpublish
 set local role service_role;
 select lives_ok(
-  $$select * from public.admin_unpublish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), 'needs changes')$$,
+  $$select * from public.admin_unpublish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), NULL, 'needs changes')$$,
   'owner unpublishes'
 );
 reset role;
 select is((select status from public.catalog_sets where slug = 'test-mut-set-046'), 'draft', 'unpublished to draft');
 
--- Not published fails
+-- Already draft is no-op / succeeds
 set local role service_role;
-select throws_ok(
-  $$select * from public.admin_unpublish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), 'reason')$$,
-  '22023', NULL, 'unpublish draft fails'
+select lives_ok(
+  $$select * from public.admin_unpublish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), NULL, 'reason')$$,
+  'unpublish draft is idempotent no-op'
 );
 reset role;
 
 -- Publish again, then archive
 set local role service_role;
 select lives_ok(
-  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), 'republish')$$,
+  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), NULL, 'republish')$$,
   'republish for archive'
 );
 select lives_ok(
-  $$select * from public.admin_archive_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), 'archive it')$$,
+  $$select * from public.admin_archive_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), NULL, 'archive it')$$,
   'owner archives'
 );
 reset role;
 select is((select status from public.catalog_sets where slug = 'test-mut-set-046'), 'archived', 'status=archived');
 select ok((select is_starter = false from public.catalog_sets where slug = 'test-mut-set-046'), 'archived unsets starter');
 
--- Already archived fails
+-- Already archived is no-op / succeeds
 set local role service_role;
-select throws_ok(
-  $$select * from public.admin_archive_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), 'retry')$$,
-  '22023', NULL, 'archive already-archived fails'
+select lives_ok(
+  $$select * from public.admin_archive_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'test-mut-set-046'), NULL, 'retry')$$,
+  'archive already-archived is idempotent no-op'
 );
 reset role;
 
@@ -158,7 +165,7 @@ reset role;
 
 set local role service_role;
 select throws_ok(
-  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'reason-test-046'), '')$$,
+  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'reason-test-046'), NULL, '')$$,
   '22023', NULL, 'empty reason rejected'
 );
 select throws_ok(
@@ -173,7 +180,7 @@ reset role;
 
 set local role service_role;
 select lives_ok(
-  $$select * from public.admin_update_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'reason-test-046'), 'New Title')$$,
+  $$select * from public.admin_update_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'reason-test-046'), NULL, 'New Title')$$,
   'owner updates title'
 );
 reset role;
@@ -181,7 +188,7 @@ select is((select title from public.catalog_sets where slug = 'reason-test-046')
 
 set local role service_role;
 select lives_ok(
-  $$select * from public.admin_replace_catalog_cards('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'reason-test-046'), '[{"front":"Hello","back":"Xin chào"},{"front":"Bye","back":"Tạm biệt"}]'::jsonb, 'cards')$$,
+  $$select * from public.admin_replace_catalog_cards('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'reason-test-046'), NULL, '[{"front":"Hello","back":"Xin chào"},{"front":"Bye","back":"Tạm biệt"}]'::jsonb, 'cards')$$,
   'owner replaces cards'
 );
 reset role;
@@ -189,7 +196,7 @@ select is((select count(*)::integer from public.catalog_cards where catalog_set_
 
 set local role service_role;
 select throws_ok(
-  $$select * from public.admin_replace_catalog_cards('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'reason-test-046'), (select jsonb_agg(jsonb_build_object('front', 'c' || i, 'back', 'd' || i)) from generate_series(1, 2001) i)::jsonb, 'too many')$$,
+  $$select * from public.admin_replace_catalog_cards('11111111-1111-1111-1111-111111111111'::uuid, (select id from public.catalog_sets where slug = 'reason-test-046'), NULL, (select jsonb_agg(jsonb_build_object('front', 'c' || i, 'back', 'd' || i)) from generate_series(1, 2001) i)::jsonb, 'too many')$$,
   '22023', NULL, 'over 2000 rejected'
 );
 reset role;
@@ -279,8 +286,6 @@ select throws_ok(
   $$select * from public.admin_retry_processing_job('11111111-1111-1111-1111-111111111111'::uuid, 'b3000000-0000-4000-8000-000000000003'::uuid, 'already done')$$,
   '22023', NULL, 'retrying succeeded fails'
 );
--- Note: all valid processing_jobs kinds (paste_generate, document_extract) are in the allowlist.
--- Instead test: retrying an already-retried (now queued) job fails.
 select throws_ok(
   $$select * from public.admin_retry_processing_job('11111111-1111-1111-1111-111111111111'::uuid, 'b1000000-0000-4000-8000-000000000001'::uuid, 'already retried')$$,
   '22023', NULL, 'retrying queued job fails'
@@ -306,7 +311,7 @@ select ok((select after_summary->>'version' from public.admin_audit_logs where a
 -- Regular user (no admin role) — use perm-test-046 set (not archived)
 set local role service_role;
 select throws_ok(
-  $$select * from public.admin_publish_catalog_set('44444444-4444-4444-4444-444444444444'::uuid, (select id from public.catalog_sets where slug = 'perm-test-046'), 'hacked')$$,
+  $$select * from public.admin_publish_catalog_set('44444444-4444-4444-4444-444444444444'::uuid, (select id from public.catalog_sets where slug = 'perm-test-046'), NULL, 'hacked')$$,
   '42501', 'permission denied', 'regular user blocked: publish'
 );
 select throws_ok(
@@ -322,7 +327,7 @@ reset role;
 -- Support cannot publish (no catalog.publish)
 set local role service_role;
 select throws_ok(
-  $$select * from public.admin_publish_catalog_set('22222222-2222-2222-2222-222222222222'::uuid, (select id from public.catalog_sets where slug = 'perm-test-046'), 'nope')$$,
+  $$select * from public.admin_publish_catalog_set('22222222-2222-2222-2222-222222222222'::uuid, (select id from public.catalog_sets where slug = 'perm-test-046'), NULL, 'nope')$$,
   '42501', 'permission denied', 'support blocked: publish'
 );
 reset role;
@@ -330,7 +335,7 @@ reset role;
 -- Content admin CAN publish
 set local role service_role;
 select lives_ok(
-  $$select * from public.admin_publish_catalog_set('33333333-3333-3333-3333-333333333333'::uuid, (select id from public.catalog_sets where slug = 'perm-test-046'), 'content admin publish')$$,
+  $$select * from public.admin_publish_catalog_set('33333333-3333-3333-3333-333333333333'::uuid, (select id from public.catalog_sets where slug = 'perm-test-046'), NULL, 'content admin publish')$$,
   'content_admin can publish'
 );
 reset role;
@@ -341,7 +346,7 @@ reset role;
 
 set local role service_role;
 select throws_ok(
-  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, null, 'reason')$$,
+  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, null, NULL, 'reason')$$,
   '22023', NULL, 'null set_id rejected'
 );
 select throws_ok(
@@ -353,7 +358,7 @@ select throws_ok(
   '22023', NULL, 'null job_id rejected'
 );
 select throws_ok(
-  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'reason')$$,
+  $$select * from public.admin_publish_catalog_set('11111111-1111-1111-1111-111111111111'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, NULL, 'reason')$$,
   'P0002', NULL, 'unknown set rejected'
 );
 select throws_ok(

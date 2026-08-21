@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { CatalogListHeader } from "@/features/admin/components/catalog/catalog-list-header";
+import { getAdminCatalogCategories } from "@/features/admin/server/admin-catalog-queries";
 import {
   AdminAuthorizationError,
+  hasAdminPermission,
   requireAdminPermission,
 } from "@/features/admin/server/authorization";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getFeatureFlags } from "@/lib/telemetry/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +22,7 @@ type CatalogSetRow = {
   status: string;
   version: number;
   is_starter: boolean;
+  starter_order: number | null;
   language_front: string;
   language_back: string;
   card_count?: number;
@@ -42,6 +47,10 @@ export default async function AdminCatalogPage({
     throw error;
   }
 
+  const canWrite = await hasAdminPermission("catalog.write");
+  const mutationsEnabled = getFeatureFlags().adminCatalogMutationsEnabled;
+  const categories = await getAdminCatalogCategories();
+
   const params = await searchParams;
   const q = params.q?.trim() || "";
   const statusFilter = params.status || "";
@@ -50,11 +59,11 @@ export default async function AdminCatalogPage({
 
   const admin = createAdminClient();
 
-  // Build query
+  // Bounded query
   let query = admin
     .from("catalog_sets")
     .select(
-      "id, title, slug, status, version, is_starter, language_front, language_back, created_at, updated_at",
+      "id, title, slug, status, version, is_starter, starter_order, language_front, language_back, created_at, updated_at",
       { count: "exact" },
     );
 
@@ -116,18 +125,24 @@ export default async function AdminCatalogPage({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold sm:text-3xl">Quản lý thư viện</h1>
-        <p className="text-sm text-text-secondary">
-          Xem và tìm kiếm bộ thư viện. Chỉnh sửa sẽ có ở phần sau.
-        </p>
-      </header>
+    <div className="flex flex-col gap-5">
+      <CatalogListHeader
+        categories={categories}
+        canWrite={canWrite}
+        mutationsEnabled={mutationsEnabled}
+      />
 
       {/* Filters */}
-      <form className="flex flex-wrap items-end gap-3" action="/admin/catalog" method="get">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="catalog-q" className="text-xs text-text-secondary">
+      <form
+        className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+        action="/admin/catalog"
+        method="get"
+      >
+        <div className="flex flex-1 min-w-[200px] flex-col gap-1">
+          <label
+            htmlFor="catalog-q"
+            className="text-xs font-medium text-slate-700 dark:text-slate-300"
+          >
             Tìm kiếm
           </label>
           <input
@@ -136,30 +151,33 @@ export default async function AdminCatalogPage({
             type="text"
             defaultValue={q}
             placeholder="Tiêu đề hoặc slug..."
-            className="rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+            className="rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="catalog-status" className="text-xs text-text-secondary">
+        <div className="flex flex-col gap-1 min-w-[150px]">
+          <label
+            htmlFor="catalog-status"
+            className="text-xs font-medium text-slate-700 dark:text-slate-300"
+          >
             Trạng thái
           </label>
           <select
             id="catalog-status"
             name="status"
             defaultValue={statusFilter}
-            className="rounded-xl border border-border-soft bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+            className="rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
           >
             <option value="">Tất cả</option>
-            <option value="draft">Nháp</option>
+            <option value="draft">Bản thảo (Draft)</option>
             <option value="published">Đã xuất bản</option>
             <option value="archived">Đã lưu trữ</option>
           </select>
         </div>
         <button
           type="submit"
-          className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+          className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600"
         >
-          Tìm
+          Lọc
         </button>
       </form>
 
@@ -167,24 +185,24 @@ export default async function AdminCatalogPage({
       {error ? (
         <div
           role="alert"
-          className="rounded-2xl border border-border-soft bg-surface p-4 text-danger"
+          className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700"
         >
           Không thể tải danh sách thư viện.
         </div>
       ) : enrichedSets.length === 0 ? (
-        <div className="rounded-2xl border border-border-soft bg-surface p-8 text-center text-text-secondary">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900">
           Không tìm thấy bộ thư viện nào.
         </div>
       ) : (
         <>
-          <p className="text-xs text-text-secondary">
+          <p className="text-xs text-slate-500">
             {(totalCount ?? 0).toLocaleString("vi-VN")} kết quả
             {totalPages > 1 ? ` · Trang ${page}/${totalPages}` : ""}
           </p>
-          <div className="overflow-x-auto rounded-2xl border border-border-soft bg-surface shadow-soft-card">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead>
-                <tr className="border-b border-border-soft text-xs uppercase tracking-wide text-text-secondary">
+                <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800">
                   <th className="px-4 py-3">Tiêu đề</th>
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-4 py-3">Phiên bản</th>
@@ -192,35 +210,49 @@ export default async function AdminCatalogPage({
                   <th className="px-4 py-3">Cài đặt</th>
                   <th className="px-4 py-3">Ngôn ngữ</th>
                   <th className="px-4 py-3">Cập nhật</th>
+                  <th className="px-4 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border-soft">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {enrichedSets.map((set) => (
-                  <tr key={set.id} className="hover:bg-surface-subtle">
-                    <td className="px-4 py-2.5">
+                  <tr key={set.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-3">
                       <div className="flex flex-col">
-                        <span className="font-medium">{set.title}</span>
-                        <span className="text-xs text-text-secondary">
+                        <Link
+                          href={`/admin/catalog/${set.id}`}
+                          className="font-semibold text-slate-900 hover:text-emerald-600 dark:text-white dark:hover:text-emerald-400"
+                        >
+                          {set.title}
+                        </Link>
+                        <span className="text-xs text-slate-400">
                           {set.slug}
-                          {set.is_starter ? " · Starter" : ""}
+                          {set.is_starter ? ` · Starter #${set.starter_order}` : ""}
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-3">
                       <StatusBadge status={set.status} />
                     </td>
-                    <td className="px-4 py-2.5 text-xs">v{set.version}</td>
-                    <td className="px-4 py-2.5 text-xs">
+                    <td className="px-4 py-3 text-xs font-mono">v{set.version}</td>
+                    <td className="px-4 py-3 text-xs">
                       {(set.card_count ?? 0).toLocaleString("vi-VN")}
                     </td>
-                    <td className="px-4 py-2.5 text-xs">
+                    <td className="px-4 py-3 text-xs">
                       {(set.install_count ?? 0).toLocaleString("vi-VN")}
                     </td>
-                    <td className="px-4 py-2.5 text-xs">
+                    <td className="px-4 py-3 text-xs">
                       {set.language_front} → {set.language_back}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-xs text-text-secondary">
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
                       {new Date(set.updated_at).toLocaleDateString("vi-VN")}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      <Link
+                        href={`/admin/catalog/${set.id}`}
+                        className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                      >
+                        Chi tiết →
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -234,18 +266,18 @@ export default async function AdminCatalogPage({
               {page > 1 && (
                 <Link
                   href={buildUrl({ page: String(page - 1) })}
-                  className="rounded-lg border border-border-soft bg-surface px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-subtle"
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
                 >
                   ← Trước
                 </Link>
               )}
-              <span className="text-sm text-text-secondary">
+              <span className="text-sm text-slate-500">
                 {page} / {totalPages}
               </span>
               {page < totalPages && (
                 <Link
                   href={buildUrl({ page: String(page + 1) })}
-                  className="rounded-lg border border-border-soft bg-surface px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-subtle"
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
                 >
                   Tiếp →
                 </Link>
@@ -260,12 +292,12 @@ export default async function AdminCatalogPage({
 
 function StatusBadge({ status }: Readonly<{ status: string }>) {
   const styles: Record<string, string> = {
-    draft: "bg-surface-subtle text-text-secondary",
-    published: "bg-success/10 text-success",
-    archived: "bg-warning/10 text-warning",
+    draft: "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300",
+    published: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300",
+    archived: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
   };
   const labels: Record<string, string> = {
-    draft: "Nháp",
+    draft: "Bản thảo",
     published: "Đã xuất bản",
     archived: "Đã lưu trữ",
   };

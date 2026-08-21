@@ -280,12 +280,14 @@ export type Database = {
           category_id: string
           created_at: string
           description: string | null
+          first_published_at: string | null
           id: string
           is_starter: boolean
           language_back: string
           language_front: string
           level: string | null
           published_at: string | null
+          published_revision_count: number
           slug: string
           starter_order: number | null
           status: string
@@ -298,12 +300,14 @@ export type Database = {
           category_id: string
           created_at?: string
           description?: string | null
+          first_published_at?: string | null
           id?: string
           is_starter?: boolean
           language_back: string
           language_front: string
           level?: string | null
           published_at?: string | null
+          published_revision_count?: number
           slug: string
           starter_order?: number | null
           status?: string
@@ -316,12 +320,14 @@ export type Database = {
           category_id?: string
           created_at?: string
           description?: string | null
+          first_published_at?: string | null
           id?: string
           is_starter?: boolean
           language_back?: string
           language_front?: string
           level?: string | null
           published_at?: string | null
+          published_revision_count?: number
           slug?: string
           starter_order?: number | null
           status?: string
@@ -1800,6 +1806,135 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_archive_catalog_set: {
+        Args: {
+          p_actor_user_id: string
+          p_catalog_set_id: string
+          p_expected_updated_at?: string
+          p_reason?: string
+        }
+        Returns: {
+          out_id: string
+          out_status: string
+          out_updated_at: string
+        }[]
+      }
+      admin_create_catalog_set: {
+        Args: {
+          p_actor_user_id: string
+          p_category_id: string
+          p_description?: string | null
+          p_language_back?: string
+          p_language_front?: string
+          p_level?: string | null
+          p_slug: string
+          p_tags?: string[]
+          p_title: string
+        }
+        Returns: {
+          out_id: string
+          out_slug: string
+          out_status: string
+          out_updated_at: string
+          out_version: number
+        }[]
+      }
+      admin_publish_catalog_set: {
+        Args: {
+          p_actor_user_id: string
+          p_catalog_set_id: string
+          p_expected_updated_at?: string
+          p_reason?: string
+        }
+        Returns: {
+          out_id: string
+          out_published_at: string
+          out_status: string
+          out_updated_at: string
+          out_version: number
+        }[]
+      }
+      admin_replace_catalog_cards: {
+        Args: {
+          p_actor_user_id: string
+          p_cards: Json
+          p_catalog_set_id: string
+          p_expected_updated_at?: string
+          p_reason?: string
+        }
+        Returns: {
+          out_card_count: number
+          out_updated_at: string
+        }[]
+      }
+      admin_restore_catalog_set: {
+        Args: {
+          p_actor_user_id: string
+          p_catalog_set_id: string
+          p_expected_updated_at?: string
+          p_reason?: string
+        }
+        Returns: {
+          out_id: string
+          out_status: string
+          out_updated_at: string
+        }[]
+      }
+      admin_swap_starter_set: {
+        Args: {
+          p_actor_user_id: string
+          p_expected_updated_at_new?: string
+          p_expected_updated_at_old?: string
+          p_new_draft_set_id: string
+          p_old_starter_set_id: string
+          p_reason?: string
+        }
+        Returns: {
+          out_new_id: string
+          out_new_version: number
+          out_old_id: string
+          out_starter_order: number
+          out_updated_at_new: string
+          out_updated_at_old: string
+        }[]
+      }
+      admin_unpublish_catalog_set: {
+        Args: {
+          p_actor_user_id: string
+          p_catalog_set_id: string
+          p_expected_updated_at?: string
+          p_reason?: string
+        }
+        Returns: {
+          out_id: string
+          out_status: string
+          out_updated_at: string
+          out_version: number
+        }[]
+      }
+      admin_update_catalog_set: {
+        Args: {
+          p_actor_user_id: string
+          p_catalog_set_id: string
+          p_category_id?: string | null
+          p_description?: string | null
+          p_expected_updated_at?: string
+          p_language_back?: string | null
+          p_language_front?: string | null
+          p_level?: string | null
+          p_slug?: string | null
+          p_tags?: string[] | null
+          p_title?: string
+        }
+        Returns: {
+          out_id: string
+          out_slug: string
+          out_status: string
+          out_title: string
+          out_updated_at: string
+          out_version: number
+        }[]
+      }
       add_flashcard: {
         Args: { p_back: string; p_front: string; p_set_id: string }
         Returns: {

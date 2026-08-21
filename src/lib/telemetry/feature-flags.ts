@@ -9,6 +9,7 @@ export type FeatureFlags = Readonly<{
   starterProvisioningEnabled: boolean;
   quotaEnforcementMode: QuotaEnforcementMode;
   adminConsoleEnabled: boolean;
+  adminCatalogMutationsEnabled: boolean;
   billingEnabled: boolean;
 }>;
 
@@ -26,6 +27,7 @@ export function getFeatureFlags(): FeatureFlags {
     starterProvisioningEnabled: isEnabled(env.CAPYSTUDY_STARTER_PROVISIONING_ENABLED),
     quotaEnforcementMode: env.CAPYSTUDY_QUOTA_ENFORCEMENT_MODE,
     adminConsoleEnabled: isEnabled(env.CAPYSTUDY_ADMIN_CONSOLE_ENABLED),
+    adminCatalogMutationsEnabled: isEnabled(env.CAPYSTUDY_ADMIN_CATALOG_MUTATIONS_ENABLED),
     billingEnabled: isEnabled(env.CAPYSTUDY_BILLING_ENABLED),
   };
 }

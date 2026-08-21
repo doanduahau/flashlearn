@@ -87,7 +87,7 @@ select ok(not public.check_admin_permission('44444444-4444-4444-4444-44444444444
 select ok((select prosecdef from pg_proc where proname = 'admin_publish_catalog_set'), 'admin_publish_catalog_set is SECURITY DEFINER');
 select is((select count(*)::integer from information_schema.routine_privileges where routine_name = 'admin_publish_catalog_set' and grantee = 'anon'), 0, 'anon blocked: publish');
 select is(has_function_privilege('service_role', 'public.admin_publish_catalog_set(uuid,uuid,text)', 'execute'), true, 'svc can: publish');
-select is(has_function_privilege('authenticated', 'public.admin_publish_catalog_set(uuid,uuid,text)', 'execute'), true, 'auth can call: publish');
+select is(has_function_privilege('authenticated', 'public.admin_publish_catalog_set(uuid,uuid,text)', 'execute'), false, 'authenticated blocked: publish');
 
 -- ============================================================
 -- SECTION 2: PUBLISH / UNPUBLISH / ARCHIVE (10 assertions)

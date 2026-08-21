@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { JobRetryButton } from "@/features/admin/components/job-retry-button";
 import {
   AdminAuthorizationError,
   requireAdminPermission,
@@ -137,7 +136,6 @@ export default async function AdminJobsPage({
                   <th className="px-4 py-3">Lỗi</th>
                   <th className="px-4 py-3">Correlation</th>
                   <th className="px-4 py-3">Lượt gọi</th>
-                  <th className="px-4 py-3">Thao tác</th>
                   <th className="px-4 py-3">Tạo lúc</th>
                 </tr>
               </thead>
@@ -156,9 +154,6 @@ export default async function AdminJobsPage({
                       {job.correlation_id ? job.correlation_id.slice(0, 8) + "…" : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-xs">{job.physical_calls}</td>
-                    <td className="px-4 py-2.5">
-                      <JobRetryButton jobId={job.id} status={job.status} />
-                    </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-xs text-text-secondary">
                       {new Date(job.created_at).toLocaleString("vi-VN")}
                     </td>

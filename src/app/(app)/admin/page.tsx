@@ -18,11 +18,7 @@ async function loadDashboardStats(permissions: ReadonlySet<string>) {
     catalogInstalls: 0,
     failedJobs: 0,
     staleJobs: 0,
-    runningJobs: 0,
-    succeededJobs: 0,
     recentAuditCount: 0,
-    freeUsers: 0,
-    proUsers: 0,
   };
 
   // Total users (bounded count query)
@@ -57,28 +53,6 @@ async function loadDashboardStats(permissions: ReadonlySet<string>) {
       .select("id", { count: "exact", head: true })
       .eq("status", "reconcile_required");
     stats.staleJobs = staleJobs ?? 0;
-
-    const { count: runningJobs } = await admin
-      .from("processing_jobs")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "running");
-    stats.runningJobs = runningJobs ?? 0;
-
-    const { count: succeededJobs } = await admin
-      .from("processing_jobs")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "succeeded");
-    stats.succeededJobs = succeededJobs ?? 0;
-  }
-
-  // User plan distribution
-  if (permissions.has("users.read")) {
-    const { count: proUsers } = await admin
-      .from("user_subscriptions")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "active");
-    stats.proUsers = proUsers ?? 0;
-    stats.freeUsers = Math.max(0, stats.totalUsers - stats.proUsers);
   }
 
   // Recent audit count
@@ -151,10 +125,8 @@ export default async function AdminPage() {
       </section>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Người dùng" value={stats.totalUsers} />
-        <StatCard label="Free" value={stats.freeUsers} />
-        <StatCard label="Pro" value={stats.proUsers} tone="info" />
         <StatCard label="Bộ thư viện" value={stats.catalogSets} />
         <StatCard label="Lượt cài đặt" value={stats.catalogInstalls} />
         <StatCard
@@ -162,12 +134,6 @@ export default async function AdminPage() {
           value={stats.failedJobs}
           tone={stats.failedJobs > 0 ? "danger" : undefined}
         />
-        <StatCard
-          label="Đang chạy"
-          value={stats.runningJobs}
-          tone={stats.runningJobs > 0 ? "info" : undefined}
-        />
-        <StatCard label="Thành công" value={stats.succeededJobs} />
         <StatCard
           label="Cần xử lý"
           value={stats.staleJobs}
@@ -249,7 +215,7 @@ function StatCard({
 }: Readonly<{
   label: string;
   value: number;
-  tone?: "danger" | "warning" | "info";
+  tone?: "danger" | "warning";
 }>) {
   return (
     <div className="rounded-2xl border border-border-soft bg-surface p-4 shadow-soft-card">
@@ -260,9 +226,7 @@ function StatCard({
             ? "text-danger"
             : tone === "warning"
               ? "text-warning"
-              : tone === "info"
-                ? "text-info"
-                : "text-text-primary"
+              : "text-text-primary"
         }`}
       >
         {value.toLocaleString("vi-VN")}

@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { CatalogActionsCell } from "@/features/admin/components/catalog-actions-cell";
-import { CatalogCreateDialog } from "@/features/admin/components/catalog-create-dialog";
 import {
   AdminAuthorizationError,
   requireAdminPermission,
@@ -37,17 +35,12 @@ export default async function AdminCatalogPage({
     page?: string;
   }>;
 }>) {
-  let identity;
   try {
-    identity = await requireAdminPermission("catalog.read");
+    await requireAdminPermission("catalog.read");
   } catch (error) {
     if (error instanceof AdminAuthorizationError) redirect("/admin");
     throw error;
   }
-
-  const { getPermissionsForRoles, hasAdminPermission } =
-    await import("@/features/admin/permission-map");
-  const permissions = getPermissionsForRoles(identity.roles);
 
   const params = await searchParams;
   const q = params.q?.trim() || "";
@@ -122,22 +115,13 @@ export default async function AdminCatalogPage({
     return `/admin/catalog${qs ? `?${qs}` : ""}`;
   }
 
-  // Load categories for create dialog
-  const { data: categories } = await admin
-    .from("catalog_categories")
-    .select("id, name, slug")
-    .order("name");
-
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Quản lý thư viện</h1>
-          <p className="mt-1 text-sm text-text-secondary">Tạo, chỉnh sửa và quản lý bộ thư viện.</p>
-        </div>
-        {hasAdminPermission(permissions, "catalog.write") && (
-          <CatalogCreateDialog categories={categories ?? []} />
-        )}
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold sm:text-3xl">Quản lý thư viện</h1>
+        <p className="text-sm text-text-secondary">
+          Xem và tìm kiếm bộ thư viện. Chỉnh sửa sẽ có ở phần sau.
+        </p>
       </header>
 
       {/* Filters */}
@@ -207,7 +191,6 @@ export default async function AdminCatalogPage({
                   <th className="px-4 py-3">Thẻ</th>
                   <th className="px-4 py-3">Cài đặt</th>
                   <th className="px-4 py-3">Ngôn ngữ</th>
-                  <th className="px-4 py-3">Thao tác</th>
                   <th className="px-4 py-3">Cập nhật</th>
                 </tr>
               </thead>
@@ -235,20 +218,6 @@ export default async function AdminCatalogPage({
                     </td>
                     <td className="px-4 py-2.5 text-xs">
                       {set.language_front} → {set.language_back}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-1">
-                        <Link
-                          href={`/admin/catalog/${set.id}`}
-                          className="rounded-lg border border-border-soft bg-surface px-2 py-1 text-xs text-text-secondary hover:bg-surface-subtle"
-                        >
-                          Chi tiết
-                        </Link>
-                        <CatalogActionsCell
-                          setId={set.id}
-                          status={set.status as "draft" | "published" | "archived"}
-                        />
-                      </div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-xs text-text-secondary">
                       {new Date(set.updated_at).toLocaleDateString("vi-VN")}

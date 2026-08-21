@@ -4,7 +4,6 @@ import {
   AdminAuthorizationError,
   requireAdminPermission,
 } from "@/features/admin/server/authorization";
-import { UserAdjustmentPanel } from "@/features/admin/components/user-adjustment-panel";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -210,16 +209,8 @@ export default async function AdminUsersPage({
               }
             />
           </div>
-          {result.email_confirmed_at && (
-            <p className="mt-2 text-xs text-text-secondary">
-              Email xác nhận: {new Date(result.email_confirmed_at).toLocaleDateString("vi-VN")}
-            </p>
-          )}
         </div>
       )}
-
-      {/* Adjustment panel (only shown when a user is found) */}
-      {result && <UserAdjustmentPanel targetUserId={result.id} />}
 
       {/* Privacy note */}
       <p className="text-xs text-text-secondary">

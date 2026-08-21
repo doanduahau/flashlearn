@@ -17,7 +17,6 @@ const NAV_ITEMS: readonly NavItem[] = [
   { label: "Người dùng", href: "/admin/users", permission: "users.read" },
   { label: "Công việc", href: "/admin/jobs", permission: "jobs.read" },
   { label: "Kiểm toán", href: "/admin/audit", permission: "audit.read" },
-  { label: "Vai trò", href: "/admin/roles", permission: "roles.manage" },
 ] as const;
 
 export function AdminNav({

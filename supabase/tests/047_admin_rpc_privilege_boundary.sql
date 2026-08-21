@@ -6,7 +6,7 @@
 -- 4. Authenticated callers attempting forged-actor calls are blocked at the SQL boundary (42501) for all 11 privileged RPCs.
 
 begin;
-select plan(58);
+select plan(64);
 
 -- ============================================================
 -- FIXTURES
@@ -44,22 +44,32 @@ select is((select count(*)::integer from pg_proc where proname = 'admin_archive_
 select is((select count(*)::integer from pg_proc where proname = 'admin_replace_catalog_cards' and pronargs = 4), 0, 'Legacy admin_replace_catalog_cards signature does not exist');
 
 -- ============================================================
--- SECTION 2: 3 HISTORICAL NON-CATALOG MUTATION RPCS (12 assertions)
+-- SECTION 2: USER MUTATION RPCS V2 & V1 DROPS (16 assertions)
 -- ============================================================
 
--- 1. admin_adjust_user_usage
-select is(has_function_privilege('public', 'public.admin_adjust_user_usage(uuid,uuid,text,integer,text,uuid)', 'execute'), false, 'PUBLIC: admin_adjust_user_usage execute = false');
-select is(has_function_privilege('anon', 'public.admin_adjust_user_usage(uuid,uuid,text,integer,text,uuid)', 'execute'), false, 'anon: admin_adjust_user_usage execute = false');
-select is(has_function_privilege('authenticated', 'public.admin_adjust_user_usage(uuid,uuid,text,integer,text,uuid)', 'execute'), false, 'authenticated: admin_adjust_user_usage execute = false');
-select is(has_function_privilege('service_role', 'public.admin_adjust_user_usage(uuid,uuid,text,integer,text,uuid)', 'execute'), true, 'service_role: admin_adjust_user_usage execute = true');
+-- V1 dropped confirmation
+select is((select count(*)::integer from pg_proc where proname = 'admin_adjust_user_usage'), 0, 'V1 admin_adjust_user_usage dropped');
+select is((select count(*)::integer from pg_proc where proname = 'admin_override_user_entitlement'), 0, 'V1 admin_override_user_entitlement dropped');
 
--- 2. admin_override_user_entitlement
-select is(has_function_privilege('public', 'public.admin_override_user_entitlement(uuid,uuid,text,text,text,integer,boolean,text,timestamptz,uuid)', 'execute'), false, 'PUBLIC: admin_override_user_entitlement execute = false');
-select is(has_function_privilege('anon', 'public.admin_override_user_entitlement(uuid,uuid,text,text,text,integer,boolean,text,timestamptz,uuid)', 'execute'), false, 'anon: admin_override_user_entitlement execute = false');
-select is(has_function_privilege('authenticated', 'public.admin_override_user_entitlement(uuid,uuid,text,text,text,integer,boolean,text,timestamptz,uuid)', 'execute'), false, 'authenticated: admin_override_user_entitlement execute = false');
-select is(has_function_privilege('service_role', 'public.admin_override_user_entitlement(uuid,uuid,text,text,text,integer,boolean,text,timestamptz,uuid)', 'execute'), true, 'service_role: admin_override_user_entitlement execute = true');
+-- 1. admin_adjust_user_usage_v2
+select is(has_function_privilege('public', 'public.admin_adjust_user_usage_v2(uuid,uuid,text,integer,text,uuid)', 'execute'), false, 'PUBLIC: admin_adjust_user_usage_v2 execute = false');
+select is(has_function_privilege('anon', 'public.admin_adjust_user_usage_v2(uuid,uuid,text,integer,text,uuid)', 'execute'), false, 'anon: admin_adjust_user_usage_v2 execute = false');
+select is(has_function_privilege('authenticated', 'public.admin_adjust_user_usage_v2(uuid,uuid,text,integer,text,uuid)', 'execute'), false, 'authenticated: admin_adjust_user_usage_v2 execute = false');
+select is(has_function_privilege('service_role', 'public.admin_adjust_user_usage_v2(uuid,uuid,text,integer,text,uuid)', 'execute'), true, 'service_role: admin_adjust_user_usage_v2 execute = true');
 
--- 3. admin_retry_processing_job
+-- 2. admin_override_user_entitlement_v2
+select is(has_function_privilege('public', 'public.admin_override_user_entitlement_v2(uuid,uuid,text,text,text,bigint,boolean,text,timestamptz,text,uuid)', 'execute'), false, 'PUBLIC: admin_override_user_entitlement_v2 execute = false');
+select is(has_function_privilege('anon', 'public.admin_override_user_entitlement_v2(uuid,uuid,text,text,text,bigint,boolean,text,timestamptz,text,uuid)', 'execute'), false, 'anon: admin_override_user_entitlement_v2 execute = false');
+select is(has_function_privilege('authenticated', 'public.admin_override_user_entitlement_v2(uuid,uuid,text,text,text,bigint,boolean,text,timestamptz,text,uuid)', 'execute'), false, 'authenticated: admin_override_user_entitlement_v2 execute = false');
+select is(has_function_privilege('service_role', 'public.admin_override_user_entitlement_v2(uuid,uuid,text,text,text,bigint,boolean,text,timestamptz,text,uuid)', 'execute'), true, 'service_role: admin_override_user_entitlement_v2 execute = true');
+
+-- 3. admin_remove_user_entitlement_override_v2
+select is(has_function_privilege('public', 'public.admin_remove_user_entitlement_override_v2(uuid,uuid,text,text,text,uuid)', 'execute'), false, 'PUBLIC: admin_remove_user_entitlement_override_v2 execute = false');
+select is(has_function_privilege('anon', 'public.admin_remove_user_entitlement_override_v2(uuid,uuid,text,text,text,uuid)', 'execute'), false, 'anon: admin_remove_user_entitlement_override_v2 execute = false');
+select is(has_function_privilege('authenticated', 'public.admin_remove_user_entitlement_override_v2(uuid,uuid,text,text,text,uuid)', 'execute'), false, 'authenticated: admin_remove_user_entitlement_override_v2 execute = false');
+select is(has_function_privilege('service_role', 'public.admin_remove_user_entitlement_override_v2(uuid,uuid,text,text,text,uuid)', 'execute'), true, 'service_role: admin_remove_user_entitlement_override_v2 execute = true');
+
+-- 4. admin_retry_processing_job
 select is(has_function_privilege('public', 'public.admin_retry_processing_job(uuid,uuid,text,uuid)', 'execute'), false, 'PUBLIC: admin_retry_processing_job execute = false');
 select is(has_function_privilege('anon', 'public.admin_retry_processing_job(uuid,uuid,text,uuid)', 'execute'), false, 'anon: admin_retry_processing_job execute = false');
 select is(has_function_privilege('authenticated', 'public.admin_retry_processing_job(uuid,uuid,text,uuid)', 'execute'), false, 'authenticated: admin_retry_processing_job execute = false');
@@ -127,12 +137,12 @@ set local request.jwt.claim.sub = '66666666-7777-8888-9999-000000000000';
 
 -- Historical non-catalog RPCs
 select throws_ok(
-  $$select * from public.admin_adjust_user_usage('11111111-2222-3333-4444-555555555555'::uuid, '66666666-7777-8888-9999-000000000000'::uuid, 'ai.content_credits.monthly', 100, 'forged credits')$$,
-  '42501', NULL, 'authenticated blocked from calling admin_adjust_user_usage'
+  $$select * from public.admin_adjust_user_usage_v2('11111111-2222-3333-4444-555555555555'::uuid, '66666666-7777-8888-9999-000000000000'::uuid, 'ai.content_credits.monthly', 100, 'forged credits with valid length', 'e0000000-0000-4000-8000-000000000001'::uuid)$$,
+  '42501', NULL, 'authenticated blocked from calling admin_adjust_user_usage_v2'
 );
 select throws_ok(
-  $$select * from public.admin_override_user_entitlement('11111111-2222-3333-4444-555555555555'::uuid, '66666666-7777-8888-9999-000000000000'::uuid, 'catalog.install_limit', 'integer', 'forged override', 100, null, null, now() + interval '30 days')$$,
-  '42501', NULL, 'authenticated blocked from calling admin_override_user_entitlement'
+  $$select * from public.admin_override_user_entitlement_v2('11111111-2222-3333-4444-555555555555'::uuid, '66666666-7777-8888-9999-000000000000'::uuid, 'sets.regular.max', 'integer', 'forged override with valid length', 100, null, null, now() + interval '30 days', null, 'e0000000-0000-4000-8000-000000000002'::uuid)$$,
+  '42501', NULL, 'authenticated blocked from calling admin_override_user_entitlement_v2'
 );
 select throws_ok(
   $$select * from public.admin_retry_processing_job('11111111-2222-3333-4444-555555555555'::uuid, 'b4700000-0000-4000-8000-000000000047'::uuid, 'forged retry')$$,

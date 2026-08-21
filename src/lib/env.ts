@@ -28,6 +28,7 @@ const envSchema = z.object({
   CAPYSTUDY_QUOTA_ENFORCEMENT_MODE: z.enum(["observe", "warn", "block"]).default("observe"),
   CAPYSTUDY_ADMIN_CONSOLE_ENABLED: z.enum(["true", "false"]).default("false"),
   CAPYSTUDY_ADMIN_CATALOG_MUTATIONS_ENABLED: z.enum(["true", "false"]).default("false"),
+  CAPYSTUDY_ADMIN_USER_MUTATIONS_ENABLED: z.enum(["true", "false"]).default("false"),
   CAPYSTUDY_BILLING_ENABLED: z.enum(["true", "false"]).default("false"),
   /** @deprecated Use CAPYSTUDY_ENVIRONMENT. */
   FLASHLEARN_ENVIRONMENT: z.preprocess(
@@ -57,6 +58,7 @@ const parsed = envSchema.safeParse({
   CAPYSTUDY_QUOTA_ENFORCEMENT_MODE: process.env.CAPYSTUDY_QUOTA_ENFORCEMENT_MODE,
   CAPYSTUDY_ADMIN_CONSOLE_ENABLED: process.env.CAPYSTUDY_ADMIN_CONSOLE_ENABLED,
   CAPYSTUDY_ADMIN_CATALOG_MUTATIONS_ENABLED: process.env.CAPYSTUDY_ADMIN_CATALOG_MUTATIONS_ENABLED,
+  CAPYSTUDY_ADMIN_USER_MUTATIONS_ENABLED: process.env.CAPYSTUDY_ADMIN_USER_MUTATIONS_ENABLED,
   CAPYSTUDY_BILLING_ENABLED: process.env.CAPYSTUDY_BILLING_ENABLED,
   FLASHLEARN_ENVIRONMENT: process.env.FLASHLEARN_ENVIRONMENT,
 });

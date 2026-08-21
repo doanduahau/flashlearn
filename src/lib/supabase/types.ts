@@ -73,6 +73,36 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_mutation_receipts: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          idempotency_key: string
+          operation: string
+          payload_fingerprint: string
+          response_payload: Json
+          target_user_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          idempotency_key: string
+          operation: string
+          payload_fingerprint: string
+          response_payload: Json
+          target_user_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          idempotency_key?: string
+          operation?: string
+          payload_fingerprint?: string
+          response_payload?: Json
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       card_learning_schedule: {
         Row: {
           algorithm: string
@@ -390,6 +420,7 @@ export type Database = {
           integer_value: number | null
           reason: string
           text_value: string | null
+          updated_at: string
           user_id: string
           value_type: string
         }
@@ -403,6 +434,7 @@ export type Database = {
           integer_value?: number | null
           reason: string
           text_value?: string | null
+          updated_at?: string
           user_id: string
           value_type: string
         }
@@ -416,6 +448,7 @@ export type Database = {
           integer_value?: number | null
           reason?: string
           text_value?: string | null
+          updated_at?: string
           user_id?: string
           value_type?: string
         }
@@ -1582,10 +1615,12 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          created_by: string | null
           entry_type: string
           id: string
           idempotency_key: string
           period_id: string | null
+          reason: string | null
           reservation_id: string | null
           usage_key: string
           user_id: string
@@ -1593,10 +1628,12 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          created_by?: string | null
           entry_type: string
           id?: string
           idempotency_key: string
           period_id?: string | null
+          reason?: string | null
           reservation_id?: string | null
           usage_key: string
           user_id: string
@@ -1604,10 +1641,12 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          created_by?: string | null
           entry_type?: string
           id?: string
           idempotency_key?: string
           period_id?: string | null
+          reason?: string | null
           reservation_id?: string | null
           usage_key?: string
           user_id?: string
@@ -1806,12 +1845,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_flashcard: {
+        Args: { p_back: string; p_front: string; p_set_id: string }
+        Returns: {
+          flashcard_id: string
+          position: number
+        }[]
+      }
+      add_flashcard_with_quota: {
+        Args: { p_back: string; p_front: string; p_set_id: string }
+        Returns: {
+          flashcard_id: string
+          position: number
+        }[]
+      }
+      admin_adjust_user_usage_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_amount: number
+          p_idempotency_key: string
+          p_reason: string
+          p_target_user_id: string
+          p_usage_key: string
+        }
+        Returns: Json
+      }
       admin_archive_catalog_set: {
         Args: {
           p_actor_user_id: string
           p_catalog_set_id: string
-          p_expected_updated_at?: string
-          p_reason?: string
+          p_expected_updated_at: string
+          p_reason: string
         }
         Returns: {
           out_id: string
@@ -1823,10 +1887,10 @@ export type Database = {
         Args: {
           p_actor_user_id: string
           p_category_id: string
-          p_description?: string | null
+          p_description?: string
           p_language_back?: string
           p_language_front?: string
-          p_level?: string | null
+          p_level?: string
           p_slug: string
           p_tags?: string[]
           p_title: string
@@ -1839,12 +1903,28 @@ export type Database = {
           out_version: number
         }[]
       }
+      admin_override_user_entitlement_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_boolean_value?: boolean
+          p_entitlement_key: string
+          p_expected_updated_at?: string
+          p_expires_at?: string
+          p_idempotency_key?: string
+          p_integer_value?: number
+          p_reason: string
+          p_target_user_id: string
+          p_text_value?: string
+          p_value_type: string
+        }
+        Returns: Json
+      }
       admin_publish_catalog_set: {
         Args: {
           p_actor_user_id: string
           p_catalog_set_id: string
-          p_expected_updated_at?: string
-          p_reason?: string
+          p_expected_updated_at: string
+          p_reason: string
         }
         Returns: {
           out_id: string
@@ -1854,13 +1934,24 @@ export type Database = {
           out_version: number
         }[]
       }
+      admin_remove_user_entitlement_override_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_entitlement_key: string
+          p_expected_updated_at?: string
+          p_idempotency_key: string
+          p_reason: string
+          p_target_user_id: string
+        }
+        Returns: Json
+      }
       admin_replace_catalog_cards: {
         Args: {
           p_actor_user_id: string
           p_cards: Json
           p_catalog_set_id: string
-          p_expected_updated_at?: string
-          p_reason?: string
+          p_expected_updated_at: string
+          p_reason: string
         }
         Returns: {
           out_card_count: number
@@ -1871,8 +1962,8 @@ export type Database = {
         Args: {
           p_actor_user_id: string
           p_catalog_set_id: string
-          p_expected_updated_at?: string
-          p_reason?: string
+          p_expected_updated_at: string
+          p_reason: string
         }
         Returns: {
           out_id: string
@@ -1880,14 +1971,23 @@ export type Database = {
           out_updated_at: string
         }[]
       }
+      admin_retry_processing_job: {
+        Args: {
+          p_actor_user_id: string
+          p_idempotency_key?: string
+          p_job_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
       admin_swap_starter_set: {
         Args: {
           p_actor_user_id: string
-          p_expected_updated_at_new?: string
-          p_expected_updated_at_old?: string
+          p_expected_updated_at_new: string
+          p_expected_updated_at_old: string
           p_new_draft_set_id: string
           p_old_starter_set_id: string
-          p_reason?: string
+          p_reason: string
         }
         Returns: {
           out_new_id: string
@@ -1902,8 +2002,8 @@ export type Database = {
         Args: {
           p_actor_user_id: string
           p_catalog_set_id: string
-          p_expected_updated_at?: string
-          p_reason?: string
+          p_expected_updated_at: string
+          p_reason: string
         }
         Returns: {
           out_id: string
@@ -1916,15 +2016,15 @@ export type Database = {
         Args: {
           p_actor_user_id: string
           p_catalog_set_id: string
-          p_category_id?: string | null
-          p_description?: string | null
-          p_expected_updated_at?: string
-          p_language_back?: string | null
-          p_language_front?: string | null
-          p_level?: string | null
-          p_slug?: string | null
-          p_tags?: string[] | null
-          p_title?: string
+          p_category_id?: string
+          p_description?: string
+          p_expected_updated_at: string
+          p_language_back?: string
+          p_language_front?: string
+          p_level?: string
+          p_slug?: string
+          p_tags?: string[]
+          p_title: string
         }
         Returns: {
           out_id: string
@@ -1933,20 +2033,6 @@ export type Database = {
           out_title: string
           out_updated_at: string
           out_version: number
-        }[]
-      }
-      add_flashcard: {
-        Args: { p_back: string; p_front: string; p_set_id: string }
-        Returns: {
-          flashcard_id: string
-          position: number
-        }[]
-      }
-      add_flashcard_with_quota: {
-        Args: { p_back: string; p_front: string; p_set_id: string }
-        Returns: {
-          flashcard_id: string
-          position: number
         }[]
       }
       assert_storage_totals: { Args: { p_user_id: string }; Returns: undefined }
@@ -1970,6 +2056,10 @@ export type Database = {
           role: string
           role_id: string
         }[]
+      }
+      check_admin_permission: {
+        Args: { p_permission: string; p_user_id: string }
+        Returns: boolean
       }
       claim_starter_onboarding_banner: {
         Args: { p_user_id: string }
@@ -2280,6 +2370,7 @@ export type Database = {
           set_id: string
         }[]
       }
+      is_admin_owner: { Args: { p_user_id: string }; Returns: boolean }
       link_processing_job_reservation: {
         Args: {
           p_job_id: string

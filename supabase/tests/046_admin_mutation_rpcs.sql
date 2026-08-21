@@ -169,7 +169,7 @@ select throws_ok(
   '22023', NULL, 'empty reason rejected'
 );
 select throws_ok(
-  $$select * from public.admin_adjust_user_usage('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'key', 10, '')$$,
+  $$select * from public.admin_adjust_user_usage_v2('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'ai.content_credits.monthly', 10, '', 'f0000000-0000-4000-8000-000000000001'::uuid)$$,
   '22023', NULL, 'empty usage reason rejected'
 );
 reset role;
@@ -207,14 +207,14 @@ reset role;
 
 set local role service_role;
 select lives_ok(
-  $$select * from public.admin_adjust_user_usage('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'ai.content_credits.monthly', 50, 'compensation')$$,
+  $$select * from public.admin_adjust_user_usage_v2('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'ai.content_credits.monthly', 50, 'compensation reason 046', 'f0000000-0000-4000-8000-000000000002'::uuid)$$,
   'adjust usage'
 );
 reset role;
 
 set local role service_role;
 select lives_ok(
-  $$select * from public.admin_adjust_user_usage('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'ai.content_credits.monthly', 50, 'compensation')$$,
+  $$select * from public.admin_adjust_user_usage_v2('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'ai.content_credits.monthly', 50, 'compensation reason 046', 'f0000000-0000-4000-8000-000000000002'::uuid)$$,
   'idempotent adjust'
 );
 reset role;
@@ -222,11 +222,11 @@ select is((select count(*)::integer from public.usage_ledger where user_id = '44
 
 set local role service_role;
 select throws_ok(
-  $$select * from public.admin_adjust_user_usage('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'key', 10001, 'too much')$$,
+  $$select * from public.admin_adjust_user_usage_v2('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'ai.content_credits.monthly', 10001, 'too much reason 046', 'f0000000-0000-4000-8000-000000000003'::uuid)$$,
   '22023', NULL, 'amount > 10000 rejected'
 );
 select throws_ok(
-  $$select * from public.admin_adjust_user_usage('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'key', 0, 'zero')$$,
+  $$select * from public.admin_adjust_user_usage_v2('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'ai.content_credits.monthly', 0, 'zero reason 046', 'f0000000-0000-4000-8000-000000000004'::uuid)$$,
   '22023', NULL, 'zero amount rejected'
 );
 reset role;
@@ -234,7 +234,7 @@ reset role;
 -- Negative works
 set local role service_role;
 select lives_ok(
-  $$select * from public.admin_adjust_user_usage('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'ai.content_credits.monthly', -20, 'deduct')$$,
+  $$select * from public.admin_adjust_user_usage_v2('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'ai.content_credits.monthly', -20, 'deduct reason 046', 'f0000000-0000-4000-8000-000000000005'::uuid)$$,
   'negative adjustment works'
 );
 reset role;
@@ -246,7 +246,7 @@ select is((select count(*)::integer from public.usage_ledger where user_id = '44
 
 set local role service_role;
 select lives_ok(
-  $$select * from public.admin_override_user_entitlement('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'catalog.install_limit', 'integer', 'override test', 100, null, null, now() + interval '30 days')$$,
+  $$select * from public.admin_override_user_entitlement_v2('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'sets.regular.max', 'integer', 'override test reason 046', 100, null, null, now() + interval '30 days', null, 'f0000000-0000-4000-8000-000000000006'::uuid)$$,
   'override entitlement'
 );
 reset role;
@@ -254,11 +254,11 @@ select is((select count(*)::integer from public.entitlement_overrides where user
 
 set local role service_role;
 select throws_ok(
-  $$select * from public.admin_override_user_entitlement('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'key', 'integer', 'reason', 5)$$,
+  $$select * from public.admin_override_user_entitlement_v2('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'sets.regular.max', 'integer', 'reason 046 test', 5, null, null, null, null, 'f0000000-0000-4000-8000-000000000007'::uuid)$$,
   '22023', NULL, 'missing expiry rejected'
 );
 select throws_ok(
-  $$select * from public.admin_override_user_entitlement('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'key', 'integer', 'reason', 5, null, null, '2020-01-01T00:00:00Z'::timestamptz)$$,
+  $$select * from public.admin_override_user_entitlement_v2('11111111-1111-1111-1111-111111111111'::uuid, '44444444-4444-4444-4444-444444444444'::uuid, 'sets.regular.max', 'integer', 'reason 046 test', 5, null, null, '2020-01-01T00:00:00Z'::timestamptz, null, 'f0000000-0000-4000-8000-000000000008'::uuid)$$,
   '22023', NULL, 'past expiry rejected'
 );
 reset role;
@@ -315,8 +315,8 @@ select throws_ok(
   '42501', 'permission denied', 'regular user blocked: publish'
 );
 select throws_ok(
-  $$select * from public.admin_adjust_user_usage('44444444-4444-4444-4444-444444444444'::uuid, '11111111-1111-1111-1111-111111111111'::uuid, 'key', 100, 'hacked')$$,
-  '42501', 'permission denied', 'regular user blocked: adjust'
+  $$select * from public.admin_adjust_user_usage_v2('44444444-4444-4444-4444-444444444444'::uuid, '11111111-1111-1111-1111-111111111111'::uuid, 'ai.content_credits.monthly', 100, 'hacked reason 046', 'f0000000-0000-4000-8000-000000000009'::uuid)$$,
+  '42501', 'owner role required', 'regular user blocked: adjust'
 );
 select throws_ok(
   $$select * from public.admin_retry_processing_job('44444444-4444-4444-4444-444444444444'::uuid, 'b1000000-0000-4000-8000-000000000001'::uuid, 'hacked')$$,
@@ -350,7 +350,7 @@ select throws_ok(
   '22023', NULL, 'null set_id rejected'
 );
 select throws_ok(
-  $$select * from public.admin_adjust_user_usage('11111111-1111-1111-1111-111111111111'::uuid, null, 'key', 10, 'reason')$$,
+  $$select * from public.admin_adjust_user_usage_v2('11111111-1111-1111-1111-111111111111'::uuid, null, 'ai.content_credits.monthly', 10, 'reason 046 test', 'f0000000-0000-4000-8000-000000000010'::uuid)$$,
   '22023', NULL, 'null target rejected'
 );
 select throws_ok(

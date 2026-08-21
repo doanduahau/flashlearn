@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { BOOTSTRAP_OWNER_CONFIRMATION } from "./lib/bootstrap-owner-options";
 import { isCapyStudyProductionSupabaseUrl } from "../src/lib/supabase/production-project";
 import { createClient } from "@supabase/supabase-js";

@@ -22,6 +22,7 @@ describe("feature flags", () => {
       adminConsoleEnabled: false,
       billingEnabled: false,
       adminCatalogMutationsEnabled: false,
+      adminUserMutationsEnabled: false,
     });
   });
 
@@ -32,6 +33,7 @@ describe("feature flags", () => {
     vi.stubEnv("CAPYSTUDY_ADMIN_CONSOLE_ENABLED", "true");
     vi.stubEnv("CAPYSTUDY_BILLING_ENABLED", "true");
     vi.stubEnv("CAPYSTUDY_ADMIN_CATALOG_MUTATIONS_ENABLED", "true");
+    vi.stubEnv("CAPYSTUDY_ADMIN_USER_MUTATIONS_ENABLED", "true");
 
     const { getFeatureFlags } = await loadFlags();
 
@@ -42,6 +44,7 @@ describe("feature flags", () => {
       adminConsoleEnabled: true,
       billingEnabled: true,
       adminCatalogMutationsEnabled: true,
+      adminUserMutationsEnabled: true,
     });
   });
 });

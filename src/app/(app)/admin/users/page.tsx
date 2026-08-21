@@ -209,6 +209,15 @@ export default async function AdminUsersPage({
               }
             />
           </div>
+
+          <div className="mt-4 flex justify-end border-t border-border-soft pt-3">
+            <a
+              href={`/admin/users/${result.id}`}
+              className="rounded-xl bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary-hover transition"
+            >
+              Chi tiết & Quản trị tài khoản →
+            </a>
+          </div>
         </div>
       )}
 

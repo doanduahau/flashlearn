@@ -6,9 +6,17 @@ const npmCliPath = process.env.npm_execpath;
 if (!npmCliPath) throw new Error("npm_execpath is required for the local E2E runner.");
 const starterProvisioningEnabled = process.argv.includes("--starter-provisioning");
 const catalogEnabled = process.argv.includes("--catalog");
+const catalogMutationsEnabled = process.argv.includes("--catalog-mutations");
+const userMutationsEnabled = process.argv.includes("--user-mutations");
 const playwrightArgs = process.argv
   .slice(2)
-  .filter((arg) => arg !== "--starter-provisioning" && arg !== "--catalog");
+  .filter(
+    (arg) =>
+      arg !== "--starter-provisioning" &&
+      arg !== "--catalog" &&
+      arg !== "--catalog-mutations" &&
+      arg !== "--user-mutations",
+  );
 
 function runNpm(args, env) {
   return new Promise((resolve, reject) => {
@@ -41,6 +49,8 @@ const localEnv = {
   CAPYSTUDY_ENVIRONMENT: "test",
   CAPYSTUDY_STARTER_PROVISIONING_ENABLED: starterProvisioningEnabled ? "true" : "false",
   CAPYSTUDY_CATALOG_ENABLED: catalogEnabled ? "true" : "false",
+  CAPYSTUDY_ADMIN_CATALOG_MUTATIONS_ENABLED: catalogMutationsEnabled ? "true" : "false",
+  CAPYSTUDY_ADMIN_USER_MUTATIONS_ENABLED: userMutationsEnabled ? "true" : "false",
   CAPYSTUDY_ADMIN_CONSOLE_ENABLED: "true",
   MAILPIT_URL: mailpitUrl,
   // Use the test-only classifier mock so E2E never calls real Gemini.

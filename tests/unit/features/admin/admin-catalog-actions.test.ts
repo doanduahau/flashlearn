@@ -5,7 +5,6 @@ vi.mock("server-only", () => ({}));
 import {
   createCatalogSetAction,
   publishCatalogSetAction,
-  replaceCatalogCardsAction,
   swapStarterSetAction,
   updateCatalogMetadataAction,
 } from "@/features/admin/server/admin-catalog-actions";
@@ -33,6 +32,7 @@ describe("Admin Catalog Server Actions", () => {
       quotaEnforcementMode: "observe",
       adminConsoleEnabled: true,
       adminCatalogMutationsEnabled: true,
+      adminUserMutationsEnabled: true,
       billingEnabled: false,
     });
   });
@@ -44,6 +44,7 @@ describe("Admin Catalog Server Actions", () => {
       quotaEnforcementMode: "observe",
       adminConsoleEnabled: true,
       adminCatalogMutationsEnabled: false,
+      adminUserMutationsEnabled: false,
       billingEnabled: false,
     });
 
